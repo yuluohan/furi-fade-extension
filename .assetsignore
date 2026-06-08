@@ -3,6 +3,7 @@
 .idea
 node_modules
 .wrangler
+docs
 tests
 .assetsignore
 EXTENSION_REQUIREMENTS_AND_DESIGN.md
