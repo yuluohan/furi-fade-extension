@@ -13,6 +13,7 @@
         "src/core/annotationDecision.js",
         "src/storage/localStorageAdapter.js",
         "src/repositories/repositories.js",
+        "src/content/annotationEngine.js",
         "src/content/contentScript.js"
       ],
       "css": ["src/styles/annotation.css"],
