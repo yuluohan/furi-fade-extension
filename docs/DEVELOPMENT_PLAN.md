@@ -16,7 +16,7 @@ blocked
 ```text
 Current branch: dev
 Current phase: foundation and architecture
-Next recommended task: add local dictionary provider prototype
+Next recommended task: add Safari Web Extension packaging
 ```
 
 ## Tasks
@@ -43,8 +43,8 @@ Next recommended task: add local dictionary provider prototype
 | T018 | done | Add extension settings UI | Toggle annotation, exposure tracking, URL privacy mode | `npm run check`, `npm test`, HTTP popup load check, Wrangler dry-run |
 | T019 | done | Add vocabulary/frequency debug UI | Show today's frequent items and this week's recurring items | `npm run check`, `npm test`, HTTP popup load check, Wrangler dry-run |
 | T020 | done | Add real dictionary/tokenizer provider design spike | Choose local dictionary/tokenizer/API strategy | `docs/DICTIONARY_TOKENIZER_SPIKE.md`, source review |
-| T021 | pending | Add local dictionary provider prototype | Replace sample-only dictionary for a small real subset | Analyzer tests |
-| T022 | pending | Add Safari storage bridge design | Define background/native/App Group message path | Design note |
+| T021 | done | Add local dictionary provider prototype | Replace sample-only dictionary for a small real subset | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
+| T022 | done | Add Safari storage bridge design | Define background/native/App Group message path | `docs/SAFARI_STORAGE_BRIDGE_DESIGN.md` |
 | T023 | pending | Add Safari Web Extension packaging | Xcode app container and Safari extension target | iOS Safari smoke test |
 
 ## Update Rules

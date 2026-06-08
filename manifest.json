@@ -15,6 +15,7 @@
         "src/storage/chromeStorageAdapter.js",
         "src/storage/persistScheduler.js",
         "src/repositories/repositories.js",
+        "src/dictionary/localDictionaryProvider.js",
         "src/content/tooltip.js",
         "src/content/annotationEngine.js",
         "src/content/contentScript.js"

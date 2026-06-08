@@ -163,6 +163,27 @@ Real original-form lookup should remain a later dictionary/API problem. The curr
    - punctuation and particles skipped by annotation rules
 6. Verify extension and demo load paths separately.
 
+## T021 Prototype Result
+
+The first prototype adds `src/dictionary/localDictionaryProvider.js` instead of packaging Kuromoji assets immediately.
+
+Reason:
+
+- It removes dictionary/analyzer code from `contentScript.js` and creates the provider boundary needed by Kuromoji.
+- It keeps the extension dependency-free while the package and dictionary asset strategy is still being validated.
+- It adds a small local subset that covers kanji compounds, mixed kanji/kana words, and katakana loanword UI behavior.
+
+Covered examples:
+
+- `確認`
+- `申請`
+- `影響`
+- `状態`
+- `食べる`
+- `サーバー`
+
+The next true tokenizer step is still Kuromoji.js packaging and async initialization.
+
 ## Source Notes
 
 - Kuromoji.js README: browser usage requires `build/kuromoji.js` and `dict/*.dat.gz`; tokens include surface form, part of speech, base form, reading, pronunciation, and word position.
