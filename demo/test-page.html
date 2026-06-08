@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fading Furigana Demo</title>
+    <link rel="stylesheet" href="../src/styles/annotation.css" />
+    <style>
+      body {
+        max-width: 720px;
+        margin: 48px auto;
+        padding: 0 20px;
+        color: #222;
+        font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+        line-height: 1.9;
+      }
+
+      button {
+        min-height: 36px;
+      }
+
+      .sample {
+        border-left: 4px solid #ddd;
+        padding-left: 16px;
+        font-size: 22px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Fading Furigana Demo</h1>
+    <p class="sample">メールの内容を確認してください。申請には時間がかかります。</p>
+    <p>社会への影響についても確認してください。</p>
+    <p>サーバーの状態も確認してください。</p>
+    <p>
+      <button type="button" id="toggle-fading-furigana">Hide annotations</button>
+      <button type="button" onclick="window.FadingFurigana?.restore()">Restore annotations</button>
+      <button type="button" onclick="localStorage.removeItem('jrFadingFuriganaState'); location.reload()">Clear local data</button>
+    </p>
+    <pre>コード内の確認は標注しない。</pre>
+    <script src="../src/content/contentScript.js"></script>
+    <script>
+      const STORAGE_KEY = "jrFadingFuriganaState";
+      const toggleButton = document.querySelector("#toggle-fading-furigana");
+
+      function readFadingFuriganaState() {
+        try {
+          return JSON.parse(localStorage.getItem(STORAGE_KEY)) || {};
+        } catch {
+          return {};
+        }
+      }
+
+      function isFadingFuriganaEnabled() {
+        const state = readFadingFuriganaState();
+        return state.settings?.enabled !== false;
+      }
+
+      function updateToggleButton() {
+        toggleButton.textContent = isFadingFuriganaEnabled() ? "Hide annotations" : "Show annotations";
+      }
+
+      toggleButton.addEventListener("click", () => {
+        const state = readFadingFuriganaState();
+        const enabled = !isFadingFuriganaEnabled();
+
+        state.settings = {
+          annotationMode: "unknown_words_only",
+          hideMasteredWords: true,
+          ...state.settings,
+          enabled
+        };
+
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        if (window.FadingFurigana) {
+          window.FadingFurigana.state.settings = state.settings;
+          window.FadingFurigana.refresh();
+        }
+        updateToggleButton();
+      });
+
+      updateToggleButton();
+    </script>
+  </body>
+</html>

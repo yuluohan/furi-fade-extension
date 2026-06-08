@@ -1,0 +1,10 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "kanjidemo",
+  "main": "worker.js",
+  "compatibility_date": "2026-06-08",
+  "assets": {
+    "directory": ".",
+    "binding": "ASSETS"
+  }
+}

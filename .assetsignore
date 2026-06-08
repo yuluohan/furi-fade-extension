@@ -1,0 +1,9 @@
+.DS_Store
+.git
+.idea
+.assetsignore
+EXTENSION_REQUIREMENTS_AND_DESIGN.md
+README.md
+manifest.json
+worker.js
+wrangler.jsonc

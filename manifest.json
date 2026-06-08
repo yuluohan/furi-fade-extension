@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Fading Furigana Prototype",
+  "version": "0.1.0",
+  "description": "Annotates unknown Japanese kanji words with furigana and lets users save or hide words.",
+  "permissions": ["storage", "activeTab"],
+  "host_permissions": ["<all_urls>"],
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["src/content/contentScript.js"],
+      "css": ["src/styles/annotation.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "Fading Furigana"
+  }
+}
