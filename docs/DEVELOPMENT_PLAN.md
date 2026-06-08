@@ -16,7 +16,7 @@ blocked
 ```text
 Current branch: dev
 Current phase: foundation and architecture
-Next recommended task: extract tooltip module
+Next recommended task: add DOM annotation tests
 ```
 
 ## Tasks
@@ -36,7 +36,7 @@ Next recommended task: extract tooltip module
 | T011 | done | Add development design and task plan docs | `docs/DEVELOPMENT_DESIGN.md` and this plan | Document review |
 | T012 | done | Extract annotation decision module | Move `shouldAnnotate` and related settings logic out of content script | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run; browser automation unavailable this run |
 | T013 | done | Extract DOM annotation engine module | Move DOM scanning, ruby insertion, restore, mutation handling out of content script | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
-| T014 | pending | Extract tooltip module | Move tooltip rendering and actions out of content script | Manual demo test |
+| T014 | done | Extract tooltip module | Move tooltip rendering and actions out of content script | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
 | T015 | pending | Add DOM annotation tests | Test skip tags, duplicate prevention, restore, and annotation output | `npm test` |
 | T016 | pending | Add exposure write batching | Avoid saving state once per token on large pages | Unit tests, manual large-page smoke test |
 | T017 | pending | Add ChromeStorageAdapter | Store AppState in `chrome.storage.local` | Chrome extension smoke test |
