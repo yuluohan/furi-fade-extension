@@ -16,7 +16,7 @@ blocked
 ```text
 Current branch: dev
 Current phase: foundation and architecture
-Next recommended task: add DOM annotation tests
+Next recommended task: add extension settings UI
 ```
 
 ## Tasks
@@ -37,9 +37,9 @@ Next recommended task: add DOM annotation tests
 | T012 | done | Extract annotation decision module | Move `shouldAnnotate` and related settings logic out of content script | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run; browser automation unavailable this run |
 | T013 | done | Extract DOM annotation engine module | Move DOM scanning, ruby insertion, restore, mutation handling out of content script | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
 | T014 | done | Extract tooltip module | Move tooltip rendering and actions out of content script | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
-| T015 | pending | Add DOM annotation tests | Test skip tags, duplicate prevention, restore, and annotation output | `npm test` |
-| T016 | pending | Add exposure write batching | Avoid saving state once per token on large pages | Unit tests, manual large-page smoke test |
-| T017 | pending | Add ChromeStorageAdapter | Store AppState in `chrome.storage.local` | Chrome extension smoke test |
+| T015 | done | Add DOM annotation tests | Test skip tags, duplicate prevention, restore, and annotation output | `npm run check`, `npm test` |
+| T016 | done | Add exposure write batching | Avoid saving state once per token on large pages | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
+| T017 | done | Add ChromeStorageAdapter | Store AppState in `chrome.storage.local` | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
 | T018 | pending | Add extension settings UI | Toggle annotation, exposure tracking, URL privacy mode | Manual extension test |
 | T019 | pending | Add vocabulary/frequency debug UI | Show today's frequent items and this week's recurring items | Manual demo/extension test |
 | T020 | pending | Add real dictionary/tokenizer provider design spike | Choose local dictionary/tokenizer/API strategy | Design note and prototype result |

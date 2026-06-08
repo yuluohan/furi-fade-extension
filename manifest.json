@@ -12,6 +12,8 @@
         "src/core/appState.js",
         "src/core/annotationDecision.js",
         "src/storage/localStorageAdapter.js",
+        "src/storage/chromeStorageAdapter.js",
+        "src/storage/persistScheduler.js",
         "src/repositories/repositories.js",
         "src/content/tooltip.js",
         "src/content/annotationEngine.js",

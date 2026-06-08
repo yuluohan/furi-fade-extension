@@ -141,6 +141,10 @@
       this.lexicalItems = new window.FadingFuriganaRepositories.LexicalItemRepository(() => this.state);
       this.userLexicalStates = new window.FadingFuriganaRepositories.UserLexicalStateRepository(() => this.state);
       this.exposures = new window.FadingFuriganaRepositories.ExposureRepository(() => this.state);
+      this.persistScheduler = new window.FadingFuriganaPersistScheduler.PersistScheduler(
+        () => this.persistImmediately(),
+        { delayMs: 250 }
+      );
     }
 
     async load() {
@@ -149,6 +153,10 @@
     }
 
     async persist() {
+      await this.persistScheduler.flush();
+    }
+
+    async persistImmediately() {
       await this.storageAdapter.saveState(this.state);
     }
 
@@ -210,7 +218,7 @@
       const item = this.upsertLexicalItem(token, now);
       this.userLexicalStates.recordSeen(item.id, now);
       this.recordDailyExposure(item.id, token.surface, now);
-      await this.persist();
+      this.persistScheduler.schedule();
     }
 
     recordDailyExposure(lexicalItemId, surface, seenAt) {
@@ -248,7 +256,7 @@
     if (!document.body || window.__fadingFuriganaLoaded) return;
     window.__fadingFuriganaLoaded = true;
 
-    const storageAdapter = new window.FadingFuriganaStorage.LocalStorageAdapter();
+    const storageAdapter = window.FadingFuriganaStorage.createBestAvailableStorageAdapter();
     const repository = new LocalWordRepository(storageAdapter);
     await repository.load();
     const dictionaryProvider = new DictionaryProvider(SAMPLE_DICTIONARY);
