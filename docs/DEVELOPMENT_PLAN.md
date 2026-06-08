@@ -16,7 +16,7 @@ blocked
 ```text
 Current branch: dev
 Current phase: foundation and architecture
-Next recommended task: add extension settings UI
+Next recommended task: add local dictionary provider prototype
 ```
 
 ## Tasks
@@ -40,9 +40,9 @@ Next recommended task: add extension settings UI
 | T015 | done | Add DOM annotation tests | Test skip tags, duplicate prevention, restore, and annotation output | `npm run check`, `npm test` |
 | T016 | done | Add exposure write batching | Avoid saving state once per token on large pages | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
 | T017 | done | Add ChromeStorageAdapter | Store AppState in `chrome.storage.local` | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
-| T018 | pending | Add extension settings UI | Toggle annotation, exposure tracking, URL privacy mode | Manual extension test |
-| T019 | pending | Add vocabulary/frequency debug UI | Show today's frequent items and this week's recurring items | Manual demo/extension test |
-| T020 | pending | Add real dictionary/tokenizer provider design spike | Choose local dictionary/tokenizer/API strategy | Design note and prototype result |
+| T018 | done | Add extension settings UI | Toggle annotation, exposure tracking, URL privacy mode | `npm run check`, `npm test`, HTTP popup load check, Wrangler dry-run |
+| T019 | done | Add vocabulary/frequency debug UI | Show today's frequent items and this week's recurring items | `npm run check`, `npm test`, HTTP popup load check, Wrangler dry-run |
+| T020 | done | Add real dictionary/tokenizer provider design spike | Choose local dictionary/tokenizer/API strategy | `docs/DICTIONARY_TOKENIZER_SPIKE.md`, source review |
 | T021 | pending | Add local dictionary provider prototype | Replace sample-only dictionary for a small real subset | Analyzer tests |
 | T022 | pending | Add Safari storage bridge design | Define background/native/App Group message path | Design note |
 | T023 | pending | Add Safari Web Extension packaging | Xcode app container and Safari extension target | iOS Safari smoke test |

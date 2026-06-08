@@ -196,9 +196,7 @@
         lexicalItemId: item.id,
         surface: token.surface,
         sentence: sourceSentence,
-        url: window.location.href,
-        domain: window.location.hostname,
-        pageTitle: document.title,
+        ...this.getPageContext(),
         createdAt: now
       };
 
@@ -222,18 +220,42 @@
     }
 
     recordDailyExposure(lexicalItemId, surface, seenAt) {
-      const pageKey = this.state.settings.exposureTracking.saveUrls === "full"
-        ? window.location.href
-        : window.location.hostname || "unknown-page";
+      const pageContext = this.getPageContext();
       return this.exposures.recordDailyExposure({
         lexicalItemId,
         surface,
-        pageKey,
-        url: window.location.href,
-        domain: window.location.hostname,
-        pageTitle: document.title,
+        ...pageContext,
         seenAt
       });
+    }
+
+    getPageContext() {
+      const saveUrls = this.state.settings.exposureTracking.saveUrls;
+
+      if (saveUrls === "none") {
+        return {
+          pageKey: "private-page",
+          url: undefined,
+          domain: undefined,
+          pageTitle: undefined
+        };
+      }
+
+      if (saveUrls === "full") {
+        return {
+          pageKey: window.location.href,
+          url: window.location.href,
+          domain: window.location.hostname,
+          pageTitle: document.title
+        };
+      }
+
+      return {
+        pageKey: window.location.hostname || "unknown-page",
+        url: undefined,
+        domain: window.location.hostname,
+        pageTitle: document.title
+      };
     }
 
     listDailyExposures(date = window.FadingFuriganaState.getLocalDateKey()) {
@@ -269,6 +291,23 @@
       tooltip
     });
     engine.start();
+
+    if (window.chrome?.runtime?.onMessage) {
+      window.chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+        if (message?.type !== "FADING_FURIGANA_SETTINGS_UPDATED") return false;
+
+        repository
+          .load()
+          .then(() => {
+            engine.refresh();
+            sendResponse({ ok: true });
+          })
+          .catch((error) => {
+            sendResponse({ ok: false, error: error.message });
+          });
+        return true;
+      });
+    }
   }
 
   boot();

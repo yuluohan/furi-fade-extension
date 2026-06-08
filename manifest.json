@@ -24,6 +24,7 @@
     }
   ],
   "action": {
-    "default_title": "Fading Furigana"
+    "default_title": "Fading Furigana",
+    "default_popup": "src/popup/popup.html"
   }
 }
