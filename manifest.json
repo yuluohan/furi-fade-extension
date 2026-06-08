@@ -11,6 +11,7 @@
       "js": [
         "src/core/appState.js",
         "src/storage/localStorageAdapter.js",
+        "src/repositories/repositories.js",
         "src/content/contentScript.js"
       ],
       "css": ["src/styles/annotation.css"],

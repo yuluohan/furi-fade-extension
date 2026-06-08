@@ -174,6 +174,9 @@
     constructor(storageAdapter) {
       this.storageAdapter = storageAdapter;
       this.state = window.FadingFuriganaState.createDefaultAppState();
+      this.lexicalItems = new window.FadingFuriganaRepositories.LexicalItemRepository(() => this.state);
+      this.userLexicalStates = new window.FadingFuriganaRepositories.UserLexicalStateRepository(() => this.state);
+      this.exposures = new window.FadingFuriganaRepositories.ExposureRepository(() => this.state);
     }
 
     async load() {
@@ -190,7 +193,7 @@
     }
 
     getUserWordState(wordId) {
-      return this.state.userLexicalStates[wordId] || null;
+      return this.userLexicalStates.getByLexicalItemId(wordId);
     }
 
     getLegacyUserWordState(wordId) {
@@ -203,29 +206,18 @@
     }
 
     upsertLexicalItem(token, now = new Date().toISOString()) {
-      const lexicalItemId = token.lexicalItemId || token.id;
-      const item = window.FadingFuriganaState.createLexicalItemFromToken(
-        token,
-        this.state.lexicalItems[lexicalItemId],
-        now
-      );
-      this.state.lexicalItems[lexicalItemId] = item;
-      return item;
+      return this.lexicalItems.upsertFromToken(token, now);
     }
 
     ensureUserState(lexicalItemId, now = new Date().toISOString()) {
-      if (!this.state.userLexicalStates[lexicalItemId]) {
-        this.state.userLexicalStates[lexicalItemId] =
-          window.FadingFuriganaState.createDefaultUserLexicalState(lexicalItemId, now);
-      }
-      return this.state.userLexicalStates[lexicalItemId];
+      return this.userLexicalStates.ensure(lexicalItemId, now);
     }
 
     async saveWord(token, sourceSentence) {
       const now = new Date().toISOString();
       const item = this.upsertLexicalItem(token, now);
       const occurrenceId = createId("occurrence", item.id, sourceSentence, now);
-      const existingState = this.ensureUserState(item.id, now);
+      const existingState = this.userLexicalStates.markSaved(item.id, now);
 
       this.state.sourceOccurrences[occurrenceId] = {
         id: occurrenceId,
@@ -237,14 +229,6 @@
         pageTitle: document.title,
         createdAt: now
       };
-
-      existingState.lifecycleStatus = "learning";
-      existingState.annotationLevel = "full_ruby";
-      existingState.knowledgeConfidence = Math.min(existingState.knowledgeConfidence, 0.4);
-      existingState.userIntent.saved = true;
-      existingState.interaction.savedCount += 1;
-      existingState.interaction.lastActionAt = now;
-      existingState.learning.reviewStage = "learning";
 
       await this.persist();
     }
@@ -260,77 +244,38 @@
     async recordSeen(token) {
       const now = new Date().toISOString();
       const item = this.upsertLexicalItem(token, now);
-      const state = this.ensureUserState(item.id, now);
-
-      state.exposure.seenCount += 1;
-      state.exposure.firstSeenAt ||= now;
-      state.exposure.lastSeenAt = now;
-
+      this.userLexicalStates.recordSeen(item.id, now);
       this.recordDailyExposure(item.id, token.surface, now);
       await this.persist();
     }
 
     recordDailyExposure(lexicalItemId, surface, seenAt) {
-      if (!this.state.settings.exposureTracking.enabled) return;
-      const date = window.FadingFuriganaState.getLocalDateKey(new Date(seenAt));
-      const id = createId("daily-exposure", date, lexicalItemId);
       const pageKey = this.state.settings.exposureTracking.saveUrls === "full"
         ? window.location.href
         : window.location.hostname || "unknown-page";
-      const existing = this.state.dailyExposureSummaries[id];
+      return this.exposures.recordDailyExposure({
+        lexicalItemId,
+        surface,
+        pageKey,
+        url: window.location.href,
+        domain: window.location.hostname,
+        pageTitle: document.title,
+        seenAt
+      });
+    }
 
-      if (!existing) {
-        this.state.dailyExposureSummaries[id] = {
-          id,
-          date,
-          lexicalItemId,
-          totalSeenCount: 0,
-          uniquePageCount: 0,
-          surfaceForms: {},
-          pages: {},
-          firstSeenAt: seenAt,
-          lastSeenAt: seenAt
-        };
-      }
+    listDailyExposures(date = window.FadingFuriganaState.getLocalDateKey()) {
+      return this.exposures.listDailyExposures(date);
+    }
 
-      const summary = this.state.dailyExposureSummaries[id];
-      summary.totalSeenCount += 1;
-      summary.surfaceForms[surface] = (summary.surfaceForms[surface] || 0) + 1;
-      summary.firstSeenAt ||= seenAt;
-      summary.lastSeenAt = seenAt;
-
-      if (!summary.pages[pageKey]) {
-        summary.pages[pageKey] = {
-          pageTitle: document.title,
-          domain: window.location.hostname,
-          seenCount: 0,
-          firstSeenAt: seenAt,
-          lastSeenAt: seenAt
-        };
-        summary.uniquePageCount += 1;
-      }
-      summary.pages[pageKey].seenCount += 1;
-      summary.pages[pageKey].lastSeenAt = seenAt;
+    listFrequentItems(range) {
+      return this.exposures.listFrequentItems(range);
     }
 
     async setStatus(token, status, annotationLevel) {
       const now = new Date().toISOString();
       const item = this.upsertLexicalItem(token, now);
-      const state = this.ensureUserState(item.id, now);
-
-      state.lifecycleStatus = status;
-      state.annotationLevel = annotationLevel === "hidden" ? "hidden" : "full_ruby";
-      state.interaction.lastActionAt = now;
-      if (status === "mastered") {
-        state.knowledgeConfidence = 1;
-        state.userIntent.manuallyMarkedKnown = true;
-        state.interaction.markedKnownCount += 1;
-      }
-      if (status === "ignored") {
-        state.userIntent.ignored = true;
-        state.interaction.ignoredCount += 1;
-      }
-
+      this.userLexicalStates.setStatus(item.id, status, annotationLevel, now);
       await this.persist();
     }
   }
@@ -457,7 +402,20 @@
       window.FadingFurigana = {
         restore: () => this.restore(),
         refresh: () => this.refresh(),
-        state: this.repository.state
+        state: this.repository.state,
+        exposures: {
+          today: () => this.repository.listDailyExposures(),
+          frequent: (range) => this.repository.listFrequentItems(range),
+          frequentThisWeek: () => {
+            const end = new Date();
+            const start = new Date();
+            start.setDate(end.getDate() - 6);
+            return this.repository.listFrequentItems({
+              startDate: window.FadingFuriganaState.getLocalDateKey(start),
+              endDate: window.FadingFuriganaState.getLocalDateKey(end)
+            });
+          }
+        }
       };
     }
 
