@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "check": "node --check src/core/appState.js && node --check src/storage/localStorageAdapter.js && node --check src/repositories/repositories.js && node --check src/content/contentScript.js && node --check worker.js",
-    "test": "node tests/stateRepositories.test.js"
+    "check": "node --check src/core/appState.js && node --check src/core/annotationDecision.js && node --check src/storage/localStorageAdapter.js && node --check src/repositories/repositories.js && node --check src/content/contentScript.js && node --check worker.js",
+    "test": "node tests/stateRepositories.test.js && node tests/annotationDecision.test.js"
   }
 }

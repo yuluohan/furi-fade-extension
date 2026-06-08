@@ -280,18 +280,6 @@
     }
   }
 
-  function shouldAnnotate(word, userState, settings) {
-    const annotation = settings.annotation || {};
-    if (!annotation.enabled || annotation.mode === "off") return false;
-    if (userState?.lifecycleStatus === "ignored") return false;
-    if (annotation.hideKnownItems && userState?.knowledgeConfidence >= 0.85) return false;
-    if (annotation.mode === "all_items") return true;
-    if (annotation.mode === "unknown_items_only") return !userState || userState.knowledgeConfidence < 0.85;
-    if (annotation.mode === "saved_items_only") return userState?.userIntent.saved === true;
-    if (annotation.mode === "adaptive") return word.source?.confidence > 0.5;
-    return false;
-  }
-
   function shouldSkipTextNode(node) {
     if (!node.nodeValue || !node.nodeValue.trim() || !JAPANESE_RE.test(node.nodeValue)) return true;
 
@@ -469,7 +457,11 @@
       const tokens = this.analyzer
         .analyze(text)
         .filter((token) =>
-          shouldAnnotate(token, this.repository.getUserWordState(token.lexicalItemId), this.repository.settings)
+          window.FadingFuriganaAnnotationDecision.shouldAnnotate(
+            token,
+            this.repository.getUserWordState(token.lexicalItemId),
+            this.repository.settings
+          )
         );
 
       if (tokens.length === 0) return;

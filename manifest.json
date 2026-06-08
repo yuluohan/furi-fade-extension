@@ -10,6 +10,7 @@
       "matches": ["<all_urls>"],
       "js": [
         "src/core/appState.js",
+        "src/core/annotationDecision.js",
         "src/storage/localStorageAdapter.js",
         "src/repositories/repositories.js",
         "src/content/contentScript.js"

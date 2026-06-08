@@ -34,7 +34,7 @@ Next recommended task: extract annotation decision and DOM annotation modules
 | T009 | done | Extract repository layer | Lexical item, user lexical state, and exposure repositories | `node --check`, dry-run |
 | T010 | done | Add automated state/repository tests | Lightweight Node tests for state, migration, storage, repositories | `npm run check`, `npm test` |
 | T011 | done | Add development design and task plan docs | `docs/DEVELOPMENT_DESIGN.md` and this plan | Document review |
-| T012 | pending | Extract annotation decision module | Move `shouldAnnotate` and related settings logic out of content script | `npm test`, manual demo test |
+| T012 | done | Extract annotation decision module | Move `shouldAnnotate` and related settings logic out of content script | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run; browser automation unavailable this run |
 | T013 | pending | Extract DOM annotation engine module | Move DOM scanning, ruby insertion, restore, mutation handling out of content script | DOM-focused tests, manual demo test |
 | T014 | pending | Extract tooltip module | Move tooltip rendering and actions out of content script | Manual demo test |
 | T015 | pending | Add DOM annotation tests | Test skip tags, duplicate prevention, restore, and annotation output | `npm test` |
