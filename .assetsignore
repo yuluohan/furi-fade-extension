@@ -3,9 +3,11 @@
 .idea
 node_modules
 .wrangler
+tests
 .assetsignore
 EXTENSION_REQUIREMENTS_AND_DESIGN.md
 README.md
 manifest.json
+package.json
 worker.js
 wrangler.jsonc

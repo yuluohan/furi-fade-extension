@@ -45,6 +45,15 @@ The Worker serves:
 
 If `/test-page` loads but annotations do not appear, check that the JS and CSS paths above return `200`.
 
+## Local checks
+
+Run syntax checks and state/repository tests:
+
+```sh
+npm run check
+npm test
+```
+
 ## Next step
 
 Move storage behind a platform adapter:
