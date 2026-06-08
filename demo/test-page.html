@@ -37,6 +37,8 @@
       <button type="button" onclick="localStorage.removeItem('jrFadingFuriganaState'); location.reload()">Clear local data</button>
     </p>
     <pre>コード内の確認は標注しない。</pre>
+    <script src="../src/core/appState.js"></script>
+    <script src="../src/storage/localStorageAdapter.js"></script>
     <script src="../src/content/contentScript.js"></script>
     <script>
       const STORAGE_KEY = "jrFadingFuriganaState";
@@ -52,6 +54,7 @@
 
       function isFadingFuriganaEnabled() {
         const state = readFadingFuriganaState();
+        if (state.settings?.annotation) return state.settings.annotation.enabled !== false;
         return state.settings?.enabled !== false;
       }
 
@@ -63,16 +66,12 @@
         const state = readFadingFuriganaState();
         const enabled = !isFadingFuriganaEnabled();
 
-        state.settings = {
-          annotationMode: "unknown_words_only",
-          hideMasteredWords: true,
-          ...state.settings,
-          enabled
-        };
+        state.settings = window.FadingFuriganaState.normalizeSettings(state.settings);
+        state.settings.annotation.enabled = enabled;
 
         localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
         if (window.FadingFurigana) {
-          window.FadingFurigana.state.settings = state.settings;
+          window.FadingFurigana.state.settings.annotation.enabled = enabled;
           window.FadingFurigana.refresh();
         }
         updateToggleButton();

@@ -8,7 +8,11 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
-      "js": ["src/content/contentScript.js"],
+      "js": [
+        "src/core/appState.js",
+        "src/storage/localStorageAdapter.js",
+        "src/content/contentScript.js"
+      ],
       "css": ["src/styles/annotation.css"],
       "run_at": "document_idle"
     }

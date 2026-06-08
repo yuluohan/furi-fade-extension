@@ -21,41 +21,56 @@
       surface: "確認",
       baseForm: "確認",
       reading: "かくにん",
-      meaningEn: "confirmation; check",
-      partOfSpeech: "noun; suru-verb"
+      meanings: {
+        en: ["confirmation", "check"],
+        zhHans: ["确认", "核对"],
+        ja: ["確かめること"]
+      },
+      partOfSpeech: ["noun", "suru-verb"]
     },
     {
       surface: "申請",
       baseForm: "申請",
       reading: "しんせい",
-      meaningEn: "application; request",
-      partOfSpeech: "noun; suru-verb"
+      meanings: {
+        en: ["application", "request"],
+        zhHans: ["申请", "请求"],
+        ja: ["申し込むこと"]
+      },
+      partOfSpeech: ["noun", "suru-verb"]
     },
     {
       surface: "影響",
       baseForm: "影響",
       reading: "えいきょう",
-      meaningEn: "influence; effect",
-      partOfSpeech: "noun"
+      meanings: {
+        en: ["influence", "effect"],
+        zhHans: ["影响"],
+        ja: ["他に作用を及ぼすこと"]
+      },
+      partOfSpeech: ["noun"]
     },
     {
       surface: "サーバー",
       baseForm: "サーバー",
-      reading: "server",
-      meaningEn: "server",
-      partOfSpeech: "loanword noun"
+      reading: "サーバー",
+      meanings: {
+        en: ["server"],
+        zhHans: ["服务器"],
+        ja: ["ネットワーク上でサービスを提供するコンピューター"]
+      },
+      partOfSpeech: ["loanword", "noun"],
+      loanword: {
+        isLoanword: true,
+        originLanguage: "en",
+        originalForm: "server",
+        confidence: 0.9
+      }
     }
   ];
 
-  const DEFAULT_SETTINGS = {
-    annotationMode: "unknown_words_only",
-    hideMasteredWords: true,
-    enabled: true
-  };
-
   const JAPANESE_RE = /[\u3040-\u30ff\u3400-\u9fff]/;
   const SENTENCE_END_RE = /[。！？!?]/;
-  const STORAGE_KEY = "jrFadingFuriganaState";
   const ANNOTATED_ATTR = "data-jr-annotated";
 
   function hasKanji(text) {
@@ -63,18 +78,32 @@
   }
 
   function createId(...parts) {
-    return parts
-      .join(":")
-      .normalize("NFKC")
-      .replace(/\s+/g, "-")
-      .toLowerCase();
+    return window.FadingFuriganaState.createId(...parts);
+  }
+
+  function getMeaningText(item, preferredLanguages) {
+    const meanings = item.meanings || {};
+    for (const locale of preferredLanguages || []) {
+      if (meanings[locale]?.length) return meanings[locale].join("; ");
+    }
+    return Object.values(meanings).find((values) => values?.length)?.join("; ") || "";
+  }
+
+  function parseJsonDataset(value, fallback) {
+    if (!value) return fallback;
+    try {
+      return JSON.parse(value);
+    } catch {
+      return fallback;
+    }
   }
 
   class DictionaryProvider {
     constructor(entries) {
       this.entries = entries.map((entry) => ({
         ...entry,
-        id: createId(entry.baseForm, entry.reading)
+        id: createId(entry.baseForm, entry.reading),
+        lexicalItemId: createId(entry.baseForm, entry.reading)
       }));
       this.bySurface = new Map();
       for (const entry of this.entries) {
@@ -114,6 +143,21 @@
 
         tokens.push({
           ...entry,
+          lexicalItemId: entry.lexicalItemId || entry.id,
+          lemma: entry.baseForm,
+          readingKana: entry.reading,
+          baseReadingKana: entry.reading,
+          lexicalType: entry.loanword?.isLoanword ? "loanword" : "word",
+          scriptProfile: {
+            hasKanji: hasKanji(entry.surface),
+            hasHiragana: /[\u3040-\u309f]/.test(entry.surface),
+            hasKatakana: /[\u30a0-\u30ff]/.test(entry.surface),
+            hasLatin: /[a-z]/i.test(entry.surface)
+          },
+          source: {
+            provider: "sample",
+            confidence: 1
+          },
           start: index,
           end: index + entry.surface.length,
           isKanjiWord: hasKanji(entry.surface),
@@ -127,34 +171,18 @@
   }
 
   class LocalWordRepository {
-    constructor() {
-      this.state = {
-        words: {},
-        userWordStates: {},
-        sourceSentences: {},
-        reviewLogs: {},
-        settings: DEFAULT_SETTINGS
-      };
+    constructor(storageAdapter) {
+      this.storageAdapter = storageAdapter;
+      this.state = window.FadingFuriganaState.createDefaultAppState();
     }
 
     async load() {
-      const raw = window.localStorage.getItem(STORAGE_KEY);
-      if (!raw) return;
-
-      try {
-        const parsed = JSON.parse(raw);
-        this.state = {
-          ...this.state,
-          ...parsed,
-          settings: { ...DEFAULT_SETTINGS, ...parsed.settings }
-        };
-      } catch {
-        this.state.settings = DEFAULT_SETTINGS;
-      }
+      this.state = await this.storageAdapter.loadState();
+      await this.persist();
     }
 
-    persist() {
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+    async persist() {
+      await this.storageAdapter.saveState(this.state);
     }
 
     get settings() {
@@ -162,134 +190,160 @@
     }
 
     getUserWordState(wordId) {
-      return this.state.userWordStates[wordId] || null;
+      return this.state.userLexicalStates[wordId] || null;
     }
 
-    saveWord(token, sourceSentence) {
-      const now = new Date().toISOString();
-      const word = {
-        id: token.id,
-        surface: token.surface,
-        baseForm: token.baseForm,
-        reading: token.reading,
-        meaningEn: token.meaningEn,
-        partOfSpeech: token.partOfSpeech,
-        isKanjiWord: token.isKanjiWord,
-        isKatakanaWord: token.isKatakanaWord,
-        createdAt: this.state.words[token.id]?.createdAt || now,
-        updatedAt: now
+    getLegacyUserWordState(wordId) {
+      const state = this.getUserWordState(wordId);
+      if (!state) return null;
+      return {
+        status: state.lifecycleStatus === "mastered" ? "mastered" : state.lifecycleStatus,
+        annotationLevel: state.annotationLevel === "hidden" ? "hidden" : "ruby"
       };
+    }
 
-      const sentenceId = createId(token.id, sourceSentence, now);
-      const existingState = this.getUserWordState(token.id);
+    upsertLexicalItem(token, now = new Date().toISOString()) {
+      const lexicalItemId = token.lexicalItemId || token.id;
+      const item = window.FadingFuriganaState.createLexicalItemFromToken(
+        token,
+        this.state.lexicalItems[lexicalItemId],
+        now
+      );
+      this.state.lexicalItems[lexicalItemId] = item;
+      return item;
+    }
 
-      this.state.words[token.id] = word;
-      this.state.sourceSentences[sentenceId] = {
-        id: sentenceId,
-        wordId: token.id,
+    ensureUserState(lexicalItemId, now = new Date().toISOString()) {
+      if (!this.state.userLexicalStates[lexicalItemId]) {
+        this.state.userLexicalStates[lexicalItemId] =
+          window.FadingFuriganaState.createDefaultUserLexicalState(lexicalItemId, now);
+      }
+      return this.state.userLexicalStates[lexicalItemId];
+    }
+
+    async saveWord(token, sourceSentence) {
+      const now = new Date().toISOString();
+      const item = this.upsertLexicalItem(token, now);
+      const occurrenceId = createId("occurrence", item.id, sourceSentence, now);
+      const existingState = this.ensureUserState(item.id, now);
+
+      this.state.sourceOccurrences[occurrenceId] = {
+        id: occurrenceId,
+        lexicalItemId: item.id,
+        surface: token.surface,
         sentence: sourceSentence,
         url: window.location.href,
+        domain: window.location.hostname,
         pageTitle: document.title,
         createdAt: now
       };
-      this.state.userWordStates[token.id] = {
-        id: existingState?.id || createId("state", token.id),
-        wordId: token.id,
-        status: "learning",
-        annotationLevel: "ruby",
-        seenCount: existingState?.seenCount || 1,
-        savedCount: (existingState?.savedCount || 0) + 1,
-        reviewCount: existingState?.reviewCount || 0,
-        correctCount: existingState?.correctCount || 0,
-        wrongCount: existingState?.wrongCount || 0,
-        correctStreak: existingState?.correctStreak || 0,
-        firstSeenAt: existingState?.firstSeenAt || now,
-        lastSeenAt: now,
-        lastReviewedAt: existingState?.lastReviewedAt,
-        nextReviewAt: existingState?.nextReviewAt,
-        sourceSentenceIds: [...(existingState?.sourceSentenceIds || []), sentenceId]
-      };
 
-      this.persist();
+      existingState.lifecycleStatus = "learning";
+      existingState.annotationLevel = "full_ruby";
+      existingState.knowledgeConfidence = Math.min(existingState.knowledgeConfidence, 0.4);
+      existingState.userIntent.saved = true;
+      existingState.interaction.savedCount += 1;
+      existingState.interaction.lastActionAt = now;
+      existingState.learning.reviewStage = "learning";
+
+      await this.persist();
     }
 
     markKnown(token) {
-      this.setStatus(token, "mastered", "hidden");
+      return this.setStatus(token, "mastered", "hidden");
     }
 
     ignore(token) {
-      this.setStatus(token, "ignored", "hidden");
+      return this.setStatus(token, "ignored", "hidden");
     }
 
-    recordSeen(token) {
+    async recordSeen(token) {
       const now = new Date().toISOString();
-      const existingState = this.getUserWordState(token.id);
-      if (!existingState) {
-        this.state.userWordStates[token.id] = {
-          id: createId("state", token.id),
-          wordId: token.id,
-          status: "new",
-          annotationLevel: "ruby",
-          seenCount: 1,
-          savedCount: 0,
-          reviewCount: 0,
-          correctCount: 0,
-          wrongCount: 0,
-          correctStreak: 0,
-          firstSeenAt: now,
-          lastSeenAt: now,
-          sourceSentenceIds: []
+      const item = this.upsertLexicalItem(token, now);
+      const state = this.ensureUserState(item.id, now);
+
+      state.exposure.seenCount += 1;
+      state.exposure.firstSeenAt ||= now;
+      state.exposure.lastSeenAt = now;
+
+      this.recordDailyExposure(item.id, token.surface, now);
+      await this.persist();
+    }
+
+    recordDailyExposure(lexicalItemId, surface, seenAt) {
+      if (!this.state.settings.exposureTracking.enabled) return;
+      const date = window.FadingFuriganaState.getLocalDateKey(new Date(seenAt));
+      const id = createId("daily-exposure", date, lexicalItemId);
+      const pageKey = this.state.settings.exposureTracking.saveUrls === "full"
+        ? window.location.href
+        : window.location.hostname || "unknown-page";
+      const existing = this.state.dailyExposureSummaries[id];
+
+      if (!existing) {
+        this.state.dailyExposureSummaries[id] = {
+          id,
+          date,
+          lexicalItemId,
+          totalSeenCount: 0,
+          uniquePageCount: 0,
+          surfaceForms: {},
+          pages: {},
+          firstSeenAt: seenAt,
+          lastSeenAt: seenAt
         };
-      } else {
-        existingState.seenCount += 1;
-        existingState.lastSeenAt = now;
       }
-      this.persist();
+
+      const summary = this.state.dailyExposureSummaries[id];
+      summary.totalSeenCount += 1;
+      summary.surfaceForms[surface] = (summary.surfaceForms[surface] || 0) + 1;
+      summary.firstSeenAt ||= seenAt;
+      summary.lastSeenAt = seenAt;
+
+      if (!summary.pages[pageKey]) {
+        summary.pages[pageKey] = {
+          pageTitle: document.title,
+          domain: window.location.hostname,
+          seenCount: 0,
+          firstSeenAt: seenAt,
+          lastSeenAt: seenAt
+        };
+        summary.uniquePageCount += 1;
+      }
+      summary.pages[pageKey].seenCount += 1;
+      summary.pages[pageKey].lastSeenAt = seenAt;
     }
 
-    setStatus(token, status, annotationLevel) {
+    async setStatus(token, status, annotationLevel) {
       const now = new Date().toISOString();
-      const existingState = this.getUserWordState(token.id);
-      this.state.words[token.id] = {
-        id: token.id,
-        surface: token.surface,
-        baseForm: token.baseForm,
-        reading: token.reading,
-        meaningEn: token.meaningEn,
-        partOfSpeech: token.partOfSpeech,
-        isKanjiWord: token.isKanjiWord,
-        isKatakanaWord: token.isKatakanaWord,
-        createdAt: this.state.words[token.id]?.createdAt || now,
-        updatedAt: now
-      };
-      this.state.userWordStates[token.id] = {
-        id: existingState?.id || createId("state", token.id),
-        wordId: token.id,
-        status,
-        annotationLevel,
-        seenCount: existingState?.seenCount || 1,
-        savedCount: existingState?.savedCount || 0,
-        reviewCount: existingState?.reviewCount || 0,
-        correctCount: existingState?.correctCount || 0,
-        wrongCount: existingState?.wrongCount || 0,
-        correctStreak: existingState?.correctStreak || 0,
-        firstSeenAt: existingState?.firstSeenAt || now,
-        lastSeenAt: now,
-        lastReviewedAt: existingState?.lastReviewedAt,
-        nextReviewAt: existingState?.nextReviewAt,
-        sourceSentenceIds: existingState?.sourceSentenceIds || []
-      };
-      this.persist();
+      const item = this.upsertLexicalItem(token, now);
+      const state = this.ensureUserState(item.id, now);
+
+      state.lifecycleStatus = status;
+      state.annotationLevel = annotationLevel === "hidden" ? "hidden" : "full_ruby";
+      state.interaction.lastActionAt = now;
+      if (status === "mastered") {
+        state.knowledgeConfidence = 1;
+        state.userIntent.manuallyMarkedKnown = true;
+        state.interaction.markedKnownCount += 1;
+      }
+      if (status === "ignored") {
+        state.userIntent.ignored = true;
+        state.interaction.ignoredCount += 1;
+      }
+
+      await this.persist();
     }
   }
 
   function shouldAnnotate(word, userState, settings) {
-    if (!settings.enabled || settings.annotationMode === "off") return false;
-    if (userState?.status === "ignored") return false;
-    if (settings.hideMasteredWords && userState?.status === "mastered") return false;
-    if (settings.annotationMode === "all_kanji_words") return word.isKanjiWord;
-    if (settings.annotationMode === "unknown_words_only") return !userState || userState.status !== "mastered";
-    if (settings.annotationMode === "saved_words_only") return !!userState && userState.status !== "mastered";
+    const annotation = settings.annotation || {};
+    if (!annotation.enabled || annotation.mode === "off") return false;
+    if (userState?.lifecycleStatus === "ignored") return false;
+    if (annotation.hideKnownItems && userState?.knowledgeConfidence >= 0.85) return false;
+    if (annotation.mode === "all_items") return true;
+    if (annotation.mode === "unknown_items_only") return !userState || userState.knowledgeConfidence < 0.85;
+    if (annotation.mode === "saved_items_only") return userState?.userIntent.saved === true;
+    if (annotation.mode === "adaptive") return word.source?.confidence > 0.5;
     return false;
   }
 
@@ -339,6 +393,8 @@
     }
 
     show(target, token, sourceSentence) {
+      const meaningText = getMeaningText(token, this.repository.state.userProfile.preferredMeaningLanguages);
+      const readingText = token.loanword?.originalForm || token.readingKana || token.reading;
       this.element.hidden = false;
       this.element.innerHTML = `
         <div class="jr-tooltip__surface"></div>
@@ -353,8 +409,8 @@
       `;
 
       this.element.querySelector(".jr-tooltip__surface").textContent = token.surface;
-      this.element.querySelector(".jr-tooltip__reading").textContent = token.reading;
-      this.element.querySelector(".jr-tooltip__meaning").textContent = token.meaningEn || "";
+      this.element.querySelector(".jr-tooltip__reading").textContent = readingText;
+      this.element.querySelector(".jr-tooltip__meaning").textContent = meaningText;
       this.element.querySelector(".jr-tooltip__sentence").textContent = sourceSentence || "";
 
       this.element.querySelector("[data-action='save']").addEventListener("click", () => {
@@ -454,7 +510,9 @@
       const text = node.nodeValue;
       const tokens = this.analyzer
         .analyze(text)
-        .filter((token) => shouldAnnotate(token, this.repository.getUserWordState(token.id), this.repository.settings));
+        .filter((token) =>
+          shouldAnnotate(token, this.repository.getUserWordState(token.lexicalItemId), this.repository.settings)
+        );
 
       if (tokens.length === 0) return;
 
@@ -477,17 +535,23 @@
       const ruby = document.createElement("ruby");
       ruby.className = "jr-ruby";
       ruby.setAttribute(ANNOTATED_ATTR, "true");
-      ruby.dataset.wordId = token.id;
+      ruby.dataset.wordId = token.lexicalItemId;
+      ruby.dataset.lexicalItemId = token.lexicalItemId;
       ruby.dataset.surface = token.surface;
-      ruby.dataset.baseForm = token.baseForm;
-      ruby.dataset.reading = token.reading;
-      ruby.dataset.meaningEn = token.meaningEn || "";
-      ruby.dataset.partOfSpeech = token.partOfSpeech || "";
+      ruby.dataset.lemma = token.lemma || token.baseForm || token.surface;
+      ruby.dataset.baseForm = token.baseForm || token.lemma || token.surface;
+      ruby.dataset.reading = token.readingKana || token.reading;
+      ruby.dataset.readingKana = token.readingKana || token.reading;
+      ruby.dataset.meanings = JSON.stringify(token.meanings || {});
+      ruby.dataset.partOfSpeech = Array.isArray(token.partOfSpeech)
+        ? token.partOfSpeech.join(", ")
+        : token.partOfSpeech || "";
+      ruby.dataset.loanword = JSON.stringify(token.loanword || {});
       ruby.dataset.sourceSentence = sourceSentence;
       ruby.dataset.originalText = token.surface;
 
       const rt = document.createElement("rt");
-      rt.textContent = token.reading;
+      rt.textContent = token.loanword?.originalForm || token.readingKana || token.reading;
       ruby.appendChild(document.createTextNode(token.surface));
       ruby.appendChild(rt);
       return ruby;
@@ -502,12 +566,16 @@
       this.tooltip.show(
         ruby,
         {
-          id: ruby.dataset.wordId,
+          id: ruby.dataset.lexicalItemId || ruby.dataset.wordId,
+          lexicalItemId: ruby.dataset.lexicalItemId || ruby.dataset.wordId,
           surface: ruby.dataset.surface,
-          baseForm: ruby.dataset.baseForm,
+          lemma: ruby.dataset.lemma || ruby.dataset.baseForm,
+          baseForm: ruby.dataset.baseForm || ruby.dataset.lemma,
           reading: ruby.dataset.reading,
-          meaningEn: ruby.dataset.meaningEn,
+          readingKana: ruby.dataset.readingKana || ruby.dataset.reading,
+          meanings: parseJsonDataset(ruby.dataset.meanings, {}),
           partOfSpeech: ruby.dataset.partOfSpeech,
+          loanword: parseJsonDataset(ruby.dataset.loanword, {}),
           isKanjiWord: true,
           isKatakanaWord: false
         },
@@ -520,7 +588,8 @@
     if (!document.body || window.__fadingFuriganaLoaded) return;
     window.__fadingFuriganaLoaded = true;
 
-    const repository = new LocalWordRepository();
+    const storageAdapter = new window.FadingFuriganaStorage.LocalStorageAdapter();
+    const repository = new LocalWordRepository(storageAdapter);
     await repository.load();
     const dictionaryProvider = new DictionaryProvider(SAMPLE_DICTIONARY);
     const analyzer = new JapaneseAnalyzer(dictionaryProvider);
