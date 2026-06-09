@@ -16,7 +16,7 @@ blocked
 ```text
 Current branch: dev
 Current phase: foundation and architecture
-Next recommended task: install Xcode Safari converter and generate Safari project
+Next recommended task: add review and frequency-based learning screens
 ```
 
 ## Tasks
@@ -46,6 +46,8 @@ Next recommended task: install Xcode Safari converter and generate Safari projec
 | T021 | done | Add local dictionary provider prototype | Replace sample-only dictionary for a small real subset | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
 | T022 | done | Add Safari storage bridge design | Define background/native/App Group message path | `docs/SAFARI_STORAGE_BRIDGE_DESIGN.md` |
 | T023 | blocked | Add Safari Web Extension packaging | Xcode app container and Safari extension target | `npm run package:safari`, `npm run check`, `npm test`; blocked because `safari-web-extension-converter` is unavailable in current Xcode tools |
+| T024 | done | Extract word repository service | Move annotation data coordination out of content script | `npm run check`, `npm test`, HTTP script load check, `npm run package:safari` |
+| T025 | pending | Add review and frequency-based learning screens | Turn saved/frequent words into a lightweight learning queue | UI tests or manual extension test |
 
 ## Update Rules
 

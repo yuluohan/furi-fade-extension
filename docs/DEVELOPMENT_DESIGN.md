@@ -29,8 +29,11 @@ src/storage/localStorageAdapter.js
 src/repositories/repositories.js
   Implements LexicalItemRepository, UserLexicalStateRepository, and ExposureRepository.
 
+src/services/wordRepositoryService.js
+  Coordinates repositories, persistence scheduling, page privacy context, save/ignore/known actions, and exposure recording.
+
 src/content/contentScript.js
-  Scans DOM text nodes, annotates matches, handles tooltip actions, and coordinates repositories.
+  Boots storage, repository service, dictionary provider, analyzer, tooltip, and annotation engine.
 ```
 
 ## 2. Design Principles
@@ -64,7 +67,7 @@ AnnotationEngine
   Owns DOM mutation and annotation rendering.
 ```
 
-`contentScript.js` currently contains `LocalWordRepository` as a coordinator. Over time, this should be renamed or replaced with a clearer service such as `LearningStateService` or `AnnotationDataService`.
+`contentScript.js` should stay a small composition root. Business state coordination lives in `WordRepositoryService`.
 
 ## 4. AppState v1
 
@@ -99,14 +102,12 @@ Current:
 
 ```text
 LocalStorageAdapter
+ChromeStorageAdapter
 ```
 
 Next extension targets:
 
 ```text
-ChromeStorageAdapter
-  Uses chrome.storage.local.
-
 SafariStorageAdapter
   Uses background/native bridge and App Group storage.
 ```
@@ -136,7 +137,7 @@ ExposureRepository
   listFrequentItems
 ```
 
-The next optimization is batching exposure writes so large pages do not persist state once per token.
+Exposure writes are batched through `PersistScheduler` so large pages do not persist state once per token.
 
 ## 7. Annotation Strategy
 
@@ -157,7 +158,7 @@ The engine should not know whether data comes from localStorage, Chrome storage,
 Current:
 
 ```text
-Sample dictionary + longest-match lookup
+LocalDictionaryProvider + longest-match lookup
 ```
 
 Future:
@@ -196,6 +197,7 @@ Next tests should cover:
 - ruby insertion/restoration
 - tooltip actions
 - exposure write batching
+- word repository service privacy behavior
 
 ## 10. Deployment Strategy
 
