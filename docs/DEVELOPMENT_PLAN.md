@@ -16,7 +16,7 @@ blocked
 ```text
 Current branch: dev
 Current phase: foundation and architecture
-Next recommended task: add Safari Web Extension packaging
+Next recommended task: install Xcode Safari converter and generate Safari project
 ```
 
 ## Tasks
@@ -45,7 +45,7 @@ Next recommended task: add Safari Web Extension packaging
 | T020 | done | Add real dictionary/tokenizer provider design spike | Choose local dictionary/tokenizer/API strategy | `docs/DICTIONARY_TOKENIZER_SPIKE.md`, source review |
 | T021 | done | Add local dictionary provider prototype | Replace sample-only dictionary for a small real subset | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
 | T022 | done | Add Safari storage bridge design | Define background/native/App Group message path | `docs/SAFARI_STORAGE_BRIDGE_DESIGN.md` |
-| T023 | pending | Add Safari Web Extension packaging | Xcode app container and Safari extension target | iOS Safari smoke test |
+| T023 | blocked | Add Safari Web Extension packaging | Xcode app container and Safari extension target | `npm run package:safari`, `npm run check`, `npm test`; blocked because `safari-web-extension-converter` is unavailable in current Xcode tools |
 
 ## Update Rules
 
