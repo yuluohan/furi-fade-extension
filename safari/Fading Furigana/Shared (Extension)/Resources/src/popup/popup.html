@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fading Furigana</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="popup">
+      <header class="popup__header">
+        <h1>Fading Furigana</h1>
+        <p id="status-text">Ready</p>
+      </header>
+
+      <section class="panel" aria-label="Annotation settings">
+        <label class="switch-row">
+          <span>
+            <strong>Annotations</strong>
+            <small>Show reading hints on Japanese words</small>
+          </span>
+          <input id="annotation-enabled" type="checkbox" />
+        </label>
+
+        <label class="field">
+          <span>Mode</span>
+          <select id="annotation-mode">
+            <option value="adaptive">Adaptive</option>
+            <option value="all_items">All items</option>
+            <option value="unknown_items_only">Unknown only</option>
+            <option value="saved_items_only">Saved only</option>
+            <option value="off">Off</option>
+          </select>
+        </label>
+
+        <label class="switch-row">
+          <span>
+            <strong>Hide known words</strong>
+            <small>Fade out words already mastered</small>
+          </span>
+          <input id="hide-known-items" type="checkbox" />
+        </label>
+      </section>
+
+      <section class="panel" aria-label="Exposure tracking settings">
+        <label class="switch-row">
+          <span>
+            <strong>Daily word stats</strong>
+            <small>Count words seen each day</small>
+          </span>
+          <input id="exposure-enabled" type="checkbox" />
+        </label>
+
+        <label class="field">
+          <span>URL privacy</span>
+          <select id="url-privacy">
+            <option value="domain_only">Domain only</option>
+            <option value="full">Full URL</option>
+            <option value="none">No URL</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="panel stats-panel" aria-label="Vocabulary frequency">
+        <div class="stats-panel__header">
+          <strong>Word frequency</strong>
+          <button id="refresh-stats" type="button" aria-label="Refresh stats">Refresh</button>
+        </div>
+        <div class="stats-grid">
+          <div>
+            <h2>Today</h2>
+            <ol id="today-stats" class="word-list"></ol>
+          </div>
+          <div>
+            <h2>7 days</h2>
+            <ol id="week-stats" class="word-list"></ol>
+          </div>
+        </div>
+      </section>
+
+      <footer class="popup__footer">
+        <button id="reset-settings" type="button">Reset</button>
+        <button id="save-settings" type="button">Save</button>
+      </footer>
+    </main>
+
+    <script src="../core/appState.js"></script>
+    <script src="../storage/localStorageAdapter.js"></script>
+    <script src="../storage/chromeStorageAdapter.js"></script>
+    <script src="popup.js"></script>
+  </body>
+</html>

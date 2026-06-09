@@ -4,7 +4,7 @@ Date: 2026-06-08
 
 ## Current Status
 
-The repository now has a Safari packaging preparation step:
+The repository now has a Safari packaging step:
 
 ```sh
 npm run package:safari
@@ -23,17 +23,64 @@ The package contains:
 - popup HTML/CSS/JS
 - content script JS and CSS
 
-The script also validates that every manifest-referenced asset exists in the package.
+The script also validates that every manifest-referenced asset exists in the package, including extension icons.
 
 ## Xcode Conversion
 
-When Xcode's Safari converter is available, run:
+Generate or rebuild the Xcode project with:
 
 ```sh
-xcrun safari-web-extension-converter dist/safari-web-extension
+xcrun safari-web-extension-packager \
+  --project-location safari \
+  --app-name "Fading Furigana" \
+  --bundle-identifier "com.banyuguru.fading-furigana" \
+  --swift \
+  --copy-resources \
+  --no-open \
+  --no-prompt \
+  --force \
+  dist/safari-web-extension
 ```
 
-In this environment, `xcrun --find safari-web-extension-converter` currently fails, so the Xcode project cannot be generated here yet.
+Generated project:
+
+```text
+safari/Fading Furigana/Fading Furigana.xcodeproj
+```
+
+The project currently contains macOS and iOS app/extension targets.
+
+## Local Xcode Verification
+
+Run the full local Safari build flow:
+
+```sh
+npm run build:safari:mac
+```
+
+Run the full local CI flow:
+
+```sh
+npm run ci:local
+```
+
+List schemes and targets:
+
+```sh
+xcodebuild -list -project "safari/Fading Furigana/Fading Furigana.xcodeproj"
+```
+
+Build macOS without signing:
+
+```sh
+xcodebuild \
+  -project "safari/Fading Furigana/Fading Furigana.xcodeproj" \
+  -scheme "Fading Furigana (macOS)" \
+  -configuration Debug \
+  -derivedDataPath /private/tmp/furi-xcode-derived \
+  CODE_SIGNING_ALLOWED=NO \
+  build
+```
 
 ## Expected Manual Smoke Test
 

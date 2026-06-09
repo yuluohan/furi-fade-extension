@@ -13,74 +13,84 @@
         <p id="status-text">Ready</p>
       </header>
 
-      <section class="panel" aria-label="Annotation settings">
+      <section class="panel" aria-label="Display settings" data-i18n-aria="displaySettings">
+        <label class="field">
+          <span data-i18n="interfaceLanguage">Language</span>
+          <select id="interface-language">
+            <option value="zhHans">中文</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+      </section>
+
+      <section class="panel" aria-label="Annotation settings" data-i18n-aria="annotationSettings">
         <label class="switch-row">
           <span>
-            <strong>Annotations</strong>
-            <small>Show reading hints on Japanese words</small>
+            <strong data-i18n="annotations">Annotations</strong>
+            <small data-i18n="annotationsHint">Show reading hints on Japanese words</small>
           </span>
           <input id="annotation-enabled" type="checkbox" />
         </label>
 
         <label class="field">
-          <span>Mode</span>
+          <span data-i18n="mode">Mode</span>
           <select id="annotation-mode">
-            <option value="adaptive">Adaptive</option>
-            <option value="all_items">All items</option>
-            <option value="unknown_items_only">Unknown only</option>
-            <option value="saved_items_only">Saved only</option>
-            <option value="off">Off</option>
+            <option value="adaptive" data-i18n="modeAdaptive">Adaptive</option>
+            <option value="all_items" data-i18n="modeAllItems">All items</option>
+            <option value="unknown_items_only" data-i18n="modeUnknownOnly">Unknown only</option>
+            <option value="saved_items_only" data-i18n="modeSavedOnly">Saved only</option>
+            <option value="off" data-i18n="modeOff">Off</option>
           </select>
         </label>
 
         <label class="switch-row">
           <span>
-            <strong>Hide known words</strong>
-            <small>Fade out words already mastered</small>
+            <strong data-i18n="hideKnownWords">Hide known words</strong>
+            <small data-i18n="hideKnownWordsHint">Fade out words already mastered</small>
           </span>
           <input id="hide-known-items" type="checkbox" />
         </label>
       </section>
 
-      <section class="panel" aria-label="Exposure tracking settings">
+      <section class="panel" aria-label="Exposure tracking settings" data-i18n-aria="exposureSettings">
         <label class="switch-row">
           <span>
-            <strong>Daily word stats</strong>
-            <small>Count words seen each day</small>
+            <strong data-i18n="dailyWordStats">Daily word stats</strong>
+            <small data-i18n="dailyWordStatsHint">Count words seen each day</small>
           </span>
           <input id="exposure-enabled" type="checkbox" />
         </label>
 
         <label class="field">
-          <span>URL privacy</span>
+          <span data-i18n="urlPrivacy">URL privacy</span>
           <select id="url-privacy">
-            <option value="domain_only">Domain only</option>
-            <option value="full">Full URL</option>
-            <option value="none">No URL</option>
+            <option value="domain_only" data-i18n="urlDomainOnly">Domain only</option>
+            <option value="full" data-i18n="urlFull">Full URL</option>
+            <option value="none" data-i18n="urlNone">No URL</option>
           </select>
         </label>
       </section>
 
-      <section class="panel stats-panel" aria-label="Vocabulary frequency">
+      <section class="panel stats-panel" aria-label="Vocabulary frequency" data-i18n-aria="vocabularyFrequency">
         <div class="stats-panel__header">
-          <strong>Word frequency</strong>
-          <button id="refresh-stats" type="button" aria-label="Refresh stats">Refresh</button>
+          <strong data-i18n="wordFrequency">Word frequency</strong>
+          <button id="refresh-stats" type="button" aria-label="Refresh stats" data-i18n="refresh" data-i18n-aria="refreshStats">Refresh</button>
         </div>
         <div class="stats-grid">
           <div>
-            <h2>Today</h2>
+            <h2 data-i18n="today">Today</h2>
             <ol id="today-stats" class="word-list"></ol>
           </div>
           <div>
-            <h2>7 days</h2>
+            <h2 data-i18n="sevenDays">7 days</h2>
             <ol id="week-stats" class="word-list"></ol>
           </div>
         </div>
       </section>
 
       <footer class="popup__footer">
-        <button id="reset-settings" type="button">Reset</button>
-        <button id="save-settings" type="button">Save</button>
+        <button id="reset-settings" type="button" data-i18n="reset">Reset</button>
+        <button id="save-settings" type="button" data-i18n="save">Save</button>
       </footer>
     </main>
 

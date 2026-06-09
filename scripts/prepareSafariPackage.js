@@ -13,6 +13,7 @@ fs.mkdirSync(outputDir, { recursive: true });
 
 copyFile("manifest.json");
 copyDirectory("src");
+removeIgnoredFiles(outputDir);
 
 for (const relativePath of requiredFiles) {
   const absolutePath = path.join(outputDir, relativePath);
@@ -30,6 +31,10 @@ function collectManifestFiles(manifest) {
   for (const contentScript of manifest.content_scripts || []) {
     for (const filePath of contentScript.js || []) files.add(filePath);
     for (const filePath of contentScript.css || []) files.add(filePath);
+  }
+
+  for (const filePath of Object.values(manifest.icons || {})) {
+    files.add(filePath);
   }
 
   if (manifest.action?.default_popup) {
@@ -55,6 +60,19 @@ function copyDirectory(relativePath) {
   const source = path.join(rootDir, relativePath);
   const destination = path.join(outputDir, relativePath);
   fs.cpSync(source, destination, { recursive: true });
+}
+
+function removeIgnoredFiles(directory) {
+  for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+    const fullPath = path.join(directory, entry.name);
+    if (entry.name === ".DS_Store") {
+      fs.rmSync(fullPath, { force: true });
+      continue;
+    }
+    if (entry.isDirectory()) {
+      removeIgnoredFiles(fullPath);
+    }
+  }
 }
 
 function copyFile(relativePath) {

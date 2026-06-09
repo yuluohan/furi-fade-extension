@@ -1,0 +1,969 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1DEF5F212FD7DC550067993F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F202FD7DC550067993F /* AppDelegate.swift */; };
+		1DEF5F232FD7DC550067993F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F222FD7DC550067993F /* SceneDelegate.swift */; };
+		1DEF5F262FD7DC550067993F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F242FD7DC550067993F /* LaunchScreen.storyboard */; };
+		1DEF5F292FD7DC550067993F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F272FD7DC550067993F /* Main.storyboard */; };
+		1DEF5F322FD7DC550067993F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F312FD7DC550067993F /* AppDelegate.swift */; };
+		1DEF5F352FD7DC550067993F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F332FD7DC550067993F /* Main.storyboard */; };
+		1DEF5F3C2FD7DC550067993F /* Fading Furigana Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1DEF5F3B2FD7DC550067993F /* Fading Furigana Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1DEF5F462FD7DC550067993F /* Fading Furigana Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1DEF5F452FD7DC550067993F /* Fading Furigana Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1DEF5F4B2FD7DC550067993F /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F102FD7DC540067993F /* Main.html */; };
+		1DEF5F4C2FD7DC550067993F /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F102FD7DC540067993F /* Main.html */; };
+		1DEF5F4D2FD7DC550067993F /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F122FD7DC540067993F /* Icon.png */; };
+		1DEF5F4E2FD7DC550067993F /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F122FD7DC540067993F /* Icon.png */; };
+		1DEF5F4F2FD7DC550067993F /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F132FD7DC540067993F /* Style.css */; };
+		1DEF5F502FD7DC550067993F /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F132FD7DC540067993F /* Style.css */; };
+		1DEF5F512FD7DC550067993F /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F142FD7DC540067993F /* Script.js */; };
+		1DEF5F522FD7DC550067993F /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F142FD7DC540067993F /* Script.js */; };
+		1DEF5F532FD7DC550067993F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F152FD7DC540067993F /* ViewController.swift */; };
+		1DEF5F542FD7DC550067993F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F152FD7DC540067993F /* ViewController.swift */; };
+		1DEF5F552FD7DC550067993F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F162FD7DC550067993F /* Assets.xcassets */; };
+		1DEF5F562FD7DC550067993F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F162FD7DC550067993F /* Assets.xcassets */; };
+		1DEF5F572FD7DC550067993F /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F182FD7DC550067993F /* SafariWebExtensionHandler.swift */; };
+		1DEF5F582FD7DC550067993F /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F182FD7DC550067993F /* SafariWebExtensionHandler.swift */; };
+		1DEF5F6C2FD7DC550067993F /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F6A2FD7DC550067993F /* manifest.json */; };
+		1DEF5F6D2FD7DC550067993F /* src in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F6B2FD7DC550067993F /* src */; };
+		1DEF5F6E2FD7DC550067993F /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F6A2FD7DC550067993F /* manifest.json */; };
+		1DEF5F6F2FD7DC550067993F /* src in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F6B2FD7DC550067993F /* src */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1DEF5F3D2FD7DC550067993F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1DEF5F0A2FD7DC540067993F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1DEF5F3A2FD7DC550067993F;
+			remoteInfo = "Fading Furigana Extension (iOS)";
+		};
+		1DEF5F472FD7DC550067993F /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 1DEF5F0A2FD7DC540067993F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1DEF5F442FD7DC550067993F;
+			remoteInfo = "Fading Furigana Extension (macOS)";
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXCopyFilesBuildPhase section */
+		1DEF5F5E2FD7DC550067993F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				1DEF5F3C2FD7DC550067993F /* Fading Furigana Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DEF5F652FD7DC550067993F /* Embed Foundation Extensions */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 13;
+			files = (
+				1DEF5F462FD7DC550067993F /* Fading Furigana Extension.appex in Embed Foundation Extensions */,
+			);
+			name = "Embed Foundation Extensions";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
+/* Begin PBXFileReference section */
+		1DEF5F112FD7DC540067993F /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		1DEF5F122FD7DC540067993F /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		1DEF5F132FD7DC540067993F /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		1DEF5F142FD7DC540067993F /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		1DEF5F152FD7DC540067993F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		1DEF5F162FD7DC550067993F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1DEF5F182FD7DC550067993F /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		1DEF5F1D2FD7DC550067993F /* Fading Furigana.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fading Furigana.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DEF5F202FD7DC550067993F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1DEF5F222FD7DC550067993F /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		1DEF5F252FD7DC550067993F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		1DEF5F282FD7DC550067993F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		1DEF5F2A2FD7DC550067993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1DEF5F2F2FD7DC550067993F /* Fading Furigana.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fading Furigana.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DEF5F312FD7DC550067993F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1DEF5F342FD7DC550067993F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		1DEF5F362FD7DC550067993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1DEF5F3B2FD7DC550067993F /* Fading Furigana Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Fading Furigana Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DEF5F402FD7DC550067993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1DEF5F452FD7DC550067993F /* Fading Furigana Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Fading Furigana Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DEF5F4A2FD7DC550067993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1DEF5F6A2FD7DC550067993F /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
+		1DEF5F6B2FD7DC550067993F /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = Resources/src; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		1DEF5F1A2FD7DC550067993F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DEF5F2C2FD7DC550067993F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DEF5F382FD7DC550067993F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DEF5F422FD7DC550067993F /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		1DEF5F092FD7DC540067993F = {
+			isa = PBXGroup;
+			children = (
+				1DEF5F0E2FD7DC540067993F /* Shared (App) */,
+				1DEF5F172FD7DC550067993F /* Shared (Extension) */,
+				1DEF5F1F2FD7DC550067993F /* iOS (App) */,
+				1DEF5F302FD7DC550067993F /* macOS (App) */,
+				1DEF5F3F2FD7DC550067993F /* iOS (Extension) */,
+				1DEF5F492FD7DC550067993F /* macOS (Extension) */,
+				1DEF5F1E2FD7DC550067993F /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1DEF5F0E2FD7DC540067993F /* Shared (App) */ = {
+			isa = PBXGroup;
+			children = (
+				1DEF5F152FD7DC540067993F /* ViewController.swift */,
+				1DEF5F162FD7DC550067993F /* Assets.xcassets */,
+				1DEF5F0F2FD7DC540067993F /* Resources */,
+			);
+			path = "Shared (App)";
+			sourceTree = "<group>";
+		};
+		1DEF5F0F2FD7DC540067993F /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				1DEF5F102FD7DC540067993F /* Main.html */,
+				1DEF5F122FD7DC540067993F /* Icon.png */,
+				1DEF5F132FD7DC540067993F /* Style.css */,
+				1DEF5F142FD7DC540067993F /* Script.js */,
+			);
+			path = Resources;
+			sourceTree = "<group>";
+		};
+		1DEF5F172FD7DC550067993F /* Shared (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				1DEF5F692FD7DC550067993F /* Resources */,
+				1DEF5F182FD7DC550067993F /* SafariWebExtensionHandler.swift */,
+			);
+			path = "Shared (Extension)";
+			sourceTree = "<group>";
+		};
+		1DEF5F1E2FD7DC550067993F /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1DEF5F1D2FD7DC550067993F /* Fading Furigana.app */,
+				1DEF5F2F2FD7DC550067993F /* Fading Furigana.app */,
+				1DEF5F3B2FD7DC550067993F /* Fading Furigana Extension.appex */,
+				1DEF5F452FD7DC550067993F /* Fading Furigana Extension.appex */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1DEF5F1F2FD7DC550067993F /* iOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				1DEF5F202FD7DC550067993F /* AppDelegate.swift */,
+				1DEF5F222FD7DC550067993F /* SceneDelegate.swift */,
+				1DEF5F242FD7DC550067993F /* LaunchScreen.storyboard */,
+				1DEF5F272FD7DC550067993F /* Main.storyboard */,
+				1DEF5F2A2FD7DC550067993F /* Info.plist */,
+			);
+			path = "iOS (App)";
+			sourceTree = "<group>";
+		};
+		1DEF5F302FD7DC550067993F /* macOS (App) */ = {
+			isa = PBXGroup;
+			children = (
+				1DEF5F312FD7DC550067993F /* AppDelegate.swift */,
+				1DEF5F332FD7DC550067993F /* Main.storyboard */,
+				1DEF5F362FD7DC550067993F /* Info.plist */,
+			);
+			path = "macOS (App)";
+			sourceTree = "<group>";
+		};
+		1DEF5F3F2FD7DC550067993F /* iOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				1DEF5F402FD7DC550067993F /* Info.plist */,
+			);
+			path = "iOS (Extension)";
+			sourceTree = "<group>";
+		};
+		1DEF5F492FD7DC550067993F /* macOS (Extension) */ = {
+			isa = PBXGroup;
+			children = (
+				1DEF5F4A2FD7DC550067993F /* Info.plist */,
+			);
+			path = "macOS (Extension)";
+			sourceTree = "<group>";
+		};
+		1DEF5F692FD7DC550067993F /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				1DEF5F6A2FD7DC550067993F /* manifest.json */,
+				1DEF5F6B2FD7DC550067993F /* src */,
+			);
+			name = Resources;
+			path = "Shared (Extension)";
+			sourceTree = SOURCE_ROOT;
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1DEF5F1C2FD7DC550067993F /* Fading Furigana (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1DEF5F5F2FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana (iOS)" */;
+			buildPhases = (
+				1DEF5F192FD7DC550067993F /* Sources */,
+				1DEF5F1A2FD7DC550067993F /* Frameworks */,
+				1DEF5F1B2FD7DC550067993F /* Resources */,
+				1DEF5F5E2FD7DC550067993F /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1DEF5F3E2FD7DC550067993F /* PBXTargetDependency */,
+			);
+			name = "Fading Furigana (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "Fading Furigana (iOS)";
+			productReference = 1DEF5F1D2FD7DC550067993F /* Fading Furigana.app */;
+			productType = "com.apple.product-type.application";
+		};
+		1DEF5F2E2FD7DC550067993F /* Fading Furigana (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1DEF5F662FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana (macOS)" */;
+			buildPhases = (
+				1DEF5F2B2FD7DC550067993F /* Sources */,
+				1DEF5F2C2FD7DC550067993F /* Frameworks */,
+				1DEF5F2D2FD7DC550067993F /* Resources */,
+				1DEF5F652FD7DC550067993F /* Embed Foundation Extensions */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				1DEF5F482FD7DC550067993F /* PBXTargetDependency */,
+			);
+			name = "Fading Furigana (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "Fading Furigana (macOS)";
+			productReference = 1DEF5F2F2FD7DC550067993F /* Fading Furigana.app */;
+			productType = "com.apple.product-type.application";
+		};
+		1DEF5F3A2FD7DC550067993F /* Fading Furigana Extension (iOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1DEF5F5B2FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (iOS)" */;
+			buildPhases = (
+				1DEF5F372FD7DC550067993F /* Sources */,
+				1DEF5F382FD7DC550067993F /* Frameworks */,
+				1DEF5F392FD7DC550067993F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Fading Furigana Extension (iOS)";
+			packageProductDependencies = (
+			);
+			productName = "Fading Furigana Extension (iOS)";
+			productReference = 1DEF5F3B2FD7DC550067993F /* Fading Furigana Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+		1DEF5F442FD7DC550067993F /* Fading Furigana Extension (macOS) */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1DEF5F622FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (macOS)" */;
+			buildPhases = (
+				1DEF5F412FD7DC550067993F /* Sources */,
+				1DEF5F422FD7DC550067993F /* Frameworks */,
+				1DEF5F432FD7DC550067993F /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = "Fading Furigana Extension (macOS)";
+			packageProductDependencies = (
+			);
+			productName = "Fading Furigana Extension (macOS)";
+			productReference = 1DEF5F452FD7DC550067993F /* Fading Furigana Extension.appex */;
+			productType = "com.apple.product-type.app-extension";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		1DEF5F0A2FD7DC540067993F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastSwiftUpdateCheck = 2650;
+				LastUpgradeCheck = 2650;
+				TargetAttributes = {
+					1DEF5F1C2FD7DC550067993F = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					1DEF5F2E2FD7DC550067993F = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					1DEF5F3A2FD7DC550067993F = {
+						CreatedOnToolsVersion = 26.5;
+					};
+					1DEF5F442FD7DC550067993F = {
+						CreatedOnToolsVersion = 26.5;
+					};
+				};
+			};
+			buildConfigurationList = 1DEF5F0D2FD7DC540067993F /* Build configuration list for PBXProject "Fading Furigana" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				Base,
+			);
+			mainGroup = 1DEF5F092FD7DC540067993F;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 1DEF5F1E2FD7DC550067993F /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1DEF5F1C2FD7DC550067993F /* Fading Furigana (iOS) */,
+				1DEF5F2E2FD7DC550067993F /* Fading Furigana (macOS) */,
+				1DEF5F3A2FD7DC550067993F /* Fading Furigana Extension (iOS) */,
+				1DEF5F442FD7DC550067993F /* Fading Furigana Extension (macOS) */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		1DEF5F1B2FD7DC550067993F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1DEF5F4D2FD7DC550067993F /* Icon.png in Resources */,
+				1DEF5F262FD7DC550067993F /* LaunchScreen.storyboard in Resources */,
+				1DEF5F4B2FD7DC550067993F /* Main.html in Resources */,
+				1DEF5F512FD7DC550067993F /* Script.js in Resources */,
+				1DEF5F552FD7DC550067993F /* Assets.xcassets in Resources */,
+				1DEF5F292FD7DC550067993F /* Main.storyboard in Resources */,
+				1DEF5F4F2FD7DC550067993F /* Style.css in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DEF5F2D2FD7DC550067993F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1DEF5F4E2FD7DC550067993F /* Icon.png in Resources */,
+				1DEF5F502FD7DC550067993F /* Style.css in Resources */,
+				1DEF5F352FD7DC550067993F /* Main.storyboard in Resources */,
+				1DEF5F522FD7DC550067993F /* Script.js in Resources */,
+				1DEF5F562FD7DC550067993F /* Assets.xcassets in Resources */,
+				1DEF5F4C2FD7DC550067993F /* Main.html in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DEF5F392FD7DC550067993F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1DEF5F6E2FD7DC550067993F /* manifest.json in Resources */,
+				1DEF5F6F2FD7DC550067993F /* src in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DEF5F432FD7DC550067993F /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1DEF5F6C2FD7DC550067993F /* manifest.json in Resources */,
+				1DEF5F6D2FD7DC550067993F /* src in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1DEF5F192FD7DC550067993F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1DEF5F532FD7DC550067993F /* ViewController.swift in Sources */,
+				1DEF5F212FD7DC550067993F /* AppDelegate.swift in Sources */,
+				1DEF5F232FD7DC550067993F /* SceneDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DEF5F2B2FD7DC550067993F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1DEF5F542FD7DC550067993F /* ViewController.swift in Sources */,
+				1DEF5F322FD7DC550067993F /* AppDelegate.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DEF5F372FD7DC550067993F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1DEF5F572FD7DC550067993F /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		1DEF5F412FD7DC550067993F /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				1DEF5F582FD7DC550067993F /* SafariWebExtensionHandler.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		1DEF5F3E2FD7DC550067993F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1DEF5F3A2FD7DC550067993F /* Fading Furigana Extension (iOS) */;
+			targetProxy = 1DEF5F3D2FD7DC550067993F /* PBXContainerItemProxy */;
+		};
+		1DEF5F482FD7DC550067993F /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1DEF5F442FD7DC550067993F /* Fading Furigana Extension (macOS) */;
+			targetProxy = 1DEF5F472FD7DC550067993F /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin PBXVariantGroup section */
+		1DEF5F102FD7DC540067993F /* Main.html */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1DEF5F112FD7DC540067993F /* Base */,
+			);
+			name = Main.html;
+			sourceTree = "<group>";
+		};
+		1DEF5F242FD7DC550067993F /* LaunchScreen.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1DEF5F252FD7DC550067993F /* Base */,
+			);
+			name = LaunchScreen.storyboard;
+			sourceTree = "<group>";
+		};
+		1DEF5F272FD7DC550067993F /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1DEF5F282FD7DC550067993F /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+		1DEF5F332FD7DC550067993F /* Main.storyboard */ = {
+			isa = PBXVariantGroup;
+			children = (
+				1DEF5F342FD7DC550067993F /* Base */,
+			);
+			name = Main.storyboard;
+			sourceTree = "<group>";
+		};
+/* End PBXVariantGroup section */
+
+/* Begin XCBuildConfiguration section */
+		1DEF5F592FD7DC550067993F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+			};
+			name = Debug;
+		};
+		1DEF5F5A2FD7DC550067993F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				SWIFT_COMPILATION_MODE = wholemodule;
+			};
+			name = Release;
+		};
+		1DEF5F5C2FD7DC550067993F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Fading Furigana Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana.Extension";
+				PRODUCT_NAME = "Fading Furigana Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1DEF5F5D2FD7DC550067993F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Fading Furigana Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@executable_path/../../Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana.Extension";
+				PRODUCT_NAME = "Fading Furigana Extension";
+				SDKROOT = iphoneos;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		1DEF5F602FD7DC550067993F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Fading Furigana";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana";
+				PRODUCT_NAME = "Fading Furigana";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		1DEF5F612FD7DC550067993F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "iOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Fading Furigana";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchStoryboardName = LaunchScreen;
+				INFOPLIST_KEY_UIMainStoryboardFile = Main;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				IPHONEOS_DEPLOYMENT_TARGET = 15.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana";
+				PRODUCT_NAME = "Fading Furigana";
+				SDKROOT = iphoneos;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				VALIDATE_PRODUCT = YES;
+			};
+			name = Release;
+		};
+		1DEF5F632FD7DC550067993F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Fading Furigana Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana.Extension";
+				PRODUCT_NAME = "Fading Furigana Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		1DEF5F642FD7DC550067993F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (Extension)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Fading Furigana Extension";
+				INFOPLIST_KEY_NSHumanReadableCopyright = "";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+					"@executable_path/../../../../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana.Extension";
+				PRODUCT_NAME = "Fading Furigana Extension";
+				SDKROOT = macosx;
+				SKIP_INSTALL = YES;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		1DEF5F672FD7DC550067993F /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Fading Furigana";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana";
+				PRODUCT_NAME = "Fading Furigana";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		1DEF5F682FD7DC550067993F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				ENABLE_APP_SANDBOX = YES;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_OUTGOING_NETWORK_CONNECTIONS = YES;
+				ENABLE_USER_SELECTED_FILES = readonly;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = "macOS (App)/Info.plist";
+				INFOPLIST_KEY_CFBundleDisplayName = "Fading Furigana";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/../Frameworks",
+				);
+				MACOSX_DEPLOYMENT_TARGET = 10.14;
+				MARKETING_VERSION = 1.0;
+				OTHER_LDFLAGS = (
+					"-framework",
+					SafariServices,
+					"-framework",
+					WebKit,
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana";
+				PRODUCT_NAME = "Fading Furigana";
+				REGISTER_APP_GROUPS = YES;
+				SDKROOT = macosx;
+				STRING_CATALOG_GENERATE_SYMBOLS = YES;
+				SWIFT_APPROACHABLE_CONCURRENCY = YES;
+				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		1DEF5F0D2FD7DC540067993F /* Build configuration list for PBXProject "Fading Furigana" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEF5F592FD7DC550067993F /* Debug */,
+				1DEF5F5A2FD7DC550067993F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1DEF5F5B2FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEF5F5C2FD7DC550067993F /* Debug */,
+				1DEF5F5D2FD7DC550067993F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1DEF5F5F2FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana (iOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEF5F602FD7DC550067993F /* Debug */,
+				1DEF5F612FD7DC550067993F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1DEF5F622FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEF5F632FD7DC550067993F /* Debug */,
+				1DEF5F642FD7DC550067993F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		1DEF5F662FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana (macOS)" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1DEF5F672FD7DC550067993F /* Debug */,
+				1DEF5F682FD7DC550067993F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 1DEF5F0A2FD7DC540067993F /* Project object */;
+}

@@ -53,10 +53,31 @@ test("creates AppState v1 defaults", () => {
 
   assert.equal(state.schemaVersion, 1);
   assert.equal(state.userProfile.targetLanguage, "ja");
+  assert.equal(state.settings.display.interfaceLanguage, "en");
   assert.equal(state.settings.annotation.mode, "adaptive");
   assert.equal(state.settings.exposureTracking.saveUrls, "domain_only");
   assert.deepEqual(Object.keys(state.lexicalItems), []);
   assert.deepEqual(Object.keys(state.dailyExposureSummaries), []);
+});
+
+test("normalizes interface language settings", () => {
+  const zhSettings = window.FadingFuriganaState.normalizeSettings({
+    display: {
+      interfaceLanguage: "zh-CN"
+    }
+  });
+  const legacySettings = window.FadingFuriganaState.normalizeSettings({
+    interfaceLanguage: "en-US"
+  });
+  const fallbackSettings = window.FadingFuriganaState.normalizeSettings({
+    display: {
+      interfaceLanguage: "fr"
+    }
+  });
+
+  assert.equal(zhSettings.display.interfaceLanguage, "zhHans");
+  assert.equal(legacySettings.display.interfaceLanguage, "en");
+  assert.equal(fallbackSettings.display.interfaceLanguage, "en");
 });
 
 test("migrates legacy localStorage state", () => {

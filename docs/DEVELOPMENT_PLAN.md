@@ -45,9 +45,10 @@ Next recommended task: add review and frequency-based learning screens
 | T020 | done | Add real dictionary/tokenizer provider design spike | Choose local dictionary/tokenizer/API strategy | `docs/DICTIONARY_TOKENIZER_SPIKE.md`, source review |
 | T021 | done | Add local dictionary provider prototype | Replace sample-only dictionary for a small real subset | `npm run check`, `npm test`, HTTP script load check, Wrangler dry-run |
 | T022 | done | Add Safari storage bridge design | Define background/native/App Group message path | `docs/SAFARI_STORAGE_BRIDGE_DESIGN.md` |
-| T023 | blocked | Add Safari Web Extension packaging | Xcode app container and Safari extension target | `npm run package:safari`, `npm run check`, `npm test`; blocked because `safari-web-extension-converter` is unavailable in current Xcode tools |
+| T023 | done | Add Safari Web Extension packaging | Xcode app container and Safari extension target | `npm run package:safari`, `xcrun safari-web-extension-packager`, `xcodebuild -list`, macOS no-sign build |
 | T024 | done | Extract word repository service | Move annotation data coordination out of content script | `npm run check`, `npm test`, HTTP script load check, `npm run package:safari` |
 | T025 | pending | Add review and frequency-based learning screens | Turn saved/frequent words into a lightweight learning queue | UI tests or manual extension test |
+| T026 | done | Add extension interface language setting | Store UI language in AppState and switch popup text between Chinese and English | `npm run check`, `npm test`, `npm run package:safari` |
 
 ## Update Rules
 
@@ -59,5 +60,5 @@ Next recommended task: add review and frequency-based learning screens
 ## Last Updated
 
 ```text
-2026-06-08
+2026-06-09
 ```
