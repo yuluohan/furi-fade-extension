@@ -433,7 +433,7 @@
       for (const token of tokens) {
         if (token.start < cursor) continue;
         appendProcessedText(text.slice(cursor, token.start));
-        fragment.appendChild(this.createRuby(token, extractSentence(text, token.start)));
+        fragment.appendChild(this.createAnnotationElement(token, extractSentence(text, token.start), node.parentElement));
         cursor = token.end;
         if (!this.recordedSeenIds.has(token.lexicalItemId)) {
           this.recordedSeenIds.add(token.lexicalItemId);
@@ -446,31 +446,43 @@
       return true;
     }
 
-    createRuby(token, sourceSentence) {
-      const ruby = document.createElement("ruby");
-      ruby.className = "jr-ruby";
-      ruby.setAttribute(ANNOTATED_ATTR, "true");
-      ruby.dataset.wordId = token.lexicalItemId;
-      ruby.dataset.lexicalItemId = token.lexicalItemId;
-      ruby.dataset.surface = token.surface;
-      ruby.dataset.lemma = token.lemma || token.baseForm || token.surface;
-      ruby.dataset.baseForm = token.baseForm || token.lemma || token.surface;
-      ruby.dataset.reading = token.readingKana || token.reading;
-      ruby.dataset.readingKana = token.readingKana || token.reading;
-      ruby.dataset.meanings = JSON.stringify(token.meanings || {});
-      ruby.dataset.partOfSpeech = Array.isArray(token.partOfSpeech)
+    createAnnotationElement(token, sourceSentence, parentElement) {
+      const annotationSettings = this.repository.settings?.annotation;
+      const annotationLevel = window.FadingFuriganaAnnotationDecision.getAnnotationLevel(
+        this.repository.getUserWordState(token.lexicalItemId),
+        this.repository.settings
+      );
+      const forceTapOnly =
+        annotationLevel === "tap_only" ||
+        annotationSettings?.constrainedLayoutMode === "compact" ||
+        shouldUseTapOnlyInLayout(parentElement, annotationSettings);
+      const element = forceTapOnly ? document.createElement("span") : document.createElement("ruby");
+      element.className = forceTapOnly ? "jr-ruby jr-ruby--tap-only" : "jr-ruby";
+      element.setAttribute(ANNOTATED_ATTR, "true");
+      element.dataset.wordId = token.lexicalItemId;
+      element.dataset.lexicalItemId = token.lexicalItemId;
+      element.dataset.surface = token.surface;
+      element.dataset.lemma = token.lemma || token.baseForm || token.surface;
+      element.dataset.baseForm = token.baseForm || token.lemma || token.surface;
+      element.dataset.reading = token.readingKana || token.reading;
+      element.dataset.readingKana = token.readingKana || token.reading;
+      element.dataset.meanings = JSON.stringify(token.meanings || {});
+      element.dataset.partOfSpeech = Array.isArray(token.partOfSpeech)
         ? token.partOfSpeech.join(", ")
         : token.partOfSpeech || "";
-      ruby.dataset.loanword = JSON.stringify(token.loanword || {});
-      ruby.dataset.sourceSentence = sourceSentence;
-      ruby.dataset.originalText = token.surface;
-      ruby.dataset.sourceConfidence = String(token.source?.confidence ?? 1);
+      element.dataset.loanword = JSON.stringify(token.loanword || {});
+      element.dataset.sourceSentence = sourceSentence;
+      element.dataset.originalText = token.surface;
+      element.dataset.sourceConfidence = String(token.source?.confidence ?? 1);
+      if (token.difficulty) element.dataset.difficulty = JSON.stringify(token.difficulty);
 
-      const rt = document.createElement("rt");
-      rt.textContent = token.loanword?.originalForm || token.readingKana || token.reading;
-      ruby.appendChild(document.createTextNode(token.surface));
-      ruby.appendChild(rt);
-      return ruby;
+      element.appendChild(document.createTextNode(token.surface));
+      if (!forceTapOnly) {
+        const rt = document.createElement("rt");
+        rt.textContent = token.loanword?.originalForm || token.readingKana || token.reading;
+        element.appendChild(rt);
+      }
+      return element;
     }
 
     onClick(event) {
@@ -495,12 +507,52 @@
       meanings: parseJsonDataset(ruby.dataset.meanings, {}),
       partOfSpeech: ruby.dataset.partOfSpeech,
       loanword: parseJsonDataset(ruby.dataset.loanword, {}),
+      difficulty: parseJsonDataset(ruby.dataset.difficulty, undefined),
       source: {
         confidence: ruby.dataset.sourceConfidence !== undefined ? Number(ruby.dataset.sourceConfidence) : 1
       },
       isKanjiWord: true,
       isKatakanaWord: false
     };
+  }
+
+  function shouldUseTapOnlyInLayout(parentElement, annotation = {}) {
+    if (annotation.constrainedLayoutMode === "compact") return true;
+    if (!parentElement || annotation.constrainedLayoutMode === "ruby") return false;
+    let element = parentElement;
+    let depth = 0;
+
+    while (element && depth < 5) {
+      const style = getComputedStyleSafe(element);
+      if (style) {
+        const lineClamp = style.webkitLineClamp || style.lineClamp;
+        const overflow = `${style.overflow || ""} ${style.overflowY || ""}`.toLowerCase();
+        const height = parseCssPixels(style.height);
+        const maxHeight = parseCssPixels(style.maxHeight);
+        const lineHeight = parseCssPixels(style.lineHeight);
+
+        if (lineClamp && lineClamp !== "none" && lineClamp !== "0") return true;
+        if ((overflow.includes("hidden") || overflow.includes("clip")) && (height || maxHeight)) return true;
+        if (lineHeight && lineHeight < 18) return true;
+      }
+      element = element.parentElement;
+      depth += 1;
+    }
+    return false;
+  }
+
+  function getComputedStyleSafe(element) {
+    try {
+      return typeof window.getComputedStyle === "function" ? window.getComputedStyle(element) : null;
+    } catch {
+      return null;
+    }
+  }
+
+  function parseCssPixels(value) {
+    if (!value || value === "auto" || value === "none" || value === "normal") return 0;
+    const match = String(value).match(/^([\d.]+)px$/u);
+    return match ? Number(match[1]) : 0;
   }
 
   function parseJsonDataset(value, fallback) {
@@ -515,6 +567,7 @@
   window.FadingFuriganaAnnotationEngine = {
     AnnotationEngine,
     extractSentence,
+    shouldUseTapOnlyInLayout,
     shouldSkipTextNode
   };
 })();

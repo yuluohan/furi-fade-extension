@@ -209,7 +209,7 @@ function serializeNode(node) {
   return `<${node.tagName.toLowerCase()} class="${node.className}">${node.children.map(serializeNode).join("")}</${node.tagName.toLowerCase()}>`;
 }
 
-function createEngine({ root, tokens }) {
+function createEngine({ root, tokens, settings = {} }) {
   global.Node = { TEXT_NODE: 3, ELEMENT_NODE: 1 };
   global.NodeFilter = { SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 };
   global.MutationObserver = class {
@@ -225,7 +225,8 @@ function createEngine({ root, tokens }) {
       annotation: {
         enabled: true,
         mode: "adaptive",
-        hideKnownItems: true
+        hideKnownItems: true,
+        ...settings.annotation
       }
     },
     getUserWordState() {
@@ -423,6 +424,35 @@ test("uses tap-only annotation inside constrained layout", async () => {
   assert.equal(annotation.textContent, "確認");
   assert.equal(annotation.children.some((child) => child.tagName === "RT"), false);
   assert.deepEqual(seenTokens, ["確認"]);
+});
+
+test("uses tap-only annotation globally in compact display mode", async () => {
+  const root = new FakeElement("div");
+  const paragraph = new FakeElement("p");
+  paragraph.computedStyle = {
+    overflow: "visible",
+    lineHeight: "24px"
+  };
+  paragraph.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+  root.appendChild(paragraph);
+
+  const { engine } = createEngine({
+    root,
+    tokens: [createToken()],
+    settings: {
+      annotation: {
+        constrainedLayoutMode: "compact"
+      }
+    }
+  });
+
+  await engine.annotateRoot(root);
+
+  const annotation = collectByClass(root, "jr-ruby")[0];
+  assert.equal(shouldUseTapOnlyInLayout(paragraph, { constrainedLayoutMode: "compact" }), true);
+  assert.equal(annotation.tagName, "SPAN");
+  assert.equal(annotation.className, "jr-ruby jr-ruby--tap-only");
+  assert.equal(annotation.children.some((child) => child.tagName === "RT"), false);
 });
 
 test("does not re-annotate descendants of existing ruby annotations", async () => {

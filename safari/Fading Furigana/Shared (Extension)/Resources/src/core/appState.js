@@ -13,7 +13,9 @@
       hideKnownItems: true,
       showRuby: true,
       showLoanwordOrigins: true,
-      showMeaningsInTooltip: true
+      showMeaningsInTooltip: true,
+      userLevel: "none",
+      constrainedLayoutMode: "tap_only"
     },
     exposureTracking: {
       enabled: true,
@@ -93,6 +95,8 @@
         ...annotation,
         enabled: annotation.enabled ?? settings.enabled ?? DEFAULT_APP_SETTINGS.annotation.enabled,
         mode: annotation.mode || mapLegacyAnnotationMode(legacyMode),
+        userLevel: normalizeUserLevel(annotation.userLevel || settings.userLevel),
+        constrainedLayoutMode: normalizeConstrainedLayoutMode(annotation.constrainedLayoutMode),
         hideKnownItems:
           annotation.hideKnownItems ?? settings.hideMasteredWords ?? DEFAULT_APP_SETTINGS.annotation.hideKnownItems
       },
@@ -111,6 +115,18 @@
     if (language === "zh" || language === "zh-CN" || language === "zhHans") return "zhHans";
     if (language === "en" || language === "en-US") return "en";
     return DEFAULT_APP_SETTINGS.display.interfaceLanguage;
+  }
+
+  function normalizeUserLevel(level) {
+    const normalized = String(level || DEFAULT_APP_SETTINGS.annotation.userLevel).toLowerCase();
+    return ["none", "n5", "n4", "n3", "n2", "n1"].includes(normalized)
+      ? normalized
+      : DEFAULT_APP_SETTINGS.annotation.userLevel;
+  }
+
+  function normalizeConstrainedLayoutMode(mode) {
+    if (mode === "ruby" || mode === "compact") return mode;
+    return DEFAULT_APP_SETTINGS.annotation.constrainedLayoutMode;
   }
 
   function mapLegacyAnnotationMode(mode) {
@@ -169,14 +185,15 @@
   function createDefaultUserLexicalState(lexicalItemId, now = createTimestamp()) {
     return {
       lexicalItemId,
-      lifecycleStatus: "discovered",
+      lifecycleStatus: "new",
       knowledgeConfidence: 0,
       annotationLevel: "full_ruby",
       userIntent: {
         saved: false,
         ignored: false,
         manuallyMarkedKnown: false,
-        manuallyMarkedUnknown: false
+        manuallyMarkedUnknown: false,
+        pinnedAnnotation: false
       },
       exposure: {
         seenCount: 0,
@@ -272,12 +289,13 @@
   }
 
   function mapLegacyStatus(status) {
-    if (status === "new") return "discovered";
+    if (status === "new" || status === "discovered") return "new";
     if (status === "learning") return "learning";
     if (status === "reviewing") return "reviewing";
+    if (status === "known") return "known";
     if (status === "mastered") return "mastered";
     if (status === "ignored") return "ignored";
-    return "discovered";
+    return "new";
   }
 
   function mapLegacyAnnotationLevel(level) {

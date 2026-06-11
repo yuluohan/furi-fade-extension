@@ -37,6 +37,8 @@
         <div class="jr-tooltip__sentence"></div>
         <div class="jr-tooltip__actions">
           <button type="button" data-action="save">Save</button>
+          <button type="button" data-action="forgot">Forgot</button>
+          <button type="button" data-action="pin">Always Show</button>
           <button type="button" data-action="ignore">Ignore</button>
           <button type="button" data-action="known">Mark as Known</button>
         </div>
@@ -54,6 +56,16 @@
       });
       this.element.querySelector("[data-action='ignore']").addEventListener("click", () => {
         this.repository.ignore(token);
+        this.hide();
+        this.onStateChange(token);
+      });
+      this.element.querySelector("[data-action='forgot']").addEventListener("click", () => {
+        this.repository.markForgotten(token);
+        this.hide();
+        this.onStateChange(token);
+      });
+      this.element.querySelector("[data-action='pin']").addEventListener("click", () => {
+        this.repository.pinAnnotation(token);
         this.hide();
         this.onStateChange(token);
       });

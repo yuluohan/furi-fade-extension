@@ -5,6 +5,8 @@
     interfaceLanguage: document.querySelector("#interface-language"),
     annotationEnabled: document.querySelector("#annotation-enabled"),
     annotationMode: document.querySelector("#annotation-mode"),
+    userLevel: document.querySelector("#user-level"),
+    displayStyle: document.querySelector("#display-style"),
     hideKnownItems: document.querySelector("#hide-known-items"),
     exposureEnabled: document.querySelector("#exposure-enabled"),
     urlPrivacy: document.querySelector("#url-privacy"),
@@ -29,6 +31,12 @@
       modeUnknownOnly: "Unknown only",
       modeSavedOnly: "Saved only",
       modeOff: "Off",
+      knownLevel: "Known up to",
+      levelNone: "None",
+      displayStyle: "Display style",
+      displayAuto: "Auto",
+      displayRuby: "Ruby",
+      displayCompact: "Tap hints",
       hideKnownWords: "Hide known words",
       hideKnownWordsHint: "Fade out words already mastered",
       exposureSettings: "Exposure tracking settings",
@@ -66,6 +74,12 @@
       modeUnknownOnly: "只显示不熟词",
       modeSavedOnly: "只显示已保存词",
       modeOff: "关闭",
+      knownLevel: "已掌握到",
+      levelNone: "未设置",
+      displayStyle: "显示样式",
+      displayAuto: "自动",
+      displayRuby: "假名标注",
+      displayCompact: "点按提示",
       hideKnownWords: "隐藏已掌握词",
       hideKnownWordsHint: "已掌握的词会逐渐淡出",
       exposureSettings: "遇见统计设置",
@@ -107,6 +121,8 @@
     controls.interfaceLanguage.value = display.interfaceLanguage;
     controls.annotationEnabled.checked = annotation.enabled;
     controls.annotationMode.value = annotation.mode;
+    controls.userLevel.value = annotation.userLevel || "none";
+    controls.displayStyle.value = annotation.constrainedLayoutMode || "tap_only";
     controls.hideKnownItems.checked = annotation.hideKnownItems;
     controls.exposureEnabled.checked = exposureTracking.enabled;
     controls.urlPrivacy.value = exposureTracking.saveUrls;
@@ -126,6 +142,8 @@
         ...state.settings.annotation,
         enabled: controls.annotationEnabled.checked,
         mode: controls.annotationMode.value,
+        userLevel: controls.userLevel.value,
+        constrainedLayoutMode: controls.displayStyle.value,
         hideKnownItems: controls.hideKnownItems.checked
       },
       exposureTracking: {

@@ -125,7 +125,8 @@
   }
 
   function normalizeConstrainedLayoutMode(mode) {
-    return mode === "ruby" ? "ruby" : DEFAULT_APP_SETTINGS.annotation.constrainedLayoutMode;
+    if (mode === "ruby" || mode === "compact") return mode;
+    return DEFAULT_APP_SETTINGS.annotation.constrainedLayoutMode;
   }
 
   function mapLegacyAnnotationMode(mode) {

@@ -122,13 +122,13 @@ Relaxing the ancestor's constraints (`-webkit-line-clamp: none`, `max-height: no
 ### Implemented phase A
 
 - **Default: degrade, don't resize.** Before inserting a ruby, inspect a bounded number of ancestor computed styles for `-webkit-line-clamp`, `overflow: hidden` with a fixed `height`/`max-height`, or a line-height too small to fit an `rt`. In constrained contexts render the existing `tap_only` annotation level instead of ruby: a dotted-underline span with the reading in the existing tooltip on click. No line-box growth, layout untouched.
-- Added `settings.annotation.constrainedLayoutMode`, currently internal:
+- Added `settings.annotation.constrainedLayoutMode`, exposed in the popup as "Display style":
   - `tap_only` (default): use dotted-underline tap/click hints in constrained containers.
   - `ruby`: force normal ruby even in constrained containers.
+  - `compact`: use dotted-underline tap/click hints everywhere.
 
 Deferred:
 
 - Google search results manual validation.
 - Per-site "expand container" mode. It should remain opt-in and site-scoped because relaxing host layout constraints can break virtualized lists, grids, and measured result cards.
-- A visible "compact mode" popup control that forces `tap_only` everywhere.
 - Caching the per-element decision; current bounded ancestor inspection is cheap enough for phase A and covered by unit tests.

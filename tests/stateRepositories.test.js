@@ -89,6 +89,11 @@ test("normalizes annotation level settings", () => {
       constrainedLayoutMode: "ruby"
     }
   });
+  const compact = window.FadingFuriganaState.normalizeSettings({
+    annotation: {
+      constrainedLayoutMode: "compact"
+    }
+  });
   const fallback = window.FadingFuriganaState.normalizeSettings({
     annotation: {
       userLevel: "expert",
@@ -98,6 +103,7 @@ test("normalizes annotation level settings", () => {
 
   assert.equal(settings.annotation.userLevel, "n3");
   assert.equal(settings.annotation.constrainedLayoutMode, "ruby");
+  assert.equal(compact.annotation.constrainedLayoutMode, "compact");
   assert.equal(fallback.annotation.userLevel, "none");
   assert.equal(fallback.annotation.constrainedLayoutMode, "tap_only");
 });

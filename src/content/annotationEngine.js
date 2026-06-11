@@ -447,13 +447,15 @@
     }
 
     createAnnotationElement(token, sourceSentence, parentElement) {
+      const annotationSettings = this.repository.settings?.annotation;
       const annotationLevel = window.FadingFuriganaAnnotationDecision.getAnnotationLevel(
         this.repository.getUserWordState(token.lexicalItemId),
         this.repository.settings
       );
       const forceTapOnly =
         annotationLevel === "tap_only" ||
-        shouldUseTapOnlyInLayout(parentElement, this.repository.settings?.annotation);
+        annotationSettings?.constrainedLayoutMode === "compact" ||
+        shouldUseTapOnlyInLayout(parentElement, annotationSettings);
       const element = forceTapOnly ? document.createElement("span") : document.createElement("ruby");
       element.className = forceTapOnly ? "jr-ruby jr-ruby--tap-only" : "jr-ruby";
       element.setAttribute(ANNOTATED_ATTR, "true");
@@ -515,6 +517,7 @@
   }
 
   function shouldUseTapOnlyInLayout(parentElement, annotation = {}) {
+    if (annotation.constrainedLayoutMode === "compact") return true;
     if (!parentElement || annotation.constrainedLayoutMode === "ruby") return false;
     let element = parentElement;
     let depth = 0;

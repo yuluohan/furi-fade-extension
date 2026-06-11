@@ -45,6 +45,7 @@
           id: entry.id,
           lexicalItemId: entry.lexicalItemId,
           meanings: hasMeanings(token.meanings) ? token.meanings : entry.meanings,
+          difficulty: token.difficulty || entry.difficulty,
           loanword: token.isKatakanaWord ? entry.loanword : token.loanword,
           baseReadingKana: entry.baseReadingKana || token.baseReadingKana
         };
