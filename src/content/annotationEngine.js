@@ -126,6 +126,7 @@
       window.FadingFurigana = {
         restore: () => this.restore(),
         refresh: () => this.refresh(),
+        refreshWord: (lexicalItemId) => this.refreshWord(lexicalItemId),
         state: this.repository.state,
         exposures: {
           today: () => this.repository.listDailyExposures(),
@@ -151,6 +152,30 @@
       this.viewportObserver?.disconnect();
       this.restore();
       return this.annotateRoot(document.body);
+    }
+
+    // Re-evaluates a single word in place after a user action (save, mark as
+    // known, ignore). Unlike refresh(), other annotations are left untouched
+    // and nothing is re-tokenized, so the page does not flash.
+    refreshWord(lexicalItemId) {
+      if (!lexicalItemId) return;
+      const userState = this.repository.getUserWordState(lexicalItemId);
+
+      for (const ruby of document.querySelectorAll(".jr-ruby")) {
+        if (ruby.dataset.lexicalItemId !== lexicalItemId) continue;
+
+        const stillAnnotated = window.FadingFuriganaAnnotationDecision.shouldAnnotate(
+          datasetToToken(ruby),
+          userState,
+          this.repository.settings
+        );
+        if (stillAnnotated) continue;
+
+        const textNode = document.createTextNode(ruby.dataset.originalText || ruby.textContent || "");
+        // Already analyzed once; keep the mutation pass from re-tokenizing it.
+        this.processedNodes.add(textNode);
+        ruby.replaceWith(textNode);
+      }
     }
 
     restore() {
@@ -439,6 +464,7 @@
       ruby.dataset.loanword = JSON.stringify(token.loanword || {});
       ruby.dataset.sourceSentence = sourceSentence;
       ruby.dataset.originalText = token.surface;
+      ruby.dataset.sourceConfidence = String(token.source?.confidence ?? 1);
 
       const rt = document.createElement("rt");
       rt.textContent = token.loanword?.originalForm || token.readingKana || token.reading;
@@ -469,6 +495,9 @@
       meanings: parseJsonDataset(ruby.dataset.meanings, {}),
       partOfSpeech: ruby.dataset.partOfSpeech,
       loanword: parseJsonDataset(ruby.dataset.loanword, {}),
+      source: {
+        confidence: ruby.dataset.sourceConfidence !== undefined ? Number(ruby.dataset.sourceConfidence) : 1
+      },
       isKanjiWord: true,
       isKatakanaWord: false
     };

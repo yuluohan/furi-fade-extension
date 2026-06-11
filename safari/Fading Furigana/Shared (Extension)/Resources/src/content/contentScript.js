@@ -21,7 +21,11 @@
         })
       : localAnalyzer;
     let engine;
-    const tooltip = new window.FadingFuriganaTooltip.Tooltip(repository, () => engine.refresh());
+    // Word-level actions only re-evaluate that word's annotations in place;
+    // a full refresh() would strip and redraw the whole page.
+    const tooltip = new window.FadingFuriganaTooltip.Tooltip(repository, (token) =>
+      token?.lexicalItemId ? engine.refreshWord(token.lexicalItemId) : engine.refresh()
+    );
     engine = new window.FadingFuriganaAnnotationEngine.AnnotationEngine({
       analyzer,
       repository,

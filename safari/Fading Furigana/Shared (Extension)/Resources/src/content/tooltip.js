@@ -50,16 +50,17 @@
       this.element.querySelector("[data-action='save']").addEventListener("click", () => {
         this.repository.saveWord(token, sourceSentence);
         this.hide();
+        this.onStateChange(token);
       });
       this.element.querySelector("[data-action='ignore']").addEventListener("click", () => {
         this.repository.ignore(token);
         this.hide();
-        this.onStateChange();
+        this.onStateChange(token);
       });
       this.element.querySelector("[data-action='known']").addEventListener("click", () => {
         this.repository.markKnown(token);
         this.hide();
-        this.onStateChange();
+        this.onStateChange(token);
       });
 
       const rect = target.getBoundingClientRect();

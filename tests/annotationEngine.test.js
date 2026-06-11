@@ -592,6 +592,54 @@ test("defers annotation until elements scroll near the viewport", async () => {
   }
 });
 
+test("refreshWord removes only that word's annotations without re-analyzing", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("確認します。"));
+  root.appendChild(new FakeTextNode("申請します。"));
+  const { engine } = createEngine({ root, tokens: [] });
+  let analyzeCalls = 0;
+  engine.analyzer = {
+    analyze(text) {
+      analyzeCalls += 1;
+      if (text.includes("確認")) return [createToken({ start: 0, end: 2 })];
+      if (text.includes("申請")) {
+        return [createToken({ lexicalItemId: "word:申請:しんせい", surface: "申請", start: 0, end: 2 })];
+      }
+      return [];
+    }
+  };
+
+  await engine.annotateRoot(root);
+  assert.equal(collectByClass(root, "jr-ruby").length, 2);
+
+  const analyzeCallsBefore = analyzeCalls;
+  engine.repository.getUserWordState = (id) =>
+    id === "word:確認:かくにん" ? { lifecycleStatus: "mastered", knowledgeConfidence: 1 } : null;
+  engine.refreshWord("word:確認:かくにん");
+
+  const rubies = collectByClass(root, "jr-ruby");
+  assert.equal(rubies.length, 1);
+  assert.equal(rubies[0].dataset.surface, "申請");
+  assert.equal(root.textContent.includes("確認します。"), true);
+  assert.equal(analyzeCalls, analyzeCallsBefore);
+});
+
+test("refreshWord keeps annotations that should stay visible", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("確認します。"));
+  const { engine } = createEngine({ root, tokens: [createToken({ start: 0, end: 2 })] });
+
+  await engine.annotateRoot(root);
+  engine.repository.getUserWordState = () => ({
+    lifecycleStatus: "learning",
+    knowledgeConfidence: 0.4,
+    userIntent: { saved: true }
+  });
+  engine.refreshWord("word:確認:かくにん");
+
+  assert.equal(collectByClass(root, "jr-ruby").length, 1);
+});
+
 test("uses async batch analyzers when available", async () => {
   const root = new FakeElement("div");
   root.appendChild(new FakeTextNode("メールの内容を確認してください。"));
