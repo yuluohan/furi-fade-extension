@@ -12,6 +12,12 @@
   line-height: 1;
 }
 
+.jr-ruby--tap-only {
+  border-radius: 2px;
+  text-decoration: underline dotted rgba(154, 75, 0, 0.8);
+  text-underline-offset: 0.16em;
+}
+
 .jr-tooltip {
   position: fixed;
   z-index: 2147483647;

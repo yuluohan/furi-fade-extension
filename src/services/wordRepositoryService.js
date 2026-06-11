@@ -124,11 +124,25 @@
     }
 
     markKnown(token) {
-      return this.setStatus(token, "mastered", "hidden");
+      return this.setStatus(token, "known", "hidden");
     }
 
     ignore(token) {
       return this.setStatus(token, "ignored", "hidden");
+    }
+
+    async markForgotten(token) {
+      const now = new Date().toISOString();
+      const item = this.upsertLexicalItem(token, now);
+      this.userLexicalStates.resetLearning(item.id, now);
+      await this.persist();
+    }
+
+    async pinAnnotation(token) {
+      const now = new Date().toISOString();
+      const item = this.upsertLexicalItem(token, now);
+      this.userLexicalStates.setPinnedAnnotation(item.id, true, now);
+      await this.persist();
     }
 
     async recordSeen(token) {

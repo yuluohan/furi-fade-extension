@@ -202,11 +202,42 @@
       baseReadingKana: entry.baseReadingKana || reading,
       lexicalType: entry.lexicalType || (loanword.isLoanword ? "loanword" : "word"),
       scriptProfile,
+      difficulty: entry.difficulty || inferDifficultyFromPriority(entry.priority),
       loanword,
       source: entry.source || {
         provider: "local",
         confidence: 0.85
       }
+    };
+  }
+
+  function inferDifficultyFromPriority(priority = []) {
+    if (!Array.isArray(priority) || priority.length === 0) return undefined;
+    const nfRanks = priority
+      .map((code) => String(code).match(/^nf(\d+)$/u)?.[1])
+      .filter(Boolean)
+      .map(Number);
+    const bestNf = nfRanks.length > 0 ? Math.min(...nfRanks) : null;
+
+    let jlptLevel = "n2";
+    if (bestNf !== null) {
+      if (bestNf <= 12) jlptLevel = "n5";
+      else if (bestNf <= 24) jlptLevel = "n4";
+      else if (bestNf <= 36) jlptLevel = "n3";
+      else if (bestNf <= 48) jlptLevel = "n2";
+      else jlptLevel = "n1";
+    } else if (priority.some((code) => /^(ichi1|news1|spec1)$/u.test(String(code)))) {
+      jlptLevel = "n4";
+    } else if (priority.some((code) => /^(ichi2|news2|spec2|gai1)$/u.test(String(code)))) {
+      jlptLevel = "n3";
+    } else if (priority.some((code) => /^gai2$/u.test(String(code)))) {
+      jlptLevel = "n2";
+    }
+
+    return {
+      jlptLevel,
+      source: "jmdict_priority_heuristic",
+      confidence: 0.35
     };
   }
 
@@ -358,6 +389,7 @@
     createScriptProfile,
     isSingleKanjiInsideJapaneseText,
     matchCounterAfterDigit,
+    inferDifficultyFromPriority,
     normalizeDictionaryEntry
   };
 })();

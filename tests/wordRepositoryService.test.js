@@ -233,11 +233,31 @@ test("marks words known and ignored through service status actions", async () =>
   await service.load();
 
   await service.markKnown(createToken());
-  assert.equal(service.getUserWordState("確認:かくにん").lifecycleStatus, "mastered");
+  assert.equal(service.getUserWordState("確認:かくにん").lifecycleStatus, "known");
   assert.equal(service.getUserWordState("確認:かくにん").annotationLevel, "hidden");
 
   await service.ignore(createToken());
   assert.equal(service.getUserWordState("確認:かくにん").lifecycleStatus, "ignored");
+});
+
+test("forgot and pin actions make hidden words visible again", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+  await service.load();
+
+  await service.markKnown(createToken());
+  await service.markForgotten(createToken());
+
+  let userState = service.getUserWordState("確認:かくにん");
+  assert.equal(userState.lifecycleStatus, "learning");
+  assert.equal(userState.knowledgeConfidence, 0);
+  assert.equal(userState.annotationLevel, "full_ruby");
+  assert.equal(userState.userIntent.manuallyMarkedUnknown, true);
+  assert.equal(userState.learning.reviewStage, "lapsed");
+
+  await service.pinAnnotation(createToken());
+  userState = service.getUserWordState("確認:かくにん");
+  assert.equal(userState.userIntent.pinnedAnnotation, true);
 });
 
 (async () => {

@@ -57,6 +57,7 @@
 
     recordSeen(lexicalItemId, now = window.FadingFuriganaState.createTimestamp()) {
       const state = this.ensure(lexicalItemId, now);
+      if (state.lifecycleStatus === "discovered") state.lifecycleStatus = "new";
       state.exposure.seenCount += 1;
       state.exposure.firstSeenAt ||= now;
       state.exposure.lastSeenAt = now;
@@ -87,11 +88,47 @@
         state.interaction.markedKnownCount += 1;
       }
 
+      if (status === "known") {
+        state.knowledgeConfidence = Math.max(state.knowledgeConfidence, 0.9);
+        state.userIntent.manuallyMarkedKnown = true;
+        state.interaction.markedKnownCount += 1;
+      }
+
       if (status === "ignored") {
         state.userIntent.ignored = true;
         state.interaction.ignoredCount += 1;
       }
 
+      return state;
+    }
+
+    resetLearning(lexicalItemId, now = window.FadingFuriganaState.createTimestamp()) {
+      const state = this.ensure(lexicalItemId, now);
+      state.lifecycleStatus = "learning";
+      state.annotationLevel = "full_ruby";
+      state.knowledgeConfidence = 0;
+      state.userIntent.saved = true;
+      state.userIntent.ignored = false;
+      state.userIntent.manuallyMarkedKnown = false;
+      state.userIntent.manuallyMarkedUnknown = true;
+      state.interaction.lastActionAt = now;
+      state.learning.reviewStage = "lapsed";
+      state.learning.wrongCount += 1;
+      state.learning.correctStreak = 0;
+      state.intelligence.confidenceKnown = 0;
+      state.intelligence.confidenceNeedsHelp = 1;
+      state.intelligence.reasonCodes = [...new Set([...(state.intelligence.reasonCodes || []), "user_forgot"])];
+      return state;
+    }
+
+    setPinnedAnnotation(lexicalItemId, pinned, now = window.FadingFuriganaState.createTimestamp()) {
+      const state = this.ensure(lexicalItemId, now);
+      state.userIntent.pinnedAnnotation = !!pinned;
+      if (pinned && state.annotationLevel === "hidden") state.annotationLevel = "full_ruby";
+      state.interaction.lastActionAt = now;
+      state.intelligence.reasonCodes = [
+        ...new Set([...(state.intelligence.reasonCodes || []), pinned ? "user_pinned_annotation" : "user_unpinned_annotation"])
+      ];
       return state;
     }
   }

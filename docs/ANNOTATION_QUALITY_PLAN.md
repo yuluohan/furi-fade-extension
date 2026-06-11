@@ -1,8 +1,8 @@
 # Annotation Quality and Display Plan
 
-Date: 2026-06-10
+Date: 2026-06-11
 
-This document records solution proposals for the annotation-quality feedback collected on 2026-06-10. Items 1 and 2 below were implemented immediately; the rest are design proposals awaiting approval before implementation.
+This document records solution proposals and implementation status for the annotation-quality feedback collected on 2026-06-10 and 2026-06-11.
 
 ## 1. Skip Chinese pages (implemented)
 
@@ -90,18 +90,24 @@ Deferred:
 
 T025 (review/frequency learning screens) is re-scoped to the planned companion app. The extension keeps only the lightweight stats panel and will expose data through the App Group / sync bridge (see `docs/SAFARI_STORAGE_BRIDGE_DESIGN.md`).
 
-## 6. Level-based filtering with per-word actions (proposal)
+## 6. Level-based filtering with per-word actions (implemented phase A, 2026-06-11)
 
-Annotating every word makes Japanese pages unreadable. Plan:
+Annotating every word makes Japanese pages unreadable. Implemented phase A:
 
-- Add `settings.annotation.userLevel` (`none`, `n5` … `n1`). Word difficulty comes from JMdict priority/frequency markers mapped into level bands now, with curated JLPT vocabulary lists as a later refinement.
-- `shouldAnnotate` skips words at or below the user's level.
-- Two distinct per-word actions, both reachable through a right-click context menu (`contextMenus` permission + background worker) so nothing is added to the page layout:
-  - **"I forgot this word" (reset to unlearned).** For recently learned words that have faded out. Pinning the annotation back on would be a display-level patch only — `knowledgeConfidence` would stay high, so fading, exposure stats, and the companion app's review queue would all still believe the word is known. Instead, reset the real learning state: `lifecycleStatus` back to `learning`, `knowledgeConfidence` to 0, `annotationLevel` to `full_ruby`, `userIntent.manuallyMarkedKnown` cleared, and `learning.reviewStage` marked lapsed so the future app reschedules it. Annotation reappears and the fading cycle restarts naturally; no new data fields needed.
-  - **"Always annotate this word" (pin).** Only for words hidden by the level filter: the system thinks the word is too easy, but the user always wants the reading. This is a display preference, not a knowledge claim, so it must not touch learning data — store it as `userIntent.pinnedAnnotation` overriding the level filter.
-- The popup gets a small "recently hidden" list with one-tap "forgot this word", until the companion app takes over richer management.
+- Added `settings.annotation.userLevel` (`none`, `n5` ... `n1`) and a popup selector. This is a user-declared "known up to" level.
+- Word difficulty is inferred from JMdict priority/frequency markers for now (`nf01`-`nf12` -> N5, `nf13`-`nf24` -> N4, `nf25`-`nf36` -> N3, `nf37`-`nf48` -> N2, lower-priority remainder -> N1). This is intentionally marked as a low-confidence heuristic and can be replaced by curated JLPT lists later.
+- `shouldAnnotate` skips words at or below the user's selected level unless the user explicitly saved the word, marked it unknown, is learning it, or pinned it for display.
+- The lexical state now uses `new`, `learning`, `known`, and `ignored` as the active status vocabulary. Legacy `discovered` is normalized to `new`.
+- Tooltip actions now include:
+  - **"I forgot this word" (reset to learning).** This resets the real learning state, not just the display: `lifecycleStatus` becomes `learning`, `knowledgeConfidence` returns to 0, `annotationLevel` returns to `full_ruby`, `manuallyMarkedKnown` is cleared, `manuallyMarkedUnknown` is set, and `learning.reviewStage` becomes `lapsed`. Annotation reappears and the future review queue can treat it as forgotten.
+  - **"Always show" (pin).** This stores `userIntent.pinnedAnnotation = true`, overriding level filtering without changing knowledge confidence.
 
-## 7. Height-constrained layout fallback (proposal)
+Deferred:
+
+- Right-click context menu (`contextMenus` permission + background worker). Phase A keeps the actions in the existing tooltip to avoid adding another permission before the core state behavior is proven.
+- Popup "recently hidden" list. This belongs with richer vocabulary management and may move into the companion app instead of the extension popup.
+
+## 7. Height-constrained layout fallback (implemented phase A, 2026-06-11)
 
 `<ruby>` + `<rt>` grows the line box. In containers with `-webkit-line-clamp` or fixed heights (e.g. Google search result snippets) annotations are clipped or break the layout.
 
@@ -113,8 +119,16 @@ Relaxing the ancestor's constraints (`-webkit-line-clamp: none`, `max-height: no
 - Virtualized lists (Twitter-style infinite feeds) measure item heights to position rows; mutating heights from a content script causes jumpy scrolling and misplaced rows. Breaking host sites is the top complaint category for content-script extensions.
 - Much truncation is not CSS at all: server-side ellipsis, JS character-count truncation, JS-measured fixed heights. CSS overrides cannot recover those.
 
-### Plan
+### Implemented phase A
 
 - **Default: degrade, don't resize.** Before inserting a ruby, inspect a bounded number of ancestor computed styles for `-webkit-line-clamp`, `overflow: hidden` with a fixed `height`/`max-height`, or a line-height too small to fit an `rt`. In constrained contexts render the existing `tap_only` annotation level instead of ruby: a dotted-underline span with the reading in the existing tooltip on click. No line-box growth, layout untouched.
-- **Opt-in "expand container" mode** (global or per-site, default off): for users who prefer full ruby everywhere, relax `line-clamp`/`max-height` only on simple text containers. Users enable it on sites they trust not to break.
-- Cache the per-element decision; add a global "compact mode" display setting that forces `tap_only` everywhere for users who prefer minimal visual change.
+- Added `settings.annotation.constrainedLayoutMode`, currently internal:
+  - `tap_only` (default): use dotted-underline tap/click hints in constrained containers.
+  - `ruby`: force normal ruby even in constrained containers.
+
+Deferred:
+
+- Google search results manual validation.
+- Per-site "expand container" mode. It should remain opt-in and site-scoped because relaxing host layout constraints can break virtualized lists, grids, and measured result cards.
+- A visible "compact mode" popup control that forces `tap_only` everywhere.
+- Caching the per-element decision; current bounded ancestor inspection is cheap enough for phase A and covered by unit tests.

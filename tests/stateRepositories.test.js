@@ -55,6 +55,8 @@ test("creates AppState v1 defaults", () => {
   assert.equal(state.userProfile.targetLanguage, "ja");
   assert.equal(state.settings.display.interfaceLanguage, "en");
   assert.equal(state.settings.annotation.mode, "adaptive");
+  assert.equal(state.settings.annotation.userLevel, "none");
+  assert.equal(state.settings.annotation.constrainedLayoutMode, "tap_only");
   assert.equal(state.settings.exposureTracking.saveUrls, "domain_only");
   assert.deepEqual(Object.keys(state.lexicalItems), []);
   assert.deepEqual(Object.keys(state.dailyExposureSummaries), []);
@@ -78,6 +80,26 @@ test("normalizes interface language settings", () => {
   assert.equal(zhSettings.display.interfaceLanguage, "zhHans");
   assert.equal(legacySettings.display.interfaceLanguage, "en");
   assert.equal(fallbackSettings.display.interfaceLanguage, "en");
+});
+
+test("normalizes annotation level settings", () => {
+  const settings = window.FadingFuriganaState.normalizeSettings({
+    annotation: {
+      userLevel: "N3",
+      constrainedLayoutMode: "ruby"
+    }
+  });
+  const fallback = window.FadingFuriganaState.normalizeSettings({
+    annotation: {
+      userLevel: "expert",
+      constrainedLayoutMode: "expand"
+    }
+  });
+
+  assert.equal(settings.annotation.userLevel, "n3");
+  assert.equal(settings.annotation.constrainedLayoutMode, "ruby");
+  assert.equal(fallback.annotation.userLevel, "none");
+  assert.equal(fallback.annotation.constrainedLayoutMode, "tap_only");
 });
 
 test("migrates legacy localStorage state", () => {
@@ -168,13 +190,17 @@ test("updates lexical items and user state through repositories", () => {
 
   userStates.recordSeen(item.id, "2026-06-08T01:01:00.000Z");
   userStates.markSaved(item.id, "2026-06-08T01:02:00.000Z");
-  userStates.setStatus(item.id, "mastered", "hidden", "2026-06-08T01:03:00.000Z");
+  userStates.setStatus(item.id, "known", "hidden", "2026-06-08T01:03:00.000Z");
+  userStates.resetLearning(item.id, "2026-06-08T01:04:00.000Z");
+  userStates.setPinnedAnnotation(item.id, true, "2026-06-08T01:05:00.000Z");
 
   const userState = userStates.getByLexicalItemId(item.id);
   assert.equal(userState.exposure.seenCount, 1);
   assert.equal(userState.userIntent.saved, true);
-  assert.equal(userState.lifecycleStatus, "mastered");
-  assert.equal(userState.knowledgeConfidence, 1);
+  assert.equal(userState.lifecycleStatus, "learning");
+  assert.equal(userState.knowledgeConfidence, 0);
+  assert.equal(userState.userIntent.manuallyMarkedUnknown, true);
+  assert.equal(userState.userIntent.pinnedAnnotation, true);
 });
 
 test("records daily exposure and lists frequent items", () => {

@@ -53,7 +53,8 @@ global.MutationObserver = class {
 loadBrowserScript("src/core/annotationDecision.js");
 loadBrowserScript("src/content/annotationEngine.js");
 
-const { AnnotationEngine, extractSentence, shouldSkipTextNode } = window.FadingFuriganaAnnotationEngine;
+const { AnnotationEngine, extractSentence, shouldSkipTextNode, shouldUseTapOnlyInLayout } =
+  window.FadingFuriganaAnnotationEngine;
 
 class FakeTextNode {
   constructor(nodeValue) {
@@ -82,6 +83,7 @@ class FakeElement {
     this.className = "";
     this.hidden = false;
     this.isContentEditable = false;
+    this.computedStyle = null;
   }
 
   appendChild(child) {
@@ -215,6 +217,7 @@ function createEngine({ root, tokens }) {
     disconnect() {}
   };
   global.document = createFakeDocument(root);
+  global.getComputedStyle = (element) => element.computedStyle || {};
 
   const seenTokens = [];
   const repository = {
@@ -393,6 +396,33 @@ test("uses loanword original form as ruby text", async () => {
   const ruby = collectByClass(root, "jr-ruby")[0];
   assert.equal(ruby.dataset.surface, "サーバー");
   assert.equal(ruby.children[1].textContent, "server");
+});
+
+test("uses tap-only annotation inside constrained layout", async () => {
+  const root = new FakeElement("div");
+  const paragraph = new FakeElement("p");
+  paragraph.computedStyle = {
+    overflow: "hidden",
+    overflowY: "hidden",
+    height: "36px",
+    maxHeight: "36px",
+    lineHeight: "16px",
+    webkitLineClamp: "2"
+  };
+  paragraph.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+  root.appendChild(paragraph);
+
+  const { engine, seenTokens } = createEngine({ root, tokens: [createToken()] });
+
+  await engine.annotateRoot(root);
+
+  const annotation = collectByClass(root, "jr-ruby")[0];
+  assert.equal(shouldUseTapOnlyInLayout(paragraph, { constrainedLayoutMode: "tap_only" }), true);
+  assert.equal(annotation.tagName, "SPAN");
+  assert.equal(annotation.className, "jr-ruby jr-ruby--tap-only");
+  assert.equal(annotation.textContent, "確認");
+  assert.equal(annotation.children.some((child) => child.tagName === "RT"), false);
+  assert.deepEqual(seenTokens, ["確認"]);
 });
 
 test("does not re-annotate descendants of existing ruby annotations", async () => {

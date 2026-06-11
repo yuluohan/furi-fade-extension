@@ -114,3 +114,59 @@ test("unknown_items_only does not annotate high-confidence item", () => {
     false
   );
 });
+
+test("user level hides words at or below the selected level", () => {
+  const settings = {
+    annotation: {
+      ...baseSettings.annotation,
+      userLevel: "n3"
+    }
+  };
+  const n4Token = {
+    ...token,
+    difficulty: {
+      jlptLevel: "n4"
+    }
+  };
+  const n2Token = {
+    ...token,
+    difficulty: {
+      jlptLevel: "n2"
+    }
+  };
+
+  assert.equal(window.FadingFuriganaAnnotationDecision.shouldAnnotate(n4Token, null, settings), false);
+  assert.equal(window.FadingFuriganaAnnotationDecision.shouldAnnotate(n2Token, null, settings), true);
+});
+
+test("saved and pinned words override level filtering", () => {
+  const settings = {
+    annotation: {
+      ...baseSettings.annotation,
+      userLevel: "n2"
+    }
+  };
+  const easyToken = {
+    ...token,
+    difficulty: {
+      jlptLevel: "n5"
+    }
+  };
+
+  assert.equal(
+    window.FadingFuriganaAnnotationDecision.shouldAnnotate(easyToken, {
+      lifecycleStatus: "learning",
+      knowledgeConfidence: 0.2,
+      userIntent: { saved: true }
+    }, settings),
+    true
+  );
+  assert.equal(
+    window.FadingFuriganaAnnotationDecision.shouldAnnotate(easyToken, {
+      lifecycleStatus: "known",
+      knowledgeConfidence: 0.9,
+      userIntent: { pinnedAnnotation: true }
+    }, settings),
+    true
+  );
+});

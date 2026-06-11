@@ -25,7 +25,8 @@ loadBrowserScript("src/core/appState.js");
 loadBrowserScript("src/dictionary/data/jmdictCommonData.js");
 loadBrowserScript("src/dictionary/localDictionaryProvider.js");
 
-const { JapaneseAnalyzer, LocalDictionaryProvider, createScriptProfile } = window.FadingFuriganaDictionary;
+const { JapaneseAnalyzer, LocalDictionaryProvider, createScriptProfile, inferDifficultyFromPriority } =
+  window.FadingFuriganaDictionary;
 
 function analyze(text, entries) {
   const provider = new LocalDictionaryProvider(entries);
@@ -188,4 +189,10 @@ test("detects script profile for local dictionary entries", () => {
     hasKatakana: true,
     hasLatin: false
   });
+});
+
+test("infers coarse difficulty from JMdict priority markers", () => {
+  assert.equal(inferDifficultyFromPriority(["nf05"]).jlptLevel, "n5");
+  assert.equal(inferDifficultyFromPriority(["nf28"]).jlptLevel, "n3");
+  assert.equal(inferDifficultyFromPriority(["gai2"]).jlptLevel, "n2");
 });
