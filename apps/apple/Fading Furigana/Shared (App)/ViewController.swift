@@ -59,6 +59,7 @@ class ViewController: NSViewController {
     private var snapshot = AppStateSnapshot.empty
     private var selectedMode = WordListMode.today
 
+    private let buildVersionLabel = NSTextField(labelWithString: "Version: loading")
     private let statusLabel = NSTextField(labelWithString: "Checking Safari extension status...")
     private let storeLabel = NSTextField(labelWithString: "Local store: not loaded")
     private let totalWordsValue = NSTextField(labelWithString: "0")
@@ -112,6 +113,10 @@ class ViewController: NSViewController {
         let title = NSTextField(labelWithString: "Fading Furigana")
         title.font = NSFont.boldSystemFont(ofSize: 24)
 
+        buildVersionLabel.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        buildVersionLabel.textColor = .secondaryLabelColor
+        buildVersionLabel.stringValue = VersionInfo.displayText()
+
         statusLabel.font = NSFont.systemFont(ofSize: 13)
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.maximumNumberOfLines = 2
@@ -121,6 +126,7 @@ class ViewController: NSViewController {
         storeLabel.maximumNumberOfLines = 2
 
         textStack.addArrangedSubview(title)
+        textStack.addArrangedSubview(buildVersionLabel)
         textStack.addArrangedSubview(statusLabel)
         textStack.addArrangedSubview(storeLabel)
 
@@ -361,8 +367,34 @@ class ViewController: NSViewController {
     }
 }
 
+private enum VersionInfo {
+    static func displayText() -> String {
+        let appVersion = bundleVersionText(Bundle.main)
+        let extensionVersion = safariExtensionVersionText()
+        return "App \(appVersion) · Extension \(extensionVersion)"
+    }
+
+    private static func bundleVersionText(_ bundle: Bundle) -> String {
+        let version = bundle.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0.0.0"
+        let build = bundle.object(forInfoDictionaryKey: "CFBundleVersion") as? String ?? "0"
+        return "v\(version) (\(build))"
+    }
+
+    private static func safariExtensionVersionText() -> String {
+        let extensionURL = Bundle.main.builtInPlugInsURL?
+            .appendingPathComponent("Fading Furigana Extension.appex")
+        guard
+            let extensionURL,
+            let extensionBundle = Bundle(url: extensionURL)
+        else {
+            return "not installed"
+        }
+        return bundleVersionText(extensionBundle)
+    }
+}
+
 private final class AppStateStore {
-    private let appGroupIdentifier = "group.com.banyuguru.fading-furigana"
+    private static let appGroupIdentifier = "group.com.banyuguru.fading-furigana"
     private let fileManager = FileManager.default
 
     var displayPath: String {
@@ -370,13 +402,7 @@ private final class AppStateStore {
     }
 
     private var stateFileURL: URL {
-        let baseURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)
-            ?? fallbackApplicationSupportURL()
-        return baseURL
-            .appendingPathComponent("Library", isDirectory: true)
-            .appendingPathComponent("Application Support", isDirectory: true)
-            .appendingPathComponent("FadingFurigana", isDirectory: true)
-            .appendingPathComponent("app-state-v1.json")
+        Self.stateFileURL(fileManager: fileManager)
     }
 
     func loadSnapshot() -> AppStateSnapshot {
@@ -486,10 +512,20 @@ private final class AppStateStore {
         try data.write(to: url, options: .atomic)
     }
 
-    private func fallbackApplicationSupportURL() -> URL {
-        let urls = fileManager.urls(for: .applicationSupportDirectory, in: .userDomainMask)
-        return (urls.first ?? URL(fileURLWithPath: NSTemporaryDirectory()))
+    private static func stateFileURL(fileManager: FileManager = .default) -> URL {
+        if let appGroupURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) {
+            return appGroupURL
+                .appendingPathComponent("Library", isDirectory: true)
+                .appendingPathComponent("Application Support", isDirectory: true)
+                .appendingPathComponent("FadingFurigana", isDirectory: true)
+                .appendingPathComponent("app-state-v1.json")
+        }
+
+        return URL(fileURLWithPath: NSHomeDirectory(), isDirectory: true)
+            .appendingPathComponent("Library", isDirectory: true)
+            .appendingPathComponent("Application Support", isDirectory: true)
             .appendingPathComponent("FadingFurigana", isDirectory: true)
+            .appendingPathComponent("app-state-v1.json")
     }
 
     private func createEmptyState() -> [String: Any] {

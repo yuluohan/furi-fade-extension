@@ -15,7 +15,9 @@
     refreshStats: document.querySelector("#refresh-stats"),
     todayStats: document.querySelector("#today-stats"),
     weekStats: document.querySelector("#week-stats"),
-    statusText: document.querySelector("#status-text")
+    statusText: document.querySelector("#status-text"),
+    buildVersion: document.querySelector("#build-version"),
+    footerVersion: document.querySelector("#footer-version")
   };
 
   const MESSAGES = {
@@ -109,6 +111,7 @@
 
   let state;
   const storageAdapter = window.FadingFuriganaStorage.createBestAvailableStorageAdapter();
+  renderBuildVersion();
 
   async function load() {
     state = await storageAdapter.loadState();
@@ -226,7 +229,7 @@
 
     return [...totals.values()]
       .sort((a, b) => b.totalSeenCount - a.totalSeenCount)
-      .slice(0, 5)
+      .slice(0, 2)
       .map((item) => ({
         ...item,
         label: getFrequentSurface(item) || state.lexicalItems[item.lexicalItemId]?.surface || item.lexicalItemId
@@ -258,6 +261,13 @@
       row.appendChild(count);
       element.appendChild(row);
     }
+  }
+
+  function renderBuildVersion() {
+    const manifest = window.chrome?.runtime?.getManifest?.() || window.browser?.runtime?.getManifest?.();
+    const version = manifest?.version ? `v${manifest.version}` : "v0.1.0";
+    controls.buildVersion.textContent = version;
+    controls.footerVersion.textContent = version;
   }
 
   controls.interfaceLanguage.addEventListener("change", () => {

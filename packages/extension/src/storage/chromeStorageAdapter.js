@@ -43,6 +43,11 @@
   }
 
   function createBestAvailableStorageAdapter() {
+    if (window.FadingFuriganaStorage.isSafariNativeStorageAvailable?.()) {
+      return new window.FadingFuriganaStorage.SafariNativeStorageAdapter({
+        fallbackAdapter: window.chrome?.storage?.local ? new ChromeStorageAdapter(window.chrome.storage.local) : null
+      });
+    }
     if (window.chrome?.storage?.local) {
       return new ChromeStorageAdapter(window.chrome.storage.local);
     }

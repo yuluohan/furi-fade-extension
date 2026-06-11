@@ -36,6 +36,8 @@ importScripts(
 );
 
 const DICTIONARY_PATH = "/src/tokenizer/dict";
+const NATIVE_STORAGE_RELAY_MESSAGE_TYPE = "FADING_FURIGANA_NATIVE_STORAGE_RELAY";
+const extensionRuntime = globalThis.chrome?.runtime || globalThis.browser?.runtime;
 
 let tokenizerPromise = null;
 
@@ -54,7 +56,16 @@ function getTokenizer() {
   return tokenizerPromise;
 }
 
-chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+extensionRuntime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === NATIVE_STORAGE_RELAY_MESSAGE_TYPE) {
+    sendNativeStorageMessage(message.payload)
+      .then((response) => sendResponse({ ok: true, response }))
+      .catch((error) => {
+        sendResponse({ ok: false, error: String(error?.message || error) });
+      });
+    return true;
+  }
+
   if (message?.type !== "FADING_FURIGANA_TOKENIZE") return false;
 
   getTokenizer()
@@ -69,3 +80,37 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     });
   return true;
 });
+
+function sendNativeStorageMessage(payload) {
+  return new Promise((resolve, reject) => {
+    if (typeof extensionRuntime?.sendNativeMessage !== "function") {
+      reject(new Error("Native messaging is unavailable in the background worker."));
+      return;
+    }
+
+    let settled = false;
+    const settle = (handler, value) => {
+      if (settled) return;
+      settled = true;
+      handler(value);
+    };
+
+    const callback = (response) => {
+      const lastError = globalThis.chrome?.runtime?.lastError || globalThis.browser?.runtime?.lastError;
+      if (lastError) {
+        settle(reject, new Error(lastError.message));
+        return;
+      }
+      settle(resolve, response);
+    };
+
+    try {
+      const maybePromise = extensionRuntime.sendNativeMessage(payload, callback);
+      if (maybePromise?.then) {
+        maybePromise.then((response) => settle(resolve, response), (error) => settle(reject, error));
+      }
+    } catch (error) {
+      settle(reject, error);
+    }
+  });
+}

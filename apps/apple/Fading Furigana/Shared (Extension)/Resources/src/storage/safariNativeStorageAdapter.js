@@ -1,0 +1,166 @@
+(() => {
+  "use strict";
+
+  const MESSAGE_TYPE = "FADING_FURIGANA_STORAGE";
+  const RESPONSE_TYPE = "FADING_FURIGANA_STORAGE_RESPONSE";
+  const RELAY_MESSAGE_TYPE = "FADING_FURIGANA_NATIVE_STORAGE_RELAY";
+
+  class SafariNativeStorageAdapter {
+    constructor({ runtime = getRuntime(), fallbackAdapter = null } = {}) {
+      this.runtime = runtime;
+      this.fallbackAdapter = fallbackAdapter;
+    }
+
+    async loadState() {
+      try {
+        const response = await this.send("loadState");
+        const state = migrate(response?.payload?.state);
+        if (isMeaningfulState(state) || !this.fallbackAdapter) return state;
+
+        const fallbackState = await this.fallbackAdapter.loadState();
+        if (isMeaningfulState(fallbackState)) {
+          await this.saveState(fallbackState);
+          return fallbackState;
+        }
+        return state;
+      } catch (error) {
+        warnNativeFailure("loadState", error);
+        return this.fallbackAdapter
+          ? this.fallbackAdapter.loadState()
+          : window.FadingFuriganaState.createDefaultAppState();
+      }
+    }
+
+    async saveState(state) {
+      const nextState = {
+        ...state,
+        metadata: {
+          ...state.metadata,
+          updatedAt: window.FadingFuriganaState.createTimestamp()
+        }
+      };
+
+      try {
+        await this.send("saveState", { state: nextState });
+      } catch (error) {
+        warnNativeFailure("saveState", error);
+        if (!this.fallbackAdapter) throw error;
+        await this.fallbackAdapter.saveState(nextState);
+      }
+    }
+
+    async clearState() {
+      try {
+        await this.send("clearState");
+      } catch (error) {
+        warnNativeFailure("clearState", error);
+        if (!this.fallbackAdapter) throw error;
+        await this.fallbackAdapter.clearState();
+      }
+    }
+
+    async send(action, payload = {}) {
+      if (!this.runtime?.sendNativeMessage && !this.runtime?.sendMessage) {
+        throw new Error("Safari native messaging is unavailable.");
+      }
+
+      const request = {
+        type: MESSAGE_TYPE,
+        action,
+        payload,
+        requestId: `${Date.now()}-${Math.random().toString(36).slice(2)}`
+      };
+      const response = await sendNativeStorageRequest(this.runtime, request);
+      if (response?.type !== RESPONSE_TYPE || response.requestId !== request.requestId) {
+        throw new Error("Invalid Safari native storage response.");
+      }
+      if (!response.ok) {
+        throw new Error(response.error || "Safari native storage request failed.");
+      }
+      return response;
+    }
+  }
+
+  function isSafariNativeStorageAvailable() {
+    const runtime = getRuntime();
+    const vendor = window.navigator?.vendor || "";
+    return (
+      /Apple/i.test(vendor) &&
+      (typeof runtime?.sendNativeMessage === "function" || typeof runtime?.sendMessage === "function")
+    );
+  }
+
+  function getRuntime() {
+    return window.browser?.runtime || window.chrome?.runtime;
+  }
+
+  async function sendNativeStorageRequest(runtime, message) {
+    if (typeof runtime?.sendNativeMessage === "function") {
+      return callRuntimeMethod(runtime, "sendNativeMessage", message);
+    }
+
+    if (typeof runtime?.sendMessage === "function") {
+      const relayResponse = await callRuntimeMethod(runtime, "sendMessage", {
+        type: RELAY_MESSAGE_TYPE,
+        payload: message
+      });
+      if (!relayResponse?.ok) {
+        throw new Error(relayResponse?.error || "Safari native storage relay failed.");
+      }
+      return relayResponse.response;
+    }
+
+    throw new Error("Safari native messaging is unavailable.");
+  }
+
+  function callRuntimeMethod(runtime, methodName, message) {
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const settle = (handler, value) => {
+        if (settled) return;
+        settled = true;
+        handler(value);
+      };
+
+      const callback = (response) => {
+        const lastError = window.chrome?.runtime?.lastError || window.browser?.runtime?.lastError;
+        if (lastError) {
+          settle(reject, new Error(lastError.message));
+          return;
+        }
+        settle(resolve, response);
+      };
+
+      try {
+        const maybePromise = runtime[methodName](message, callback);
+        if (maybePromise?.then) {
+          maybePromise.then((response) => settle(resolve, response), (error) => settle(reject, error));
+        }
+      } catch (error) {
+        settle(reject, error);
+      }
+    });
+  }
+
+  function migrate(state) {
+    return window.FadingFuriganaState.migrateAppState(state);
+  }
+
+  function isMeaningfulState(state) {
+    return (
+      Object.keys(state.lexicalItems || {}).length > 0 ||
+      Object.keys(state.userLexicalStates || {}).length > 0 ||
+      Object.keys(state.dailyExposureSummaries || {}).length > 0
+    );
+  }
+
+  function warnNativeFailure(action, error) {
+    console.warn(`[Fading Furigana] Safari native storage ${action} failed:`, error?.message || error);
+  }
+
+  window.FadingFuriganaStorage = {
+    ...window.FadingFuriganaStorage,
+    SafariNativeStorageAdapter,
+    isSafariNativeStorageAvailable
+  };
+})();

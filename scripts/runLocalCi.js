@@ -5,13 +5,17 @@ const rootDir = path.resolve(__dirname, "..");
 
 run("npm", ["run", "check"]);
 run("npm", ["test"]);
-run("node", ["scripts/buildSafariMac.js"]);
+const safariBuildEnv = {};
+if (!process.env.FURI_DEVELOPMENT_TEAM && !process.env.FURI_SAFARI_COMPILE_ONLY) {
+  safariBuildEnv.FURI_SAFARI_COMPILE_ONLY = "1";
+}
+run("node", ["scripts/buildSafariMac.js"], safariBuildEnv);
 
-function run(command, args) {
+function run(command, args, envOverrides = {}) {
   console.log(`\n$ ${command} ${args.join(" ")}`);
   const result = spawnSync(command, args, {
     cwd: rootDir,
-    env: process.env,
+    env: { ...process.env, ...envOverrides },
     stdio: "inherit"
   });
 

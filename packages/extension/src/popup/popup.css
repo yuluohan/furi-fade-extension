@@ -5,7 +5,8 @@
 
 body {
   margin: 0;
-  min-width: 320px;
+  width: 360px;
+  overflow: hidden;
   color: #202124;
   background: #f6f7f8;
 }
@@ -18,35 +19,58 @@ input {
 
 .popup {
   display: grid;
-  gap: 10px;
-  padding: 14px;
+  box-sizing: border-box;
+  width: 360px;
+  gap: 8px;
+  padding: 12px;
 }
 
 .popup__header {
   display: grid;
-  gap: 2px;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: start;
 }
 
 .popup__header h1 {
   margin: 0;
-  font-size: 18px;
+  font-size: 17px;
   font-weight: 700;
 }
 
 .popup__header p {
-  min-height: 18px;
   margin: 0;
   color: #667085;
   font-size: 12px;
 }
 
+#build-version,
+#footer-version {
+  color: #98a2b3;
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+#status-text {
+  max-width: 116px;
+  min-height: 16px;
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .panel {
   display: grid;
-  gap: 12px;
-  padding: 12px;
+  gap: 9px;
+  padding: 9px;
   border: 1px solid #d7dce2;
   border-radius: 8px;
   background: #fff;
+}
+
+.panel--compact {
+  padding: 8px 9px;
 }
 
 .switch-row,
@@ -60,20 +84,35 @@ input {
   align-items: center;
 }
 
+.switch-grid,
+.settings-grid {
+  display: grid;
+  gap: 8px;
+}
+
+.switch-grid {
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+}
+
+.settings-grid {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
 .switch-row strong,
 .field span {
   display: block;
   color: #202124;
-  font-size: 13px;
+  font-size: 12px;
   font-weight: 650;
 }
 
 .switch-row small {
   display: block;
-  margin-top: 2px;
+  margin-top: 1px;
   color: #667085;
-  font-size: 11px;
-  line-height: 1.35;
+  font-size: 10px;
+  line-height: 1.25;
 }
 
 input[type="checkbox"] {
@@ -84,7 +123,7 @@ input[type="checkbox"] {
 
 select {
   width: 100%;
-  height: 34px;
+  height: 30px;
   padding: 0 8px;
   border: 1px solid #c7ced8;
   border-radius: 6px;
@@ -94,12 +133,19 @@ select {
 
 .popup__footer {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.popup__actions {
+  display: grid;
+  grid-template-columns: 72px 72px;
   gap: 8px;
 }
 
 .stats-panel {
-  gap: 10px;
+  gap: 8px;
 }
 
 .stats-panel__header {
@@ -116,8 +162,8 @@ select {
 }
 
 .stats-panel__header button {
-  width: 68px;
-  height: 28px;
+  width: 64px;
+  height: 26px;
   font-size: 12px;
 }
 
@@ -129,9 +175,9 @@ select {
 
 .word-list {
   display: grid;
-  gap: 5px;
-  min-height: 58px;
-  margin: 6px 0 0;
+  gap: 4px;
+  min-height: 40px;
+  margin: 5px 0 0;
   padding: 0;
   list-style: none;
 }
@@ -167,7 +213,7 @@ select {
 }
 
 button {
-  height: 34px;
+  height: 32px;
   border: 1px solid #c7ced8;
   border-radius: 6px;
   background: #fff;

@@ -9,11 +9,14 @@
   <body>
     <main class="popup">
       <header class="popup__header">
-        <h1>Fading Furigana</h1>
+        <div>
+          <h1>Fading Furigana</h1>
+          <p id="build-version">v0.1.0</p>
+        </div>
         <p id="status-text">Ready</p>
       </header>
 
-      <section class="panel" aria-label="Display settings" data-i18n-aria="displaySettings">
+      <section class="panel panel--compact" aria-label="Display settings" data-i18n-aria="displaySettings">
         <label class="field">
           <span data-i18n="interfaceLanguage">Language</span>
           <select id="interface-language">
@@ -24,72 +27,78 @@
       </section>
 
       <section class="panel" aria-label="Annotation settings" data-i18n-aria="annotationSettings">
-        <label class="switch-row">
-          <span>
-            <strong data-i18n="annotations">Annotations</strong>
-            <small data-i18n="annotationsHint">Show reading hints on Japanese words</small>
-          </span>
-          <input id="annotation-enabled" type="checkbox" />
-        </label>
+        <div class="switch-grid">
+          <label class="switch-row">
+            <span>
+              <strong data-i18n="annotations">Annotations</strong>
+              <small data-i18n="annotationsHint">Show reading hints on Japanese words</small>
+            </span>
+            <input id="annotation-enabled" type="checkbox" />
+          </label>
 
-        <label class="field">
-          <span data-i18n="mode">Mode</span>
-          <select id="annotation-mode">
-            <option value="adaptive" data-i18n="modeAdaptive">Adaptive</option>
-            <option value="all_items" data-i18n="modeAllItems">All items</option>
-            <option value="unknown_items_only" data-i18n="modeUnknownOnly">Unknown only</option>
-            <option value="saved_items_only" data-i18n="modeSavedOnly">Saved only</option>
-            <option value="off" data-i18n="modeOff">Off</option>
-          </select>
-        </label>
+          <label class="switch-row">
+            <span>
+              <strong data-i18n="hideKnownWords">Hide known words</strong>
+              <small data-i18n="hideKnownWordsHint">Fade out words already mastered</small>
+            </span>
+            <input id="hide-known-items" type="checkbox" />
+          </label>
+        </div>
 
-        <label class="field">
-          <span data-i18n="knownLevel">Known up to</span>
-          <select id="user-level">
-            <option value="none" data-i18n="levelNone">None</option>
-            <option value="n5">N5</option>
-            <option value="n4">N4</option>
-            <option value="n3">N3</option>
-            <option value="n2">N2</option>
-            <option value="n1">N1</option>
-          </select>
-        </label>
+        <div class="settings-grid">
+          <label class="field">
+            <span data-i18n="mode">Mode</span>
+            <select id="annotation-mode">
+              <option value="adaptive" data-i18n="modeAdaptive">Adaptive</option>
+              <option value="all_items" data-i18n="modeAllItems">All items</option>
+              <option value="unknown_items_only" data-i18n="modeUnknownOnly">Unknown only</option>
+              <option value="saved_items_only" data-i18n="modeSavedOnly">Saved only</option>
+              <option value="off" data-i18n="modeOff">Off</option>
+            </select>
+          </label>
 
-        <label class="field">
-          <span data-i18n="displayStyle">Display style</span>
-          <select id="display-style">
-            <option value="tap_only" data-i18n="displayAuto">Auto</option>
-            <option value="ruby" data-i18n="displayRuby">Ruby</option>
-            <option value="compact" data-i18n="displayCompact">Tap hints</option>
-          </select>
-        </label>
+          <label class="field">
+            <span data-i18n="knownLevel">Known up to</span>
+            <select id="user-level">
+              <option value="none" data-i18n="levelNone">None</option>
+              <option value="n5">N5</option>
+              <option value="n4">N4</option>
+              <option value="n3">N3</option>
+              <option value="n2">N2</option>
+              <option value="n1">N1</option>
+            </select>
+          </label>
 
-        <label class="switch-row">
-          <span>
-            <strong data-i18n="hideKnownWords">Hide known words</strong>
-            <small data-i18n="hideKnownWordsHint">Fade out words already mastered</small>
-          </span>
-          <input id="hide-known-items" type="checkbox" />
-        </label>
+          <label class="field">
+            <span data-i18n="displayStyle">Display style</span>
+            <select id="display-style">
+              <option value="tap_only" data-i18n="displayAuto">Auto</option>
+              <option value="ruby" data-i18n="displayRuby">Ruby</option>
+              <option value="compact" data-i18n="displayCompact">Tap hints</option>
+            </select>
+          </label>
+        </div>
       </section>
 
       <section class="panel" aria-label="Exposure tracking settings" data-i18n-aria="exposureSettings">
-        <label class="switch-row">
-          <span>
-            <strong data-i18n="dailyWordStats">Daily word stats</strong>
-            <small data-i18n="dailyWordStatsHint">Count words seen each day</small>
-          </span>
-          <input id="exposure-enabled" type="checkbox" />
-        </label>
+        <div class="switch-grid">
+          <label class="switch-row">
+            <span>
+              <strong data-i18n="dailyWordStats">Daily word stats</strong>
+              <small data-i18n="dailyWordStatsHint">Count words seen each day</small>
+            </span>
+            <input id="exposure-enabled" type="checkbox" />
+          </label>
 
-        <label class="field">
-          <span data-i18n="urlPrivacy">URL privacy</span>
-          <select id="url-privacy">
-            <option value="domain_only" data-i18n="urlDomainOnly">Domain only</option>
-            <option value="full" data-i18n="urlFull">Full URL</option>
-            <option value="none" data-i18n="urlNone">No URL</option>
-          </select>
-        </label>
+          <label class="field">
+            <span data-i18n="urlPrivacy">URL privacy</span>
+            <select id="url-privacy">
+              <option value="domain_only" data-i18n="urlDomainOnly">Domain only</option>
+              <option value="full" data-i18n="urlFull">Full URL</option>
+              <option value="none" data-i18n="urlNone">No URL</option>
+            </select>
+          </label>
+        </div>
       </section>
 
       <section class="panel stats-panel" aria-label="Vocabulary frequency" data-i18n-aria="vocabularyFrequency">
@@ -110,13 +119,17 @@
       </section>
 
       <footer class="popup__footer">
-        <button id="reset-settings" type="button" data-i18n="reset">Reset</button>
-        <button id="save-settings" type="button" data-i18n="save">Save</button>
+        <span id="footer-version">v0.1.0</span>
+        <div class="popup__actions">
+          <button id="reset-settings" type="button" data-i18n="reset">Reset</button>
+          <button id="save-settings" type="button" data-i18n="save">Save</button>
+        </div>
       </footer>
     </main>
 
     <script src="../core/appState.js"></script>
     <script src="../storage/localStorageAdapter.js"></script>
+    <script src="../storage/safariNativeStorageAdapter.js"></script>
     <script src="../storage/chromeStorageAdapter.js"></script>
     <script src="popup.js"></script>
   </body>

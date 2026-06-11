@@ -6,6 +6,7 @@ const { spawnSync } = require("node:child_process");
 const rootDir = path.resolve(__dirname, "..");
 const projectDir = path.join(rootDir, "apps", "apple");
 const extensionDir = path.join(rootDir, "packages", "extension", "dist", "safari-web-extension");
+const safariProjectDir = path.join(projectDir, "Fading Furigana");
 const xcodeProject = path.join(projectDir, "Fading Furigana", "Fading Furigana.xcodeproj");
 // Keep build products out of /tmp: macOS clears /tmp on reboot, which made the
 // registered extension silently disappear from Safari.
@@ -24,8 +25,12 @@ const installedExtensionPath = path.join(
 const safariExtensionBundleIdentifier = "com.banyuguru.fading-furigana.Extension";
 const lsregister =
   "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister";
+const developmentTeam = process.env.FURI_DEVELOPMENT_TEAM || readProjectDevelopmentTeam();
+const developmentTeamSource = process.env.FURI_DEVELOPMENT_TEAM ? "FURI_DEVELOPMENT_TEAM" : "Xcode project";
+const compileOnly = process.env.FURI_SAFARI_COMPILE_ONLY === "1";
 
 run("npm", ["run", "package:safari"]);
+cleanupGeneratedDuplicateProjectDirs();
 if (!fs.existsSync(xcodeProject) || process.env.FURI_REGENERATE_SAFARI_PROJECT === "1") {
   run("xcrun", [
     "safari-web-extension-packager",
@@ -42,6 +47,7 @@ if (!fs.existsSync(xcodeProject) || process.env.FURI_REGENERATE_SAFARI_PROJECT =
     "--force",
     extensionDir
   ]);
+  cleanupGeneratedDuplicateProjectDirs();
 } else {
   console.log("\nUsing existing Safari Xcode project. Set FURI_REGENERATE_SAFARI_PROJECT=1 to regenerate it.");
 }
@@ -51,7 +57,7 @@ run("node", ["apps/apple/scripts/patchSafariWrapper.js"]);
 // always ship the current extension code.
 run("ditto", [extensionDir, path.join(projectDir, "Fading Furigana", "Shared (Extension)", "Resources")]);
 
-run("xcodebuild", [
+const buildArgs = [
   "-project",
   xcodeProject,
   "-scheme",
@@ -59,46 +65,49 @@ run("xcodebuild", [
   "-configuration",
   "Debug",
   "-derivedDataPath",
-  derivedDataPath,
-  "CODE_SIGN_IDENTITY=-",
-  "build"
-]);
+  derivedDataPath
+];
 
-// Re-sign with a real Apple Development certificate only when explicitly
-// requested:
-// Safari lists properly signed extensions without the "Allow unsigned
-// extensions" developer toggle, which resets on every Safari quit and made
-// ad-hoc builds look like they had vanished. Auto-detecting a certificate is
-// fragile on local machines because CI/sandbox contexts can see identities
-// that the logged-in user does not trust, producing an app Safari refuses.
-let signingIdentity = detectSigningIdentity();
-if (signingIdentity) {
-  console.log(`\nRe-signing with development certificate ${signingIdentity.name}.`);
-  resignApp(signingIdentity.hash);
-  if (!verifyBuiltAppSignature()) {
-    console.warn(
-      "\nDevelopment certificate signature is not trusted by this macOS user. " +
-        "Falling back to ad-hoc signing; enable Safari's unsigned extension " +
-        "developer setting before testing."
-    );
-    resignApp("-");
-    signingIdentity = null;
-  }
-} else {
-  console.warn(
-    "\nNo Apple Development identity found; keeping ad-hoc signature. " +
-      "Safari will only show the extension while Develop > Developer Settings > " +
-      "'Allow unsigned extensions' is enabled (it resets when Safari quits)."
+if (compileOnly) {
+  buildArgs.push("CODE_SIGNING_ALLOWED=NO");
+} else if (developmentTeam) {
+  console.log(`\nUsing Apple Development Team ${developmentTeam} from ${developmentTeamSource}.`);
+  buildArgs.push(
+    "-allowProvisioningUpdates",
+    "DEVELOPMENT_TEAM=" + developmentTeam,
+    "CODE_SIGN_STYLE=Automatic",
+    "CODE_SIGN_IDENTITY=Apple Development"
   );
+} else {
+  console.error(
+    "\nApp Group storage requires a signed Apple Development build. " +
+      "Set FURI_DEVELOPMENT_TEAM to your Apple Team ID and run again:\n\n" +
+      "  FURI_DEVELOPMENT_TEAM=YOURTEAMID npm run build:safari:mac\n\n" +
+      "If Xcode already builds successfully, open Signing & Capabilities once so " +
+      "the project saves DEVELOPMENT_TEAM, then run npm run build:safari:mac without the env var.\n\n" +
+      "For compile-only CI checks that do not install or run Safari, use:\n\n" +
+      "  FURI_SAFARI_COMPILE_ONLY=1 npm run build:safari:mac\n"
+  );
+  process.exit(1);
+}
+
+buildArgs.push("build");
+run("xcodebuild", buildArgs);
+
+if (compileOnly) {
+  console.log("\nCompile-only build succeeded. Skipping install and Safari registration.");
+  process.exit(0);
+}
+
+if (!verifyBuiltAppSignature()) {
+  console.error("\nSigned build did not pass codesign verification. Open Xcode Signing & Capabilities and check the team/profile.");
+  process.exit(1);
 }
 
 installApp();
 registerSafariExtension();
 
 console.log("\nDone. In Safari: quit and reopen, then enable the extension in Settings > Extensions.");
-if (!signingIdentity) {
-  console.log("Ad-hoc build: also enable Develop > Developer Settings > 'Allow unsigned extensions' first.");
-}
 
 function run(command, args, options = {}) {
   console.log(`\n$ ${command} ${args.map(formatArg).join(" ")}`);
@@ -120,22 +129,41 @@ function formatArg(arg) {
   return /\s/.test(arg) ? JSON.stringify(arg) : arg;
 }
 
-function detectSigningIdentity() {
-  if (process.env.FURI_SIGNING_IDENTITY) {
-    return { hash: process.env.FURI_SIGNING_IDENTITY, name: process.env.FURI_SIGNING_IDENTITY };
+function readProjectDevelopmentTeam() {
+  try {
+    const projectFile = fs.readFileSync(path.join(xcodeProject, "project.pbxproj"), "utf8");
+    return projectFile.match(/\bDEVELOPMENT_TEAM = ([A-Z0-9]+);/)?.[1] || "";
+  } catch {
+    return "";
   }
-
-  return null;
 }
 
-function resignApp(identityHash) {
-  // Inner bundle first, then the app, preserving existing entitlements
-  // (e.g. get-task-allow from the debug build).
-  const extensionInBuild = path.join(builtAppPath, "Contents", "PlugIns", "Fading Furigana Extension.appex");
-  for (const target of [extensionInBuild, builtAppPath]) {
-    run("codesign", ["--force", "--preserve-metadata=entitlements", "--sign", identityHash, target]);
+function cleanupGeneratedDuplicateProjectDirs() {
+  if (!fs.existsSync(safariProjectDir)) return;
+
+  const duplicateDirPattern =
+    /^(Shared \(App\)|Shared \(Extension\)|iOS \(App\)|iOS \(Extension\)|macOS \(App\)|macOS \(Extension\)) \d+$/;
+  for (const entry of fs.readdirSync(safariProjectDir, { withFileTypes: true })) {
+    if (!entry.isDirectory() || !duplicateDirPattern.test(entry.name)) continue;
+
+    const entryPath = path.join(safariProjectDir, entry.name);
+    if (directoryHasFiles(entryPath)) {
+      console.warn(`\nKeeping generated duplicate directory because it contains files: ${entryPath}`);
+      continue;
+    }
+
+    fs.rmSync(entryPath, { recursive: true, force: true });
+    console.log(`Removed empty generated duplicate directory: ${entryPath}`);
   }
-  run("codesign", ["--verify", "--deep", builtAppPath]);
+}
+
+function directoryHasFiles(dirPath) {
+  for (const entry of fs.readdirSync(dirPath, { withFileTypes: true })) {
+    const entryPath = path.join(dirPath, entry.name);
+    if (entry.isFile() || entry.isSymbolicLink()) return true;
+    if (entry.isDirectory() && directoryHasFiles(entryPath)) return true;
+  }
+  return false;
 }
 
 function verifyBuiltAppSignature() {

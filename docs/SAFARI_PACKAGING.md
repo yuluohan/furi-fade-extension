@@ -31,7 +31,7 @@ Generate or rebuild the Xcode project with:
 
 ```sh
 xcrun safari-web-extension-packager \
-  --project-location safari \
+  --project-location apps/apple \
   --app-name "Fading Furigana" \
   --bundle-identifier "com.banyuguru.fading-furigana" \
   --swift \
@@ -45,7 +45,7 @@ xcrun safari-web-extension-packager \
 Generated project:
 
 ```text
-safari/Fading Furigana/Fading Furigana.xcodeproj
+apps/apple/Fading Furigana/Fading Furigana.xcodeproj
 ```
 
 The project currently contains macOS and iOS app/extension targets.
@@ -55,8 +55,10 @@ The project currently contains macOS and iOS app/extension targets.
 Run the full local Safari build flow:
 
 ```sh
-npm run build:safari:mac
+FURI_DEVELOPMENT_TEAM=YOURTEAMID npm run build:safari:mac
 ```
+
+The signed build is required for the App Group storage bridge. Without it, the Safari extension and Mac app cannot reliably share `AppState`.
 
 Run the full local CI flow:
 
@@ -67,19 +69,25 @@ npm run ci:local
 List schemes and targets:
 
 ```sh
-xcodebuild -list -project "safari/Fading Furigana/Fading Furigana.xcodeproj"
+xcodebuild -list -project "apps/apple/Fading Furigana/Fading Furigana.xcodeproj"
 ```
 
 Build macOS without signing:
 
 ```sh
 xcodebuild \
-  -project "safari/Fading Furigana/Fading Furigana.xcodeproj" \
+  -project "apps/apple/Fading Furigana/Fading Furigana.xcodeproj" \
   -scheme "Fading Furigana (macOS)" \
   -configuration Debug \
   -derivedDataPath /private/tmp/furi-xcode-derived \
   CODE_SIGNING_ALLOWED=NO \
   build
+```
+
+The npm shortcut for compile-only verification is:
+
+```sh
+FURI_SAFARI_COMPILE_ONLY=1 npm run build:safari:mac
 ```
 
 ## Expected Manual Smoke Test
@@ -95,7 +103,9 @@ After converter generation:
    - popup opens,
    - settings save,
    - daily frequency counts appear,
-   - `domain_only` and `none` URL privacy modes do not store full URLs.
+   - `domain_only` and `none` URL privacy modes do not store full URLs,
+   - saving a word in Safari appears in the Mac app after Refresh,
+   - Known/Forgot in the Mac app changes Safari behavior after refreshing the page.
 
 ## iOS Safari Notes
 
