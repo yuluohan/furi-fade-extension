@@ -84,7 +84,43 @@ Important clarification:
 The MVP does not need to implement full morphology, but the data model must support lemma, surface form, reading, and conjugation metadata so a stronger analyzer can be added later.
 ```
 
-## 4. Target Platforms
+## 4. Product Model
+
+Fading Furigana should use a local-first product model:
+
+```text
+One device: free
+Cross-device sync: paid
+```
+
+The free product must remain useful without login:
+
+- Annotate Japanese pages.
+- Save, ignore, and mark words as known.
+- Store learning state locally.
+- Track local daily exposure statistics.
+- Export or import local data for backup.
+
+The paid product should unlock account-based sync:
+
+- Cloud backup and restore.
+- Sync vocabulary, learning state, settings, and exposure summaries across devices.
+- Merge changes from browser extensions, desktop apps, and mobile apps.
+- Maintain a device list and sync health status.
+- Enable richer cross-device statistics and review queues.
+
+The account and cloud sync layer is the source of cross-device continuity, not any single app. This matters because users may use combinations such as:
+
+```text
+Chrome extension + macOS learning app
+Safari extension + iOS app
+Chrome extension + Android app
+Windows app + Chrome extension
+```
+
+Local data must continue to work when the user is offline or not logged in. Cloud sync should be additive: it should replicate and merge local learning data after login, not replace the local-first experience.
+
+## 5. Target Platforms
 
 ### MVP Platform
 
@@ -107,11 +143,23 @@ The current folder starts as a browser-compatible prototype so the annotation en
 macOS Safari Web Extension
 Chrome / Edge desktop extension
 Firefox desktop extension
+iOS app
+Android app
+Windows app
+macOS learning app
 ```
 
 The core annotation logic should be browser-neutral. Safari and Chrome differences should live in platform and storage adapters.
 
-## 5. User Stories
+Safari has one special product constraint: Safari Web Extensions must be packaged inside a native app. The macOS Safari host app should therefore become a real learning app over time, not remain only a launcher. However, it must still be treated as one client in a broader multi-client system. It must not become the exclusive data center for the product.
+
+Long-term platform roles:
+
+- Browser extensions collect reading context and support lightweight in-page actions.
+- Desktop and mobile apps provide vocabulary management, review, statistics, account, subscription, import/export, and sync status.
+- Cloud sync keeps user data consistent across all clients.
+
+## 6. User Stories
 
 ### 5.1 Annotate a Page
 
@@ -211,7 +259,7 @@ Acceptance:
 - Known or mastered items can be hidden.
 - High-frequency items with low confidence can be recommended for review.
 
-## 6. Functional Requirements
+## 7. Functional Requirements
 
 ### 6.1 Text Detection
 
@@ -508,7 +556,7 @@ Suggested future behavior:
 - Suggest review targets based on high frequency + low knowledge confidence.
 - Let users filter out known, mastered, or ignored items.
 
-## 7. Data Model
+## 8. Data Model
 
 ### 7.1 AppState
 
@@ -910,7 +958,7 @@ content script
 -> chrome.storage.local
 ```
 
-## 8. Architecture
+## 9. Architecture
 
 Recommended components:
 
@@ -952,7 +1000,7 @@ Storage adapters must not contain annotation rules.
 Exposure tracking must not require annotation rendering to be enabled.
 ```
 
-## 9. File Structure
+## 10. File Structure
 
 Current prototype:
 
@@ -1009,7 +1057,7 @@ tests/
   storageMigration.test.ts
 ```
 
-## 10. Safari Web Extension Design
+## 11. Safari Web Extension Design
 
 Safari iOS requires the extension to be distributed inside an iOS app.
 
@@ -1041,7 +1089,7 @@ Do not assume the content script can directly access the iOS app's local data.
 
 The storage adapter should hide this communication path from `AnnotationEngine`.
 
-## 11. Chrome Extension Design
+## 12. Chrome Extension Design
 
 Chrome desktop can reuse most web extension files:
 
@@ -1063,7 +1111,7 @@ manifest permissions
 
 Chrome mobile is not a reliable target for this product. Do not plan MVP mobile support around Chrome extensions.
 
-## 12. Security and Privacy Requirements
+## 13. Security and Privacy Requirements
 
 The extension should:
 
@@ -1100,7 +1148,7 @@ Retention requirements:
 - Default detailed occurrence retention should be no more than 90 days.
 - Incognito/private browsing should not be tracked unless explicitly allowed by the platform and user.
 
-## 13. Performance Requirements
+## 14. Performance Requirements
 
 The extension should:
 
@@ -1120,7 +1168,7 @@ Future improvements:
 - Cache analyzer results for repeated text nodes.
 - Cache daily exposure increments per page before flushing to storage.
 
-## 14. Testing Requirements
+## 15. Testing Requirements
 
 ### 14.1 Analyzer Tests
 
@@ -1174,7 +1222,7 @@ Verify:
 - Exposure tracking can be disabled.
 - Annotation disabled does not imply exposure tracking disabled unless settings say so.
 
-## 15. Manual Acceptance Checklist
+## 16. Manual Acceptance Checklist
 
 Use `demo/test-page.html`.
 
@@ -1231,7 +1279,7 @@ Daily exposure summary rolls both forms up to 食べる.
 Frequent items can be listed for the current date.
 ```
 
-## 16. Milestones
+## 17. Milestones
 
 ### Milestone 1: Prototype Annotation
 
@@ -1314,7 +1362,7 @@ Deliverables:
 - Chrome storage adapter.
 - Cross-browser compatibility tests.
 
-## 17. Open Questions
+## 18. Open Questions
 
 - Should first-seen items be persisted automatically, or should daily summaries update without creating full user state?
 - What exact threshold turns `discovered` into `familiar`?
@@ -1326,7 +1374,7 @@ Deliverables:
 - How many dictionary entries should ship in the first public MVP?
 - Which tokenizer or dictionary should power the first real analyzer?
 
-## 18. Current Prototype Limitations
+## 19. Current Prototype Limitations
 
 - The dictionary has only a few sample entries.
 - The analyzer does not handle conjugation or full Japanese tokenization.
@@ -1336,7 +1384,7 @@ Deliverables:
 - The restore function only restores extension-inserted annotation nodes.
 - The current prototype is not yet an Xcode-packaged Safari Web Extension app.
 
-## 19. Product Principle
+## 20. Product Principle
 
 The extension should help users gradually stop needing visible help.
 
