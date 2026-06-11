@@ -64,6 +64,8 @@ Next recommended task: T034 manual browser validation, then T025 companion-app r
 | T039 | done | Fix storage quota exhaustion | `unlimitedStorage` permission; exposure-only words store no meanings; exposure summaries store no page titles, capped pages/surface forms; `compactState` prunes expired summaries and slims legacy bloat on every persist; quota failures warn once instead of spamming | `npm run check`, `npm test` (compaction/diet tests), Safari console clean after browsing |
 | T040 | done | Targeted word refresh on tooltip actions | Save/known/ignore re-evaluate only that word's rubies in place (`engine.refreshWord`); no full restore, no re-tokenization, no page-wide flash; ruby dataset carries source confidence for faithful re-evaluation | `npm run check`, `npm test` (targeted refresh tests), Safari manual test |
 | T041 | done | Document local-free and paid cross-device sync product architecture | Requirements and development design now define one-device-free local-first usage, paid cloud sync, Safari macOS app as one client, and future Chrome/macOS/iOS/Android/Windows roles | Document review |
+| T042 | done | Design sync protocol and multi-client architecture | `docs/SYNC_AND_CLIENTS_DESIGN.md`: op-log sync with per-domain merge rules, golden test vectors as cross-language contract, unified entitlements over IAP/Play/Stripe, App Group topology on Apple platforms, CF Workers + D1 server, 4-phase rollout | Document review |
+| T043 | pending | Phase 0 sync schema prep | `deviceId`, per-record `updatedAt` audit, op-emitting mutation points, golden vector harness | `npm run check`, `npm test` |
 
 ## Update Rules
 
