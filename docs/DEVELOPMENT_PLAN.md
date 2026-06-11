@@ -16,7 +16,7 @@ blocked
 ```text
 Current branch: dev
 Current phase: annotation quality and display
-Next recommended task: manual extension test of T031, then T032 (tiered dictionary) or T033 (level filtering)
+Next recommended task: T033 (level filtering and per-word actions)
 ```
 
 ## Tasks
@@ -54,7 +54,7 @@ Next recommended task: manual extension test of T031, then T032 (tiered dictiona
 | T029 | done | Fix settings propagation across tabs | Content tabs preserve stored settings on persist, listen to `storage.onChanged`; popup re-reads state before saving | `npm run check`, `npm test` (lost-update regression test) |
 | T030 | done | Tokenizer phase A: Intl.Segmenter boundary guard | Dictionary matches constrained to ICU word boundaries; digit+counter readings (年/月/時/円/回/個/歳/台/番/人), irregular counters skipped, date-counter compound guard | `npm run check`, `npm test` (gold-sentence tests), `npm run package:safari` |
 | T031 | done | Tokenizer phase B: kuromoji.js in background worker | MV3 service worker hosts kuromoji (vendored build + IPADIC dict); content scripts batch-tokenize via messaging with local-analyzer fallback; counter safety net applied to IPADIC output | `npm run check`, `npm test` (mapper unit + real-kuromoji integration tests), worker simulation, `npm run package:safari`; manual extension test pending |
-| T032 | pending | Tiered dictionary coverage expansion | Tier 1 priority entries eager (~20k), tier 2 full JMdict lazy | `ANNOTATION_QUALITY_PLAN.md` §4 |
+| T032 | done | Tiered dictionary coverage expansion | JMdict generator supports `--tier=common|priority|full`; packaged eager priority tier now contains all priority-marked JMdict surfaces (43,807 entries in current source) with compact output and tier metadata; full tier remains reserved for future lazy/background lookup | `npm run check`, `npm test`, `node scripts/buildJmdictCommonData.js --tier=priority /private/tmp/JMdict_e.gz` |
 | T033 | pending | Level-based filtering and per-word actions | `annotation.userLevel` setting; right-click "forgot this word" (resets learning state) and "always annotate" (pin for level-filtered words) | `ANNOTATION_QUALITY_PLAN.md` §6 |
 | T034 | pending | Height-constrained layout fallback | Default `tap_only` rendering inside line-clamped/fixed-height containers; opt-in per-site "expand container" mode | `ANNOTATION_QUALITY_PLAN.md` §7, Google results manual test |
 | T035 | done | Fix annotation performance on large/dynamic pages | Incremental annotation: processed-node tracking (WeakSet), mutation-scoped scanning instead of full-page rescans, chunked tokenizer batches, single settings-refresh path (storage.onChanged only), exposure persist batched at 2s; runaway-loop fuses: 50k-node per-page budget with self-suspend, one exposure per word per page | `npm run check`, `npm test` (incremental + budget/dedup regression tests), Safari manual test after memory blowup report |

@@ -2,13 +2,13 @@
 
 ## Current Source
 
-The extension now packages a local JMdict common subset at:
+The extension now packages a local JMdict priority tier at:
 
 ```text
 src/dictionary/data/jmdictCommonData.js
 ```
 
-The generated file contains 5,000 common Japanese lexical entries extracted from `JMdict_e.gz`.
+The generated file contains all priority-marked Japanese lexical surfaces extracted from `JMdict_e.gz`. The current packaged tier has roughly 40k+ surfaces because one JMdict entry can expand into multiple written forms.
 
 Source project:
 
@@ -35,10 +35,29 @@ Download the official JMdict English gzip file, then run:
 node scripts/buildJmdictCommonData.js /path/to/JMdict_e.gz
 ```
 
+Default generation builds the eager priority tier:
+
+```bash
+node scripts/buildJmdictCommonData.js --tier=priority /path/to/JMdict_e.gz
+```
+
+Supported tiers:
+
+```text
+common
+  Legacy capped subset. Use with --limit=5000 when a small debug file is needed.
+
+priority
+  Default eager tier. Includes every JMdict entry with priority markers and is packaged with the extension.
+
+full
+  Full JMdict export path reserved for the future lazy/background lookup tier.
+```
+
 The script:
 
 - reads JMdict XML,
-- keeps entries with JMdict priority markers,
+- keeps entries with JMdict priority markers for the `priority` tier,
 - filters out punctuation and number-starting entries,
 - stores English glosses in `meanings.en`,
 - stores source metadata as `source.provider = "jmdict"`,
@@ -46,8 +65,7 @@ The script:
 
 ## Current Limits
 
-- The packaged subset is English-only because it is generated from `JMdict_e.gz`.
+- The packaged priority tier is English-only because it is generated from `JMdict_e.gz`.
 - Chinese meanings still come from existing curated override entries, not from JMdict.
-- Morphological analysis is still longest-surface matching, not full tokenization.
-- Inflected forms that are not exact surfaces may not be detected until a tokenizer is integrated.
+- Full JMdict lazy lookup is not implemented yet; tooltip meanings outside the priority tier may still be empty.
 - Loanword origin is not solved by JMdict; curated loanword origin data remains separate.

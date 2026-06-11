@@ -44,12 +44,14 @@ test("analyzes kanji compound with reading and offsets", () => {
   assert.equal(token.scriptProfile.hasKanji, true);
 });
 
-test("loads packaged JMdict common entries by default", () => {
+test("loads packaged JMdict priority tier entries by default", () => {
   const tokens = analyze("学校で言葉を勉強する。");
   const school = tokens.find((item) => item.surface === "学校");
   const language = tokens.find((item) => item.surface === "言葉");
 
-  assert.equal(window.FadingFuriganaJmdictData.metadata.entryCount, 5000);
+  assert.equal(window.FadingFuriganaJmdictData.metadata.tier, "priority");
+  assert.equal(window.FadingFuriganaJmdictData.metadata.entryCount > 20000, true);
+  assert.equal(window.FadingFuriganaJmdictData.metadata.tiers.priority.eager, true);
   assert.equal(school.source.provider, "jmdict");
   assert.equal(school.readingKana, "がっこう");
   assert.equal(school.meanings.en.includes("school"), true);
@@ -126,9 +128,9 @@ test("constrains dictionary matches to word boundaries", () => {
 
 test("keeps real words that follow a complete date expression", () => {
   const tokens = analyze("15日日本政府は発表した");
-  const japan = tokens.find((item) => item.surface === "日本");
+  const japaneseGovernment = tokens.find((item) => item.surface === "日本政府");
 
-  assert.equal(japan.readingKana, "にほん");
+  assert.equal(japaneseGovernment.readingKana, "にほんせいふ");
   assert.equal(tokens.some((item) => item.surface === "日"), false);
 });
 

@@ -4,9 +4,13 @@ const zlib = require("node:zlib");
 
 const rootDir = path.resolve(__dirname, "..");
 const defaultSource = "/private/tmp/JMdict_e.gz";
-const sourcePath = process.argv[2] || defaultSource;
-const outputPath = path.join(rootDir, "src", "dictionary", "data", "jmdictCommonData.js");
-const maxEntries = Number(process.env.JMDICT_COMMON_LIMIT || 5000);
+const options = parseArgs(process.argv.slice(2));
+const sourcePath = options.sourcePath || defaultSource;
+const outputPath =
+  options.outputPath || path.join(rootDir, "src", "dictionary", "data", "jmdictCommonData.js");
+const tier = options.tier || process.env.JMDICT_TIER || "priority";
+const defaultLimit = tier === "common" ? 5000 : tier === "priority" ? 0 : 0;
+const maxEntries = options.limit ?? numberFromEnv("JMDICT_COMMON_LIMIT", defaultLimit);
 const FORCED_SURFACES = new Set([
   "日本",
   "日本語",
@@ -34,19 +38,58 @@ const entries = [];
 
 for (const match of xml.matchAll(/<entry>([\s\S]*?)<\/entry>/g)) {
   const parsed = parseEntry(match[1]);
-  if (!parsed || parsed.priorityScore <= 0) continue;
-  entries.push(...parsed.entries);
+  if (!parsed) continue;
+  entries.push(...(tier === "full" ? parsed.entries : parsed.entries.filter((entry) => entry.priorityScore > 0)));
 }
 
-const commonEntries = entries
+const tierEntries = entries
   .sort((a, b) => b.priorityScore - a.priorityScore || a.surface.localeCompare(b.surface, "ja"))
-  .slice(0, maxEntries)
+  .slice(0, maxEntries > 0 ? maxEntries : undefined)
   .map(({ priorityScore, ...entry }) => entry);
 
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
-fs.writeFileSync(outputPath, createDataFile(commonEntries), "utf8");
+fs.writeFileSync(outputPath, createDataFile(tierEntries, { tier, maxEntries }), "utf8");
 
-console.log(`Generated ${commonEntries.length} JMdict entries: ${path.relative(rootDir, outputPath)}`);
+console.log(`Generated ${tierEntries.length} JMdict ${tier} entries: ${path.relative(rootDir, outputPath)}`);
+
+function parseArgs(args) {
+  const parsed = {
+    sourcePath: null,
+    outputPath: null,
+    tier: null,
+    limit: null
+  };
+
+  for (let index = 0; index < args.length; index += 1) {
+    const arg = args[index];
+    if (arg === "--tier") parsed.tier = args[++index];
+    else if (arg.startsWith("--tier=")) parsed.tier = arg.slice("--tier=".length);
+    else if (arg === "--limit") parsed.limit = Number(args[++index]);
+    else if (arg.startsWith("--limit=")) parsed.limit = Number(arg.slice("--limit=".length));
+    else if (arg === "--output") parsed.outputPath = path.resolve(args[++index]);
+    else if (arg.startsWith("--output=")) parsed.outputPath = path.resolve(arg.slice("--output=".length));
+    else if (arg === "--source") parsed.sourcePath = args[++index];
+    else if (arg.startsWith("--source=")) parsed.sourcePath = arg.slice("--source=".length);
+    else if (!arg.startsWith("--") && !parsed.sourcePath) parsed.sourcePath = arg;
+    else throw new Error(`Unknown argument: ${arg}`);
+  }
+
+  if (!["common", "priority", "full"].includes(parsed.tier || "priority")) {
+    throw new Error(`Unsupported JMdict tier: ${parsed.tier}`);
+  }
+  if (parsed.limit !== null && (!Number.isFinite(parsed.limit) || parsed.limit < 0)) {
+    throw new Error(`Invalid --limit: ${parsed.limit}`);
+  }
+  return parsed;
+}
+
+function numberFromEnv(name, fallback) {
+  const value = process.env[name];
+  if (value === undefined || value === "") return fallback;
+  const number = Number(value);
+  if (!Number.isFinite(number) || number < 0) throw new Error(`Invalid ${name}: ${value}`);
+  return number;
+}
 
 function parseEntry(entryXml) {
   const sequence = getText(entryXml, "ent_seq");
@@ -75,7 +118,6 @@ function parseEntry(entryXml) {
     : readingElements.map((item) => item.reading);
   const lexicalSurfaces = [...new Set(surfaces.filter(isUsefulJapaneseSurface))];
   if (lexicalSurfaces.length === 0) return null;
-  if (priorityScore <= 0 && !lexicalSurfaces.some((surface) => FORCED_SURFACES.has(surface))) return null;
 
   return {
     priorityScore,
@@ -174,7 +216,8 @@ function mapPartOfSpeech(pos) {
   return known[normalized] || normalized || "unknown";
 }
 
-function createDataFile(data) {
+function createDataFile(data, { tier, maxEntries }) {
+  const tierKey = tier === "full" ? "full" : tier === "common" ? "common" : "priority";
   return `(() => {
   "use strict";
 
@@ -184,9 +227,17 @@ function createDataFile(data) {
       sourceUrl: "https://www.edrdg.org/wiki/index.php/JMdict-EDICT_Dictionary_Project",
       license: "Creative Commons Attribution-ShareAlike",
       generatedAt: ${JSON.stringify(new Date().toISOString())},
-      entryCount: ${data.length}
+      tier: ${JSON.stringify(tierKey)},
+      entryCount: ${data.length},
+      tiers: {
+        ${tierKey}: {
+          entryCount: ${data.length},
+          eager: ${tierKey !== "full"},
+          limit: ${maxEntries > 0 ? maxEntries : "null"}
+        }
+      }
     },
-    entries: ${JSON.stringify(data, null, 2)}
+    entries: ${JSON.stringify(data)}
   };
 })();
 `;

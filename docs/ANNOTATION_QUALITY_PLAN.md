@@ -71,13 +71,19 @@ Known limits:
 - Lexical ids for inflected forms use the surface-reading stem unless the base form exists in the local dictionary, so exposure stats for rare verbs may fragment per inflection until dictionary coverage grows.
 - Safari needs 16.4+ for background service workers; iOS memory limits may require a lighter dictionary later. The local analyzer fallback covers both.
 
-## 4. Dictionary coverage (proposal)
+## 4. Dictionary coverage (implemented 2026-06-11)
 
-5,000 entries is far too few for general pages. Plan:
+5,000 entries was far too few for general pages. Implemented changes:
 
-- After Phase B, readings no longer require JMdict, which removes the biggest coverage pressure.
-- For meanings, tier the data: tier 1 = all JMdict priority-marked entries (~20k+) packaged and loaded eagerly; tier 2 = full JMdict (~190k entries) stored compressed, loaded lazily in the background (IndexedDB), queried only when a tooltip opens.
-- Extend `scripts/buildJmdictCommonData.js` with a `--tier` flag instead of the fixed 5,000 cut.
+- `scripts/buildJmdictCommonData.js` now supports `--tier=common|priority|full`, `--limit`, and `--output`.
+- The default generated data is the eager `priority` tier, not the legacy capped 5,000-entry subset.
+- The packaged `src/dictionary/data/jmdictCommonData.js` now includes every priority-marked JMdict surface from the current `JMdict_e.gz` source (43,807 expanded surfaces).
+- The generated JavaScript uses compact JSON output so the larger tier remains a reasonable extension asset (~12 MB).
+- Runtime metadata records the tier and entry count while preserving the existing `entries` array shape for the local dictionary provider.
+
+Deferred:
+
+- Tier 2 full JMdict lazy/background lookup is still reserved for a later task. It should not be loaded into every content script; it should live in the background/native app storage path and be queried when richer tooltip meanings are needed.
 - Chinese meanings: evaluate packaging a JMdict-zh-Hans source so tooltips stop depending on curated overrides.
 
 ## 5. Review and learning screens move to the companion app
