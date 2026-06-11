@@ -2,12 +2,14 @@ const fs = require("node:fs");
 const path = require("node:path");
 const zlib = require("node:zlib");
 
-const rootDir = path.resolve(__dirname, "..");
+// Generated dictionary data is an extension asset; this package only holds
+// the tooling.
+const extensionDir = path.resolve(__dirname, "..", "..", "extension");
 const defaultSource = "/private/tmp/JMdict_e.gz";
 const options = parseArgs(process.argv.slice(2));
 const sourcePath = options.sourcePath || defaultSource;
 const outputPath =
-  options.outputPath || path.join(rootDir, "src", "dictionary", "data", "jmdictCommonData.js");
+  options.outputPath || path.join(extensionDir, "src", "dictionary", "data", "jmdictCommonData.js");
 const tier = options.tier || process.env.JMDICT_TIER || "priority";
 const defaultLimit = tier === "common" ? 5000 : tier === "priority" ? 0 : 0;
 const maxEntries = options.limit ?? numberFromEnv("JMDICT_COMMON_LIMIT", defaultLimit);
@@ -50,7 +52,7 @@ const tierEntries = entries
 fs.mkdirSync(path.dirname(outputPath), { recursive: true });
 fs.writeFileSync(outputPath, createDataFile(tierEntries, { tier, maxEntries }), "utf8");
 
-console.log(`Generated ${tierEntries.length} JMdict ${tier} entries: ${path.relative(rootDir, outputPath)}`);
+console.log(`Generated ${tierEntries.length} JMdict ${tier} entries: ${path.relative(process.cwd(), outputPath)}`);
 
 function parseArgs(args) {
   const parsed = {

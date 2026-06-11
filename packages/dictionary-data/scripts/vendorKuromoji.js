@@ -1,9 +1,10 @@
 const fs = require("node:fs");
 const path = require("node:path");
 
-const rootDir = path.resolve(__dirname, "..");
-const sourceDir = path.join(rootDir, "node_modules", "kuromoji");
-const targetDir = path.join(rootDir, "src", "tokenizer");
+const repoRoot = path.resolve(__dirname, "..", "..", "..");
+const sourceDir = path.join(repoRoot, "node_modules", "kuromoji");
+// Vendored tokenizer assets ship inside the extension package.
+const targetDir = path.join(repoRoot, "packages", "extension", "src", "tokenizer");
 
 if (!fs.existsSync(sourceDir)) {
   console.error("kuromoji is not installed; run `npm install` first.");

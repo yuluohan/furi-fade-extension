@@ -66,6 +66,8 @@ Next recommended task: T034 manual browser validation, then T025 companion-app r
 | T041 | done | Document local-free and paid cross-device sync product architecture | Requirements and development design now define one-device-free local-first usage, paid cloud sync, Safari macOS app as one client, and future Chrome/macOS/iOS/Android/Windows roles | Document review |
 | T042 | done | Design sync protocol and multi-client architecture | `docs/SYNC_AND_CLIENTS_DESIGN.md`: op-log sync with per-domain merge rules, golden test vectors as cross-language contract, unified entitlements over IAP/Play/Stripe, App Group topology on Apple platforms, CF Workers + D1 server, 4-phase rollout | Document review |
 | T043 | pending | Phase 0 sync schema prep | `deviceId`, per-record `updatedAt` audit, op-emitting mutation points, golden vector harness | `npm run check`, `npm test` |
+| T044 | done | Mac app MVP learning dashboard | macOS container app now renders a native dashboard over AppState JSON: extension status, vocabulary/today/learning/saved metrics, Today/7 Days/Learning/Saved/Known/Ignored lists, and word actions for save/known/forgot/ignore/always show | `npm run check`, `xcodebuild -project "apps/apple/Fading Furigana/Fading Furigana.xcodeproj" -scheme "Fading Furigana (macOS)" -configuration Debug -derivedDataPath /tmp/fading-furigana-mac-mvp-build CODE_SIGN_IDENTITY=- build` |
+| T045 | pending | Safari native AppState bridge | Add `SafariNativeStorageAdapter` and native handler message path so the extension and Mac app read/write the same App Group AppState file | `npm run check`, `npm test`, `npm run build:safari:mac`, manual Safari save -> Mac app refresh test |
 
 ## Update Rules
 

@@ -1,0 +1,14 @@
+# core-schema
+
+The platform-neutral sync data contract (T043, pending). This package is the single source of truth that keeps the JS (extensions), Swift (Apple apps), and later Kotlin (Android) sync implementations honest.
+
+Will contain:
+
+- `schema/` — versioned JSON Schema for the sync payload: `AppState` domains plus sync metadata (`deviceId`, per-record `updatedAt`, `opSeq`, tombstones).
+- `merge-rules.md` — normative merge semantics per domain (additive exposure deltas, append-only review logs, LWW per record elsewhere). See `docs/SYNC_AND_CLIENTS_DESIGN.md` §3.
+- `golden-vectors/` — input states → expected merged output. Every implementation in every language must pass the same vectors; a failing vector is a failing unit test, not a doc bug. Must include a cross-dictionary-version case (lexical IDs are content-derived and must match across versions).
+
+Invariants (from `docs/SYNC_AND_CLIENTS_DESIGN.md` §9):
+
+- Additive-only evolution by default; unknown fields are preserved and round-tripped, never stripped.
+- Breaking changes bump the major `schemaVersion`; the server gates too-old clients into a paused-sync state.

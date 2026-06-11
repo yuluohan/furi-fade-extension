@@ -2,7 +2,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const rootDir = path.resolve(__dirname, "..");
-const safariProjectDir = path.join(rootDir, "safari", "Fading Furigana");
+const safariProjectDir = path.join(rootDir, "Fading Furigana");
 const viewControllerPath = path.join(safariProjectDir, "Shared (App)", "ViewController.swift");
 const macStoryboardPath = path.join(safariProjectDir, "macOS (App)", "Base.lproj", "Main.storyboard");
 
@@ -12,6 +12,12 @@ patchMacStoryboard();
 console.log("Patched Safari macOS wrapper to avoid WKWebView startup.");
 
 function patchViewController() {
+  const existing = fs.existsSync(viewControllerPath) ? fs.readFileSync(viewControllerPath, "utf8") : "";
+  if (existing.includes("renderLearningDashboard") || existing.includes("AppStateSnapshot")) {
+    console.log("Keeping hand-maintained Mac app dashboard in ViewController.swift.");
+    return;
+  }
+
   fs.writeFileSync(viewControllerPath, `//
 //  ViewController.swift
 //  Shared (App)

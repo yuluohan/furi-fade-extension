@@ -4,8 +4,8 @@ const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
 const rootDir = path.resolve(__dirname, "..");
-const projectDir = path.join(rootDir, "safari");
-const extensionDir = path.join(rootDir, "dist", "safari-web-extension");
+const projectDir = path.join(rootDir, "apps", "apple");
+const extensionDir = path.join(rootDir, "packages", "extension", "dist", "safari-web-extension");
 const xcodeProject = path.join(projectDir, "Fading Furigana", "Fading Furigana.xcodeproj");
 // Keep build products out of /tmp: macOS clears /tmp on reboot, which made the
 // registered extension silently disappear from Safari.
@@ -45,7 +45,7 @@ if (!fs.existsSync(xcodeProject) || process.env.FURI_REGENERATE_SAFARI_PROJECT =
 } else {
   console.log("\nUsing existing Safari Xcode project. Set FURI_REGENERATE_SAFARI_PROJECT=1 to regenerate it.");
 }
-run("node", ["scripts/patchSafariWrapper.js"]);
+run("node", ["apps/apple/scripts/patchSafariWrapper.js"]);
 // The packager's resource copy has been observed to drop files from the
 // Xcode Resources mirror; force-merge dist over it so direct Xcode builds
 // always ship the current extension code.
