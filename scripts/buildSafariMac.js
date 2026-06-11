@@ -42,6 +42,10 @@ run("xcrun", [
   extensionDir
 ]);
 run("node", ["scripts/patchSafariWrapper.js"]);
+// The packager's resource copy has been observed to drop files from the
+// Xcode Resources mirror; force-merge dist over it so direct Xcode builds
+// always ship the current extension code.
+run("ditto", [extensionDir, path.join(projectDir, "Fading Furigana", "Shared (Extension)", "Resources")]);
 
 run("xcodebuild", [
   "-project",
