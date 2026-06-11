@@ -10,13 +10,21 @@ function loadBrowserScript(relativePath) {
   vm.runInThisContext(fs.readFileSync(filePath, "utf8"), { filename: filePath });
 }
 
+const tests = [];
+
 function test(name, fn) {
-  try {
-    fn();
-    console.log(`[pass] ${name}`);
-  } catch (error) {
-    console.error(`[fail] ${name}`);
-    throw error;
+  tests.push({ name, fn });
+}
+
+async function runTests() {
+  for (const { name, fn } of tests) {
+    try {
+      await fn();
+      console.log(`[pass] ${name}`);
+    } catch (error) {
+      console.error(`[fail] ${name}`);
+      throw error;
+    }
   }
 }
 
@@ -40,6 +48,7 @@ global.Node = { TEXT_NODE: 3, ELEMENT_NODE: 1 };
 global.NodeFilter = { SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 };
 global.MutationObserver = class {
   observe() {}
+  disconnect() {}
 };
 loadBrowserScript("src/core/annotationDecision.js");
 loadBrowserScript("src/content/annotationEngine.js");
@@ -203,6 +212,7 @@ function createEngine({ root, tokens }) {
   global.NodeFilter = { SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 };
   global.MutationObserver = class {
     observe() {}
+    disconnect() {}
   };
   global.document = createFakeDocument(root);
 
@@ -320,13 +330,13 @@ test("skips descendants of existing annotations", () => {
   assert.equal(shouldSkipTextNode({ nodeValue: "確認", parentElement: child }), true);
 });
 
-test("annotates text nodes with ruby output and records exposure", () => {
+test("annotates text nodes with ruby output and records exposure", async () => {
   const root = new FakeElement("div");
   root.appendChild(new FakeTextNode("メールの内容を確認してください。"));
   const token = createToken();
   const { engine, seenTokens } = createEngine({ root, tokens: [token] });
 
-  engine.annotateRoot(root);
+  await engine.annotateRoot(root);
 
   const ruby = collectByClass(root, "jr-ruby")[0];
   assert.equal(ruby.dataset.surface, "確認");
@@ -341,7 +351,19 @@ test("annotates text nodes with ruby output and records exposure", () => {
   );
 });
 
-test("uses loanword original form as ruby text", () => {
+test("skips annotation when the page is not eligible", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+  const { engine, seenTokens } = createEngine({ root, tokens: [createToken()] });
+  engine.isPageEligible = () => false;
+
+  await engine.annotateRoot(root);
+
+  assert.equal(collectByClass(root, "jr-ruby").length, 0);
+  assert.deepEqual(seenTokens, []);
+});
+
+test("uses loanword original form as ruby text", async () => {
   const root = new FakeElement("div");
   root.appendChild(new FakeTextNode("サーバーの状態を確認してください。"));
   const token = createToken({
@@ -366,14 +388,14 @@ test("uses loanword original form as ruby text", () => {
   });
   const { engine } = createEngine({ root, tokens: [token] });
 
-  engine.annotateRoot(root);
+  await engine.annotateRoot(root);
 
   const ruby = collectByClass(root, "jr-ruby")[0];
   assert.equal(ruby.dataset.surface, "サーバー");
   assert.equal(ruby.children[1].textContent, "server");
 });
 
-test("does not re-annotate descendants of existing ruby annotations", () => {
+test("does not re-annotate descendants of existing ruby annotations", async () => {
   const root = new FakeElement("div");
   root.appendChild(new FakeTextNode("確認"));
 
@@ -388,18 +410,18 @@ test("does not re-annotate descendants of existing ruby annotations", () => {
     tokens: [createToken({ start: 0, end: 2 })]
   });
 
-  engine.annotateRoot(root);
+  await engine.annotateRoot(root);
 
   assert.equal(collectByClass(root, "jr-ruby").length, 2);
   assert.deepEqual(seenTokens, ["確認"]);
 });
 
-test("restores generated ruby annotations to their original text", () => {
+test("restores generated ruby annotations to their original text", async () => {
   const root = new FakeElement("div");
   root.appendChild(new FakeTextNode("メールの内容を確認してください。"));
   const { engine } = createEngine({ root, tokens: [createToken()] });
 
-  engine.annotateRoot(root);
+  await engine.annotateRoot(root);
   assert.equal(collectByClass(root, "jr-ruby").length, 1);
 
   engine.restore();
@@ -407,4 +429,185 @@ test("restores generated ruby annotations to their original text", () => {
   assert.equal(collectByClass(root, "jr-ruby").length, 0);
   assert.equal(root.textContent, "メールの内容を確認してください。");
   assert.equal(serializeNode(root), '<div class="">メールの内容を確認してください。</div>');
+});
+
+test("does not re-analyze already processed nodes", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+  const { engine } = createEngine({ root, tokens: [] });
+  let analyzeCalls = 0;
+  engine.analyzer = {
+    analyze() {
+      analyzeCalls += 1;
+      return [createToken()];
+    }
+  };
+
+  await engine.annotateRoot(root);
+  await engine.annotateRoot(root);
+
+  assert.equal(analyzeCalls, 1);
+  assert.equal(collectByClass(root, "jr-ruby").length, 1);
+});
+
+test("refresh clears processed tracking and re-annotates", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+  const { engine } = createEngine({ root, tokens: [] });
+  engine.analyzer = {
+    analyze(text) {
+      const start = text.indexOf("確認");
+      return start < 0 ? [] : [createToken({ start, end: start + 2 })];
+    }
+  };
+
+  await engine.annotateRoot(root);
+  assert.equal(collectByClass(root, "jr-ruby").length, 1);
+
+  await engine.refresh();
+
+  const rubies = collectByClass(root, "jr-ruby");
+  assert.equal(rubies.length, 1);
+  assert.equal(rubies[0].dataset.surface, "確認");
+});
+
+test("records one exposure per word per page", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("確認します。"));
+  root.appendChild(new FakeTextNode("もう一度確認します。"));
+  const { engine, seenTokens } = createEngine({ root, tokens: [] });
+  engine.analyzer = {
+    analyze(text) {
+      const start = text.indexOf("確認");
+      return start < 0 ? [] : [createToken({ start, end: start + 2 })];
+    }
+  };
+
+  await engine.annotateRoot(root);
+
+  assert.equal(collectByClass(root, "jr-ruby").length, 2);
+  assert.deepEqual(seenTokens, ["確認"]);
+});
+
+test("suspends annotation after exhausting the page budget", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("確認します。"));
+  root.appendChild(new FakeTextNode("申請します。"));
+  const { engine } = createEngine({ root, tokens: [createToken({ start: 0, end: 2 })] });
+  engine.remainingNodeBudget = 1;
+
+  await engine.annotateRoot(root);
+
+  assert.equal(engine.suspended, true);
+  assert.equal(collectByClass(root, "jr-ruby").length, 1);
+
+  await engine.annotateRoot(root);
+  assert.equal(collectByClass(root, "jr-ruby").length, 1);
+});
+
+test("waits for the page to settle before annotating", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+  const { engine } = createEngine({ root, tokens: [createToken()] });
+
+  // A foreign mutation just happened: annotation must hold back.
+  engine.lastForeignMutationAt = Date.now();
+  await engine.annotateRoot(root);
+
+  assert.equal(collectByClass(root, "jr-ruby").length, 0);
+  assert.equal(engine.pendingRoots.size > 0, true);
+  window.clearTimeout(engine.scheduleTimer);
+
+  // Once the page has been quiet long enough, the deferred pass annotates.
+  engine.lastForeignMutationAt = Date.now() - 1000;
+  await engine.annotatePending();
+
+  assert.equal(collectByClass(root, "jr-ruby").length, 1);
+});
+
+test("backs off from elements that keep getting re-annotated", async () => {
+  const paragraph = new FakeElement("p");
+  paragraph.appendChild(new FakeTextNode("確認します。"));
+  const { engine } = createEngine({ root: paragraph, tokens: [] });
+  engine.analyzer = {
+    analyze(text) {
+      const start = text.indexOf("確認");
+      return start < 0 ? [] : [createToken({ start, end: start + 2 })];
+    }
+  };
+
+  // Simulate a framework restoring plain text after each annotation pass.
+  for (let round = 0; round < 5; round += 1) {
+    await engine.annotateRoot(paragraph);
+    assert.equal(collectByClass(paragraph, "jr-ruby").length, 1, `round ${round}`);
+    paragraph.textContent = "確認します。";
+  }
+
+  // The element is now in cooldown: the next pass is deferred, not applied.
+  await engine.annotateRoot(paragraph);
+  assert.equal(collectByClass(paragraph, "jr-ruby").length, 0);
+  assert.equal(engine.pendingRoots.size > 0, true);
+  window.clearTimeout(engine.scheduleTimer);
+});
+
+test("defers annotation until elements scroll near the viewport", async () => {
+  let observerInstance = null;
+  global.IntersectionObserver = class {
+    constructor(callback) {
+      this.callback = callback;
+      this.targets = new Set();
+      observerInstance = this;
+    }
+    observe(element) {
+      this.targets.add(element);
+    }
+    unobserve(element) {
+      this.targets.delete(element);
+    }
+    disconnect() {
+      this.targets.clear();
+    }
+  };
+
+  try {
+    const root = new FakeElement("div");
+    const paragraph = new FakeElement("p");
+    paragraph.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+    root.appendChild(paragraph);
+    const { engine, seenTokens } = createEngine({ root, tokens: [createToken()] });
+
+    await engine.annotateRoot(root);
+
+    // Nothing is annotated until the paragraph becomes visible.
+    assert.equal(collectByClass(root, "jr-ruby").length, 0);
+    assert.equal(observerInstance.targets.has(paragraph), true);
+
+    observerInstance.callback([{ target: paragraph, isIntersecting: true }], observerInstance);
+    await new Promise((resolve) => setImmediate(resolve));
+
+    assert.equal(collectByClass(root, "jr-ruby").length, 1);
+    assert.deepEqual(seenTokens, ["確認"]);
+  } finally {
+    delete global.IntersectionObserver;
+  }
+});
+
+test("uses async batch analyzers when available", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+  const { engine } = createEngine({ root, tokens: [] });
+  engine.analyzer = {
+    async analyzeBatch(texts) {
+      return texts.map(() => [createToken()]);
+    }
+  };
+
+  await engine.annotateRoot(root);
+
+  assert.equal(collectByClass(root, "jr-ruby").length, 1);
+});
+
+runTests().catch((error) => {
+  console.error(error);
+  process.exit(1);
 });

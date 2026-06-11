@@ -124,7 +124,60 @@ test("saves word with source occurrence and learning state", async () => {
   assert.equal(occurrence.surface, "確認");
   assert.equal(occurrence.domain, "example.com");
   assert.equal(occurrence.url, undefined);
-  assert.equal(storageAdapter.savedStates.length >= 2, true);
+  assert.equal(storageAdapter.savedStates.length >= 1, true);
+});
+
+test("recordSeen stores no meanings and keeps saved-word meanings intact", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, {
+    pageContextProvider: () => ({
+      url: "https://example.com/news",
+      domain: "example.com",
+      pageTitle: "News"
+    }),
+    persistDelayMs: 1
+  });
+  await service.load();
+
+  await service.recordSeen(createToken({ lexicalItemId: "経済:けいざい", surface: "経済" }));
+  assert.deepEqual(service.state.lexicalItems["経済:けいざい"].meanings, {});
+
+  await service.saveWord(createToken(), "内容を確認してください。");
+  await service.recordSeen(createToken());
+  await service.persist();
+
+  assert.deepEqual(service.state.lexicalItems["確認:かくにん"].meanings.zhHans, ["确认"]);
+  const summary = Object.values(service.state.dailyExposureSummaries)[0];
+  assert.equal(Object.values(summary.pages)[0].pageTitle, undefined);
+});
+
+test("compactState drops expired exposure summaries", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+  await service.load();
+
+  service.state.dailyExposureSummaries["daily-exposure:2020-01-01:確認:かくにん"] = {
+    id: "daily-exposure:2020-01-01:確認:かくにん",
+    date: "2020-01-01",
+    lexicalItemId: "確認:かくにん",
+    totalSeenCount: 3,
+    uniquePageCount: 1,
+    surfaceForms: {},
+    pages: { "example.com": { pageTitle: "Old", seenCount: 3 } }
+  };
+
+  await service.persistImmediately();
+
+  assert.equal(service.state.dailyExposureSummaries["daily-exposure:2020-01-01:確認:かくにん"], undefined);
+});
+
+test("load does not write storage back", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+
+  await service.load();
+
+  assert.equal(storageAdapter.savedStates.length, 0);
 });
 
 test("records seen exposure without storing full URL when privacy is none", async () => {
@@ -148,6 +201,30 @@ test("records seen exposure without storing full URL when privacy is none", asyn
   assert.equal(summary.pages["private-page"].domain, undefined);
   assert.equal(summary.pages["private-page"].pageTitle, undefined);
   assert.equal(summary.totalSeenCount, 1);
+});
+
+test("persisting exposure data does not overwrite settings saved elsewhere", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, {
+    pageContextProvider: () => ({
+      url: "https://example.com/news",
+      domain: "example.com",
+      pageTitle: "News"
+    }),
+    persistDelayMs: 1
+  });
+  await service.load();
+
+  // The popup turns annotation off in storage while this tab still holds the
+  // old settings in memory.
+  storageAdapter.state.settings.annotation.enabled = false;
+
+  await service.recordSeen(createToken());
+  await service.persist();
+
+  const persisted = storageAdapter.savedStates.at(-1);
+  assert.equal(persisted.settings.annotation.enabled, false);
+  assert.equal(Object.keys(persisted.dailyExposureSummaries).length, 1);
 });
 
 test("marks words known and ignored through service status actions", async () => {

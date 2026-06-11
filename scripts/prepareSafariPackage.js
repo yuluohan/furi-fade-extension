@@ -37,6 +37,10 @@ function collectManifestFiles(manifest) {
     files.add(filePath);
   }
 
+  if (manifest.background?.service_worker) {
+    files.add(manifest.background.service_worker);
+  }
+
   if (manifest.action?.default_popup) {
     files.add(manifest.action.default_popup);
     collectHtmlAssets(manifest.action.default_popup, files);

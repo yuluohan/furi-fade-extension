@@ -44,6 +44,9 @@
           }
         });
       this.pendingPersist = persistPromise;
+      // Timer-driven persists have no awaiter; without this, every failed
+      // save (e.g. storage quota) surfaces as an unhandled rejection.
+      persistPromise.catch(() => {});
       return persistPromise;
     }
   }

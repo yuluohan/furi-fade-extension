@@ -137,9 +137,13 @@
   }
 
   async function save() {
-    state.settings = readSettingsFromControls();
+    const settings = readSettingsFromControls();
+    // Re-read before writing so content tabs' exposure data saved while the
+    // popup was open is not overwritten by the popup's stale copy. Content
+    // tabs pick the change up through storage.onChanged.
+    state = await storageAdapter.loadState();
+    state.settings = settings;
     await storageAdapter.saveState(state);
-    await notifyActiveTab();
     setStatus("saved");
   }
 
@@ -148,19 +152,6 @@
     state.settings = defaults.settings;
     render();
     await save();
-  }
-
-  async function notifyActiveTab() {
-    if (!window.chrome?.tabs?.query || !window.chrome?.tabs?.sendMessage) return;
-
-    const [tab] = await window.chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) return;
-
-    try {
-      await window.chrome.tabs.sendMessage(tab.id, { type: "FADING_FURIGANA_SETTINGS_UPDATED" });
-    } catch {
-      // The active tab may not have the content script, such as chrome:// pages.
-    }
   }
 
   function getInterfaceLanguage() {

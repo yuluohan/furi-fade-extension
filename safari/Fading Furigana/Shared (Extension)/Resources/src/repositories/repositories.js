@@ -96,6 +96,11 @@
     }
   }
 
+  // Storage quota is tight (about 10 MB in Safari); exposure summaries must
+  // stay small no matter how much the user reads.
+  const MAX_SURFACE_FORMS_PER_SUMMARY = 5;
+  const MAX_PAGES_PER_SUMMARY = 8;
+
   class ExposureRepository {
     constructor(stateOrProvider) {
       this.stateOrProvider = stateOrProvider;
@@ -129,23 +134,32 @@
 
       const summary = this.state.dailyExposureSummaries[id];
       summary.totalSeenCount += 1;
-      summary.surfaceForms[input.surface] = (summary.surfaceForms[input.surface] || 0) + 1;
       summary.firstSeenAt ||= seenAt;
       summary.lastSeenAt = seenAt;
 
-      if (!summary.pages[pageKey]) {
-        summary.pages[pageKey] = {
-          pageTitle: input.pageTitle,
+      if (
+        summary.surfaceForms[input.surface] !== undefined ||
+        Object.keys(summary.surfaceForms).length < MAX_SURFACE_FORMS_PER_SUMMARY
+      ) {
+        summary.surfaceForms[input.surface] = (summary.surfaceForms[input.surface] || 0) + 1;
+      }
+
+      let page = summary.pages[pageKey];
+      if (!page && Object.keys(summary.pages).length < MAX_PAGES_PER_SUMMARY) {
+        page = {
           domain: input.domain,
           seenCount: 0,
           firstSeenAt: seenAt,
           lastSeenAt: seenAt
         };
+        summary.pages[pageKey] = page;
         summary.uniquePageCount += 1;
       }
 
-      summary.pages[pageKey].seenCount += 1;
-      summary.pages[pageKey].lastSeenAt = seenAt;
+      if (page) {
+        page.seenCount += 1;
+        page.lastSeenAt = seenAt;
+      }
       return summary;
     }
 

@@ -2,3 +2,4 @@
 dist
 xcuserdata
 *.xcuserstate
+node_modules

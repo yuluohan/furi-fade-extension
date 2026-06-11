@@ -2,6 +2,7 @@
   "use strict";
 
   const controls = {
+    interfaceLanguage: document.querySelector("#interface-language"),
     annotationEnabled: document.querySelector("#annotation-enabled"),
     annotationMode: document.querySelector("#annotation-mode"),
     hideKnownItems: document.querySelector("#hide-known-items"),
@@ -15,6 +16,83 @@
     statusText: document.querySelector("#status-text")
   };
 
+  const MESSAGES = {
+    en: {
+      displaySettings: "Display settings",
+      interfaceLanguage: "Language",
+      annotationSettings: "Annotation settings",
+      annotations: "Annotations",
+      annotationsHint: "Show reading hints on Japanese words",
+      mode: "Mode",
+      modeAdaptive: "Adaptive",
+      modeAllItems: "All items",
+      modeUnknownOnly: "Unknown only",
+      modeSavedOnly: "Saved only",
+      modeOff: "Off",
+      hideKnownWords: "Hide known words",
+      hideKnownWordsHint: "Fade out words already mastered",
+      exposureSettings: "Exposure tracking settings",
+      dailyWordStats: "Daily word stats",
+      dailyWordStatsHint: "Count words seen each day",
+      urlPrivacy: "URL privacy",
+      urlDomainOnly: "Domain only",
+      urlFull: "Full URL",
+      urlNone: "No URL",
+      vocabularyFrequency: "Vocabulary frequency",
+      wordFrequency: "Word frequency",
+      refresh: "Refresh",
+      refreshStats: "Refresh stats",
+      today: "Today",
+      sevenDays: "7 days",
+      reset: "Reset",
+      save: "Save",
+      ready: "Ready",
+      saved: "Saved",
+      noData: "No data",
+      loadFailed: "Load failed",
+      saveFailed: "Save failed",
+      resetFailed: "Reset failed",
+      refreshFailed: "Refresh failed"
+    },
+    zhHans: {
+      displaySettings: "显示设置",
+      interfaceLanguage: "界面语言",
+      annotationSettings: "标注设置",
+      annotations: "假名标注",
+      annotationsHint: "在日语词上显示读音提示",
+      mode: "标注模式",
+      modeAdaptive: "智能自适应",
+      modeAllItems: "全部词",
+      modeUnknownOnly: "只显示不熟词",
+      modeSavedOnly: "只显示已保存词",
+      modeOff: "关闭",
+      hideKnownWords: "隐藏已掌握词",
+      hideKnownWordsHint: "已掌握的词会逐渐淡出",
+      exposureSettings: "遇见统计设置",
+      dailyWordStats: "每日词频统计",
+      dailyWordStatsHint: "统计每天看见过的词",
+      urlPrivacy: "网址隐私",
+      urlDomainOnly: "只保存域名",
+      urlFull: "保存完整网址",
+      urlNone: "不保存网址",
+      vocabularyFrequency: "词频统计",
+      wordFrequency: "词频",
+      refresh: "刷新",
+      refreshStats: "刷新统计",
+      today: "今天",
+      sevenDays: "7 天",
+      reset: "重置",
+      save: "保存",
+      ready: "就绪",
+      saved: "已保存",
+      noData: "暂无数据",
+      loadFailed: "加载失败",
+      saveFailed: "保存失败",
+      resetFailed: "重置失败",
+      refreshFailed: "刷新失败"
+    }
+  };
+
   let state;
   const storageAdapter = window.FadingFuriganaStorage.createBestAvailableStorageAdapter();
 
@@ -25,19 +103,25 @@
   }
 
   function render() {
-    const { annotation, exposureTracking } = state.settings;
+    const { annotation, display, exposureTracking } = state.settings;
+    controls.interfaceLanguage.value = display.interfaceLanguage;
     controls.annotationEnabled.checked = annotation.enabled;
     controls.annotationMode.value = annotation.mode;
     controls.hideKnownItems.checked = annotation.hideKnownItems;
     controls.exposureEnabled.checked = exposureTracking.enabled;
     controls.urlPrivacy.value = exposureTracking.saveUrls;
+    renderI18n();
     renderStats();
-    setStatus("Ready");
+    setStatus("ready");
   }
 
   function readSettingsFromControls() {
     return window.FadingFuriganaState.normalizeSettings({
       ...state.settings,
+      display: {
+        ...state.settings.display,
+        interfaceLanguage: controls.interfaceLanguage.value
+      },
       annotation: {
         ...state.settings.annotation,
         enabled: controls.annotationEnabled.checked,
@@ -53,10 +137,14 @@
   }
 
   async function save() {
-    state.settings = readSettingsFromControls();
+    const settings = readSettingsFromControls();
+    // Re-read before writing so content tabs' exposure data saved while the
+    // popup was open is not overwritten by the popup's stale copy. Content
+    // tabs pick the change up through storage.onChanged.
+    state = await storageAdapter.loadState();
+    state.settings = settings;
     await storageAdapter.saveState(state);
-    await notifyActiveTab();
-    setStatus("Saved");
+    setStatus("saved");
   }
 
   async function reset() {
@@ -66,21 +154,29 @@
     await save();
   }
 
-  async function notifyActiveTab() {
-    if (!window.chrome?.tabs?.query || !window.chrome?.tabs?.sendMessage) return;
+  function getInterfaceLanguage() {
+    return controls.interfaceLanguage.value || state?.settings?.display?.interfaceLanguage || "en";
+  }
 
-    const [tab] = await window.chrome.tabs.query({ active: true, currentWindow: true });
-    if (!tab?.id) return;
+  function t(key) {
+    const language = getInterfaceLanguage();
+    return MESSAGES[language]?.[key] || MESSAGES.en[key] || key;
+  }
 
-    try {
-      await window.chrome.tabs.sendMessage(tab.id, { type: "FADING_FURIGANA_SETTINGS_UPDATED" });
-    } catch {
-      // The active tab may not have the content script, such as chrome:// pages.
+  function renderI18n() {
+    document.documentElement.lang = getInterfaceLanguage() === "zhHans" ? "zh-Hans" : "en";
+
+    for (const element of document.querySelectorAll("[data-i18n]")) {
+      element.textContent = t(element.dataset.i18n);
+    }
+
+    for (const element of document.querySelectorAll("[data-i18n-aria]")) {
+      element.setAttribute("aria-label", t(element.dataset.i18nAria));
     }
   }
 
-  function setStatus(text) {
-    controls.statusText.textContent = text;
+  function setStatus(key) {
+    controls.statusText.textContent = t(key);
   }
 
   function renderStats() {
@@ -129,7 +225,7 @@
     if (items.length === 0) {
       const empty = document.createElement("li");
       empty.className = "word-list__empty";
-      empty.textContent = "No data";
+      empty.textContent = t("noData");
       element.appendChild(empty);
       return;
     }
@@ -146,17 +242,23 @@
     }
   }
 
+  controls.interfaceLanguage.addEventListener("change", () => {
+    renderI18n();
+    renderStats();
+    setStatus("ready");
+  });
+
   controls.saveSettings.addEventListener("click", () => {
-    save().catch(() => setStatus("Save failed"));
+    save().catch(() => setStatus("saveFailed"));
   });
 
   controls.resetSettings.addEventListener("click", () => {
-    reset().catch(() => setStatus("Reset failed"));
+    reset().catch(() => setStatus("resetFailed"));
   });
 
   controls.refreshStats.addEventListener("click", () => {
-    load().catch(() => setStatus("Refresh failed"));
+    load().catch(() => setStatus("refreshFailed"));
   });
 
-  load().catch(() => setStatus("Load failed"));
+  load().catch(() => setStatus("loadFailed"));
 })();

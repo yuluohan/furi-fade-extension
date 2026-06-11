@@ -7,70 +7,70 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1DEF5F212FD7DC550067993F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F202FD7DC550067993F /* AppDelegate.swift */; };
-		1DEF5F232FD7DC550067993F /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F222FD7DC550067993F /* SceneDelegate.swift */; };
-		1DEF5F262FD7DC550067993F /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F242FD7DC550067993F /* LaunchScreen.storyboard */; };
-		1DEF5F292FD7DC550067993F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F272FD7DC550067993F /* Main.storyboard */; };
-		1DEF5F322FD7DC550067993F /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F312FD7DC550067993F /* AppDelegate.swift */; };
-		1DEF5F352FD7DC550067993F /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F332FD7DC550067993F /* Main.storyboard */; };
-		1DEF5F3C2FD7DC550067993F /* Fading Furigana Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1DEF5F3B2FD7DC550067993F /* Fading Furigana Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		1DEF5F462FD7DC550067993F /* Fading Furigana Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1DEF5F452FD7DC550067993F /* Fading Furigana Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		1DEF5F4B2FD7DC550067993F /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F102FD7DC540067993F /* Main.html */; };
-		1DEF5F4C2FD7DC550067993F /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F102FD7DC540067993F /* Main.html */; };
-		1DEF5F4D2FD7DC550067993F /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F122FD7DC540067993F /* Icon.png */; };
-		1DEF5F4E2FD7DC550067993F /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F122FD7DC540067993F /* Icon.png */; };
-		1DEF5F4F2FD7DC550067993F /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F132FD7DC540067993F /* Style.css */; };
-		1DEF5F502FD7DC550067993F /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F132FD7DC540067993F /* Style.css */; };
-		1DEF5F512FD7DC550067993F /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F142FD7DC540067993F /* Script.js */; };
-		1DEF5F522FD7DC550067993F /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F142FD7DC540067993F /* Script.js */; };
-		1DEF5F532FD7DC550067993F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F152FD7DC540067993F /* ViewController.swift */; };
-		1DEF5F542FD7DC550067993F /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F152FD7DC540067993F /* ViewController.swift */; };
-		1DEF5F552FD7DC550067993F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F162FD7DC550067993F /* Assets.xcassets */; };
-		1DEF5F562FD7DC550067993F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F162FD7DC550067993F /* Assets.xcassets */; };
-		1DEF5F572FD7DC550067993F /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F182FD7DC550067993F /* SafariWebExtensionHandler.swift */; };
-		1DEF5F582FD7DC550067993F /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DEF5F182FD7DC550067993F /* SafariWebExtensionHandler.swift */; };
-		1DEF5F6C2FD7DC550067993F /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F6A2FD7DC550067993F /* manifest.json */; };
-		1DEF5F6D2FD7DC550067993F /* src in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F6B2FD7DC550067993F /* src */; };
-		1DEF5F6E2FD7DC550067993F /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F6A2FD7DC550067993F /* manifest.json */; };
-		1DEF5F6F2FD7DC550067993F /* src in Resources */ = {isa = PBXBuildFile; fileRef = 1DEF5F6B2FD7DC550067993F /* src */; };
+		1DE24C332FDA7EF800F11ABC /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE24C322FDA7EF800F11ABC /* AppDelegate.swift */; };
+		1DE24C352FDA7EF800F11ABC /* SceneDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE24C342FDA7EF800F11ABC /* SceneDelegate.swift */; };
+		1DE24C382FDA7EF800F11ABC /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C362FDA7EF800F11ABC /* LaunchScreen.storyboard */; };
+		1DE24C3B2FDA7EF800F11ABC /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C392FDA7EF800F11ABC /* Main.storyboard */; };
+		1DE24C442FDA7EF800F11ABC /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE24C432FDA7EF800F11ABC /* AppDelegate.swift */; };
+		1DE24C472FDA7EF800F11ABC /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C452FDA7EF800F11ABC /* Main.storyboard */; };
+		1DE24C4E2FDA7EF800F11ABC /* Fading Furigana Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1DE24C4D2FDA7EF800F11ABC /* Fading Furigana Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1DE24C582FDA7EF800F11ABC /* Fading Furigana Extension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = 1DE24C572FDA7EF800F11ABC /* Fading Furigana Extension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		1DE24C5D2FDA7EF900F11ABC /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C222FDA7EF800F11ABC /* Main.html */; };
+		1DE24C5E2FDA7EF900F11ABC /* Main.html in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C222FDA7EF800F11ABC /* Main.html */; };
+		1DE24C5F2FDA7EF900F11ABC /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C242FDA7EF800F11ABC /* Icon.png */; };
+		1DE24C602FDA7EF900F11ABC /* Icon.png in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C242FDA7EF800F11ABC /* Icon.png */; };
+		1DE24C612FDA7EF900F11ABC /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C252FDA7EF800F11ABC /* Style.css */; };
+		1DE24C622FDA7EF900F11ABC /* Style.css in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C252FDA7EF800F11ABC /* Style.css */; };
+		1DE24C632FDA7EF900F11ABC /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C262FDA7EF800F11ABC /* Script.js */; };
+		1DE24C642FDA7EF900F11ABC /* Script.js in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C262FDA7EF800F11ABC /* Script.js */; };
+		1DE24C652FDA7EF900F11ABC /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE24C272FDA7EF800F11ABC /* ViewController.swift */; };
+		1DE24C662FDA7EF900F11ABC /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE24C272FDA7EF800F11ABC /* ViewController.swift */; };
+		1DE24C672FDA7EF900F11ABC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C282FDA7EF800F11ABC /* Assets.xcassets */; };
+		1DE24C682FDA7EF900F11ABC /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C282FDA7EF800F11ABC /* Assets.xcassets */; };
+		1DE24C692FDA7EF900F11ABC /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE24C2A2FDA7EF800F11ABC /* SafariWebExtensionHandler.swift */; };
+		1DE24C6A2FDA7EF900F11ABC /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE24C2A2FDA7EF800F11ABC /* SafariWebExtensionHandler.swift */; };
+		1DE24C7E2FDA7EF900F11ABC /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C7C2FDA7EF900F11ABC /* manifest.json */; };
+		1DE24C7F2FDA7EF900F11ABC /* src in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C7D2FDA7EF900F11ABC /* src */; };
+		1DE24C802FDA7EF900F11ABC /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C7C2FDA7EF900F11ABC /* manifest.json */; };
+		1DE24C812FDA7EF900F11ABC /* src in Resources */ = {isa = PBXBuildFile; fileRef = 1DE24C7D2FDA7EF900F11ABC /* src */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
-		1DEF5F3D2FD7DC550067993F /* PBXContainerItemProxy */ = {
+		1DE24C4F2FDA7EF800F11ABC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 1DEF5F0A2FD7DC540067993F /* Project object */;
+			containerPortal = 1DE24C1C2FDA7EF800F11ABC /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 1DEF5F3A2FD7DC550067993F;
+			remoteGlobalIDString = 1DE24C4C2FDA7EF800F11ABC;
 			remoteInfo = "Fading Furigana Extension (iOS)";
 		};
-		1DEF5F472FD7DC550067993F /* PBXContainerItemProxy */ = {
+		1DE24C592FDA7EF800F11ABC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
-			containerPortal = 1DEF5F0A2FD7DC540067993F /* Project object */;
+			containerPortal = 1DE24C1C2FDA7EF800F11ABC /* Project object */;
 			proxyType = 1;
-			remoteGlobalIDString = 1DEF5F442FD7DC550067993F;
+			remoteGlobalIDString = 1DE24C562FDA7EF800F11ABC;
 			remoteInfo = "Fading Furigana Extension (macOS)";
 		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		1DEF5F5E2FD7DC550067993F /* Embed Foundation Extensions */ = {
+		1DE24C702FDA7EF900F11ABC /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				1DEF5F3C2FD7DC550067993F /* Fading Furigana Extension.appex in Embed Foundation Extensions */,
+				1DE24C4E2FDA7EF800F11ABC /* Fading Furigana Extension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DEF5F652FD7DC550067993F /* Embed Foundation Extensions */ = {
+		1DE24C772FDA7EF900F11ABC /* Embed Foundation Extensions */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 13;
 			files = (
-				1DEF5F462FD7DC550067993F /* Fading Furigana Extension.appex in Embed Foundation Extensions */,
+				1DE24C582FDA7EF800F11ABC /* Fading Furigana Extension.appex in Embed Foundation Extensions */,
 			);
 			name = "Embed Foundation Extensions";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -78,54 +78,54 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
-		1DEF5F112FD7DC540067993F /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
-		1DEF5F122FD7DC540067993F /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
-		1DEF5F132FD7DC540067993F /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
-		1DEF5F142FD7DC540067993F /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
-		1DEF5F152FD7DC540067993F /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
-		1DEF5F162FD7DC550067993F /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
-		1DEF5F182FD7DC550067993F /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
-		1DEF5F1D2FD7DC550067993F /* Fading Furigana.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fading Furigana.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		1DEF5F202FD7DC550067993F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		1DEF5F222FD7DC550067993F /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
-		1DEF5F252FD7DC550067993F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		1DEF5F282FD7DC550067993F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		1DEF5F2A2FD7DC550067993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1DEF5F2F2FD7DC550067993F /* Fading Furigana.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fading Furigana.app"; sourceTree = BUILT_PRODUCTS_DIR; };
-		1DEF5F312FD7DC550067993F /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
-		1DEF5F342FD7DC550067993F /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		1DEF5F362FD7DC550067993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1DEF5F3B2FD7DC550067993F /* Fading Furigana Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Fading Furigana Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
-		1DEF5F402FD7DC550067993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1DEF5F452FD7DC550067993F /* Fading Furigana Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Fading Furigana Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
-		1DEF5F4A2FD7DC550067993F /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		1DEF5F6A2FD7DC550067993F /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
-		1DEF5F6B2FD7DC550067993F /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = Resources/src; sourceTree = "<group>"; };
+		1DE24C232FDA7EF800F11ABC /* Base */ = {isa = PBXFileReference; lastKnownFileType = text.html; name = Base; path = Base.lproj/Main.html; sourceTree = "<group>"; };
+		1DE24C242FDA7EF800F11ABC /* Icon.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Icon.png; sourceTree = "<group>"; };
+		1DE24C252FDA7EF800F11ABC /* Style.css */ = {isa = PBXFileReference; lastKnownFileType = text.css; path = Style.css; sourceTree = "<group>"; };
+		1DE24C262FDA7EF800F11ABC /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
+		1DE24C272FDA7EF800F11ABC /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
+		1DE24C282FDA7EF800F11ABC /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		1DE24C2A2FDA7EF800F11ABC /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
+		1DE24C2F2FDA7EF800F11ABC /* Fading Furigana.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fading Furigana.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DE24C322FDA7EF800F11ABC /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1DE24C342FDA7EF800F11ABC /* SceneDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SceneDelegate.swift; sourceTree = "<group>"; };
+		1DE24C372FDA7EF800F11ABC /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
+		1DE24C3A2FDA7EF800F11ABC /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		1DE24C3C2FDA7EF800F11ABC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1DE24C412FDA7EF800F11ABC /* Fading Furigana.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fading Furigana.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DE24C432FDA7EF800F11ABC /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		1DE24C462FDA7EF800F11ABC /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		1DE24C482FDA7EF800F11ABC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1DE24C4D2FDA7EF800F11ABC /* Fading Furigana Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Fading Furigana Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DE24C522FDA7EF800F11ABC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1DE24C572FDA7EF800F11ABC /* Fading Furigana Extension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = "Fading Furigana Extension.appex"; sourceTree = BUILT_PRODUCTS_DIR; };
+		1DE24C5C2FDA7EF900F11ABC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
+		1DE24C7C2FDA7EF900F11ABC /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
+		1DE24C7D2FDA7EF900F11ABC /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = Resources/src; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		1DEF5F1A2FD7DC550067993F /* Frameworks */ = {
+		1DE24C2C2FDA7EF800F11ABC /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DEF5F2C2FD7DC550067993F /* Frameworks */ = {
+		1DE24C3E2FDA7EF800F11ABC /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DEF5F382FD7DC550067993F /* Frameworks */ = {
+		1DE24C4A2FDA7EF800F11ABC /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DEF5F422FD7DC550067993F /* Frameworks */ = {
+		1DE24C542FDA7EF800F11ABC /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -135,103 +135,103 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		1DEF5F092FD7DC540067993F = {
+		1DE24C1B2FDA7EF800F11ABC = {
 			isa = PBXGroup;
 			children = (
-				1DEF5F0E2FD7DC540067993F /* Shared (App) */,
-				1DEF5F172FD7DC550067993F /* Shared (Extension) */,
-				1DEF5F1F2FD7DC550067993F /* iOS (App) */,
-				1DEF5F302FD7DC550067993F /* macOS (App) */,
-				1DEF5F3F2FD7DC550067993F /* iOS (Extension) */,
-				1DEF5F492FD7DC550067993F /* macOS (Extension) */,
-				1DEF5F1E2FD7DC550067993F /* Products */,
+				1DE24C202FDA7EF800F11ABC /* Shared (App) */,
+				1DE24C292FDA7EF800F11ABC /* Shared (Extension) */,
+				1DE24C312FDA7EF800F11ABC /* iOS (App) */,
+				1DE24C422FDA7EF800F11ABC /* macOS (App) */,
+				1DE24C512FDA7EF800F11ABC /* iOS (Extension) */,
+				1DE24C5B2FDA7EF900F11ABC /* macOS (Extension) */,
+				1DE24C302FDA7EF800F11ABC /* Products */,
 			);
 			sourceTree = "<group>";
 		};
-		1DEF5F0E2FD7DC540067993F /* Shared (App) */ = {
+		1DE24C202FDA7EF800F11ABC /* Shared (App) */ = {
 			isa = PBXGroup;
 			children = (
-				1DEF5F152FD7DC540067993F /* ViewController.swift */,
-				1DEF5F162FD7DC550067993F /* Assets.xcassets */,
-				1DEF5F0F2FD7DC540067993F /* Resources */,
+				1DE24C272FDA7EF800F11ABC /* ViewController.swift */,
+				1DE24C282FDA7EF800F11ABC /* Assets.xcassets */,
+				1DE24C212FDA7EF800F11ABC /* Resources */,
 			);
 			path = "Shared (App)";
 			sourceTree = "<group>";
 		};
-		1DEF5F0F2FD7DC540067993F /* Resources */ = {
+		1DE24C212FDA7EF800F11ABC /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				1DEF5F102FD7DC540067993F /* Main.html */,
-				1DEF5F122FD7DC540067993F /* Icon.png */,
-				1DEF5F132FD7DC540067993F /* Style.css */,
-				1DEF5F142FD7DC540067993F /* Script.js */,
+				1DE24C222FDA7EF800F11ABC /* Main.html */,
+				1DE24C242FDA7EF800F11ABC /* Icon.png */,
+				1DE24C252FDA7EF800F11ABC /* Style.css */,
+				1DE24C262FDA7EF800F11ABC /* Script.js */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		1DEF5F172FD7DC550067993F /* Shared (Extension) */ = {
+		1DE24C292FDA7EF800F11ABC /* Shared (Extension) */ = {
 			isa = PBXGroup;
 			children = (
-				1DEF5F692FD7DC550067993F /* Resources */,
-				1DEF5F182FD7DC550067993F /* SafariWebExtensionHandler.swift */,
+				1DE24C7B2FDA7EF900F11ABC /* Resources */,
+				1DE24C2A2FDA7EF800F11ABC /* SafariWebExtensionHandler.swift */,
 			);
 			path = "Shared (Extension)";
 			sourceTree = "<group>";
 		};
-		1DEF5F1E2FD7DC550067993F /* Products */ = {
+		1DE24C302FDA7EF800F11ABC /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				1DEF5F1D2FD7DC550067993F /* Fading Furigana.app */,
-				1DEF5F2F2FD7DC550067993F /* Fading Furigana.app */,
-				1DEF5F3B2FD7DC550067993F /* Fading Furigana Extension.appex */,
-				1DEF5F452FD7DC550067993F /* Fading Furigana Extension.appex */,
+				1DE24C2F2FDA7EF800F11ABC /* Fading Furigana.app */,
+				1DE24C412FDA7EF800F11ABC /* Fading Furigana.app */,
+				1DE24C4D2FDA7EF800F11ABC /* Fading Furigana Extension.appex */,
+				1DE24C572FDA7EF800F11ABC /* Fading Furigana Extension.appex */,
 			);
 			name = Products;
 			sourceTree = "<group>";
 		};
-		1DEF5F1F2FD7DC550067993F /* iOS (App) */ = {
+		1DE24C312FDA7EF800F11ABC /* iOS (App) */ = {
 			isa = PBXGroup;
 			children = (
-				1DEF5F202FD7DC550067993F /* AppDelegate.swift */,
-				1DEF5F222FD7DC550067993F /* SceneDelegate.swift */,
-				1DEF5F242FD7DC550067993F /* LaunchScreen.storyboard */,
-				1DEF5F272FD7DC550067993F /* Main.storyboard */,
-				1DEF5F2A2FD7DC550067993F /* Info.plist */,
+				1DE24C322FDA7EF800F11ABC /* AppDelegate.swift */,
+				1DE24C342FDA7EF800F11ABC /* SceneDelegate.swift */,
+				1DE24C362FDA7EF800F11ABC /* LaunchScreen.storyboard */,
+				1DE24C392FDA7EF800F11ABC /* Main.storyboard */,
+				1DE24C3C2FDA7EF800F11ABC /* Info.plist */,
 			);
 			path = "iOS (App)";
 			sourceTree = "<group>";
 		};
-		1DEF5F302FD7DC550067993F /* macOS (App) */ = {
+		1DE24C422FDA7EF800F11ABC /* macOS (App) */ = {
 			isa = PBXGroup;
 			children = (
-				1DEF5F312FD7DC550067993F /* AppDelegate.swift */,
-				1DEF5F332FD7DC550067993F /* Main.storyboard */,
-				1DEF5F362FD7DC550067993F /* Info.plist */,
+				1DE24C432FDA7EF800F11ABC /* AppDelegate.swift */,
+				1DE24C452FDA7EF800F11ABC /* Main.storyboard */,
+				1DE24C482FDA7EF800F11ABC /* Info.plist */,
 			);
 			path = "macOS (App)";
 			sourceTree = "<group>";
 		};
-		1DEF5F3F2FD7DC550067993F /* iOS (Extension) */ = {
+		1DE24C512FDA7EF800F11ABC /* iOS (Extension) */ = {
 			isa = PBXGroup;
 			children = (
-				1DEF5F402FD7DC550067993F /* Info.plist */,
+				1DE24C522FDA7EF800F11ABC /* Info.plist */,
 			);
 			path = "iOS (Extension)";
 			sourceTree = "<group>";
 		};
-		1DEF5F492FD7DC550067993F /* macOS (Extension) */ = {
+		1DE24C5B2FDA7EF900F11ABC /* macOS (Extension) */ = {
 			isa = PBXGroup;
 			children = (
-				1DEF5F4A2FD7DC550067993F /* Info.plist */,
+				1DE24C5C2FDA7EF900F11ABC /* Info.plist */,
 			);
 			path = "macOS (Extension)";
 			sourceTree = "<group>";
 		};
-		1DEF5F692FD7DC550067993F /* Resources */ = {
+		1DE24C7B2FDA7EF900F11ABC /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				1DEF5F6A2FD7DC550067993F /* manifest.json */,
-				1DEF5F6B2FD7DC550067993F /* src */,
+				1DE24C7C2FDA7EF900F11ABC /* manifest.json */,
+				1DE24C7D2FDA7EF900F11ABC /* src */,
 			);
 			name = Resources;
 			path = "Shared (Extension)";
@@ -240,55 +240,55 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		1DEF5F1C2FD7DC550067993F /* Fading Furigana (iOS) */ = {
+		1DE24C2E2FDA7EF800F11ABC /* Fading Furigana (iOS) */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1DEF5F5F2FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana (iOS)" */;
+			buildConfigurationList = 1DE24C712FDA7EF900F11ABC /* Build configuration list for PBXNativeTarget "Fading Furigana (iOS)" */;
 			buildPhases = (
-				1DEF5F192FD7DC550067993F /* Sources */,
-				1DEF5F1A2FD7DC550067993F /* Frameworks */,
-				1DEF5F1B2FD7DC550067993F /* Resources */,
-				1DEF5F5E2FD7DC550067993F /* Embed Foundation Extensions */,
+				1DE24C2B2FDA7EF800F11ABC /* Sources */,
+				1DE24C2C2FDA7EF800F11ABC /* Frameworks */,
+				1DE24C2D2FDA7EF800F11ABC /* Resources */,
+				1DE24C702FDA7EF900F11ABC /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				1DEF5F3E2FD7DC550067993F /* PBXTargetDependency */,
+				1DE24C502FDA7EF800F11ABC /* PBXTargetDependency */,
 			);
 			name = "Fading Furigana (iOS)";
 			packageProductDependencies = (
 			);
 			productName = "Fading Furigana (iOS)";
-			productReference = 1DEF5F1D2FD7DC550067993F /* Fading Furigana.app */;
+			productReference = 1DE24C2F2FDA7EF800F11ABC /* Fading Furigana.app */;
 			productType = "com.apple.product-type.application";
 		};
-		1DEF5F2E2FD7DC550067993F /* Fading Furigana (macOS) */ = {
+		1DE24C402FDA7EF800F11ABC /* Fading Furigana (macOS) */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1DEF5F662FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana (macOS)" */;
+			buildConfigurationList = 1DE24C782FDA7EF900F11ABC /* Build configuration list for PBXNativeTarget "Fading Furigana (macOS)" */;
 			buildPhases = (
-				1DEF5F2B2FD7DC550067993F /* Sources */,
-				1DEF5F2C2FD7DC550067993F /* Frameworks */,
-				1DEF5F2D2FD7DC550067993F /* Resources */,
-				1DEF5F652FD7DC550067993F /* Embed Foundation Extensions */,
+				1DE24C3D2FDA7EF800F11ABC /* Sources */,
+				1DE24C3E2FDA7EF800F11ABC /* Frameworks */,
+				1DE24C3F2FDA7EF800F11ABC /* Resources */,
+				1DE24C772FDA7EF900F11ABC /* Embed Foundation Extensions */,
 			);
 			buildRules = (
 			);
 			dependencies = (
-				1DEF5F482FD7DC550067993F /* PBXTargetDependency */,
+				1DE24C5A2FDA7EF800F11ABC /* PBXTargetDependency */,
 			);
 			name = "Fading Furigana (macOS)";
 			packageProductDependencies = (
 			);
 			productName = "Fading Furigana (macOS)";
-			productReference = 1DEF5F2F2FD7DC550067993F /* Fading Furigana.app */;
+			productReference = 1DE24C412FDA7EF800F11ABC /* Fading Furigana.app */;
 			productType = "com.apple.product-type.application";
 		};
-		1DEF5F3A2FD7DC550067993F /* Fading Furigana Extension (iOS) */ = {
+		1DE24C4C2FDA7EF800F11ABC /* Fading Furigana Extension (iOS) */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1DEF5F5B2FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (iOS)" */;
+			buildConfigurationList = 1DE24C6D2FDA7EF900F11ABC /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (iOS)" */;
 			buildPhases = (
-				1DEF5F372FD7DC550067993F /* Sources */,
-				1DEF5F382FD7DC550067993F /* Frameworks */,
-				1DEF5F392FD7DC550067993F /* Resources */,
+				1DE24C492FDA7EF800F11ABC /* Sources */,
+				1DE24C4A2FDA7EF800F11ABC /* Frameworks */,
+				1DE24C4B2FDA7EF800F11ABC /* Resources */,
 			);
 			buildRules = (
 			);
@@ -298,16 +298,16 @@
 			packageProductDependencies = (
 			);
 			productName = "Fading Furigana Extension (iOS)";
-			productReference = 1DEF5F3B2FD7DC550067993F /* Fading Furigana Extension.appex */;
+			productReference = 1DE24C4D2FDA7EF800F11ABC /* Fading Furigana Extension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
-		1DEF5F442FD7DC550067993F /* Fading Furigana Extension (macOS) */ = {
+		1DE24C562FDA7EF800F11ABC /* Fading Furigana Extension (macOS) */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 1DEF5F622FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (macOS)" */;
+			buildConfigurationList = 1DE24C742FDA7EF900F11ABC /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (macOS)" */;
 			buildPhases = (
-				1DEF5F412FD7DC550067993F /* Sources */,
-				1DEF5F422FD7DC550067993F /* Frameworks */,
-				1DEF5F432FD7DC550067993F /* Resources */,
+				1DE24C532FDA7EF800F11ABC /* Sources */,
+				1DE24C542FDA7EF800F11ABC /* Frameworks */,
+				1DE24C552FDA7EF800F11ABC /* Resources */,
 			);
 			buildRules = (
 			);
@@ -317,183 +317,183 @@
 			packageProductDependencies = (
 			);
 			productName = "Fading Furigana Extension (macOS)";
-			productReference = 1DEF5F452FD7DC550067993F /* Fading Furigana Extension.appex */;
+			productReference = 1DE24C572FDA7EF800F11ABC /* Fading Furigana Extension.appex */;
 			productType = "com.apple.product-type.app-extension";
 		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
-		1DEF5F0A2FD7DC540067993F /* Project object */ = {
+		1DE24C1C2FDA7EF800F11ABC /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 2650;
 				LastUpgradeCheck = 2650;
 				TargetAttributes = {
-					1DEF5F1C2FD7DC550067993F = {
+					1DE24C2E2FDA7EF800F11ABC = {
 						CreatedOnToolsVersion = 26.5;
 					};
-					1DEF5F2E2FD7DC550067993F = {
+					1DE24C402FDA7EF800F11ABC = {
 						CreatedOnToolsVersion = 26.5;
 					};
-					1DEF5F3A2FD7DC550067993F = {
+					1DE24C4C2FDA7EF800F11ABC = {
 						CreatedOnToolsVersion = 26.5;
 					};
-					1DEF5F442FD7DC550067993F = {
+					1DE24C562FDA7EF800F11ABC = {
 						CreatedOnToolsVersion = 26.5;
 					};
 				};
 			};
-			buildConfigurationList = 1DEF5F0D2FD7DC540067993F /* Build configuration list for PBXProject "Fading Furigana" */;
+			buildConfigurationList = 1DE24C1F2FDA7EF800F11ABC /* Build configuration list for PBXProject "Fading Furigana" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
 				en,
 				Base,
 			);
-			mainGroup = 1DEF5F092FD7DC540067993F;
+			mainGroup = 1DE24C1B2FDA7EF800F11ABC;
 			minimizedProjectReferenceProxies = 1;
 			preferredProjectObjectVersion = 77;
-			productRefGroup = 1DEF5F1E2FD7DC550067993F /* Products */;
+			productRefGroup = 1DE24C302FDA7EF800F11ABC /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				1DEF5F1C2FD7DC550067993F /* Fading Furigana (iOS) */,
-				1DEF5F2E2FD7DC550067993F /* Fading Furigana (macOS) */,
-				1DEF5F3A2FD7DC550067993F /* Fading Furigana Extension (iOS) */,
-				1DEF5F442FD7DC550067993F /* Fading Furigana Extension (macOS) */,
+				1DE24C2E2FDA7EF800F11ABC /* Fading Furigana (iOS) */,
+				1DE24C402FDA7EF800F11ABC /* Fading Furigana (macOS) */,
+				1DE24C4C2FDA7EF800F11ABC /* Fading Furigana Extension (iOS) */,
+				1DE24C562FDA7EF800F11ABC /* Fading Furigana Extension (macOS) */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		1DEF5F1B2FD7DC550067993F /* Resources */ = {
+		1DE24C2D2FDA7EF800F11ABC /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1DEF5F4D2FD7DC550067993F /* Icon.png in Resources */,
-				1DEF5F262FD7DC550067993F /* LaunchScreen.storyboard in Resources */,
-				1DEF5F4B2FD7DC550067993F /* Main.html in Resources */,
-				1DEF5F512FD7DC550067993F /* Script.js in Resources */,
-				1DEF5F552FD7DC550067993F /* Assets.xcassets in Resources */,
-				1DEF5F292FD7DC550067993F /* Main.storyboard in Resources */,
-				1DEF5F4F2FD7DC550067993F /* Style.css in Resources */,
+				1DE24C5F2FDA7EF900F11ABC /* Icon.png in Resources */,
+				1DE24C382FDA7EF800F11ABC /* LaunchScreen.storyboard in Resources */,
+				1DE24C5D2FDA7EF900F11ABC /* Main.html in Resources */,
+				1DE24C632FDA7EF900F11ABC /* Script.js in Resources */,
+				1DE24C672FDA7EF900F11ABC /* Assets.xcassets in Resources */,
+				1DE24C3B2FDA7EF800F11ABC /* Main.storyboard in Resources */,
+				1DE24C612FDA7EF900F11ABC /* Style.css in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DEF5F2D2FD7DC550067993F /* Resources */ = {
+		1DE24C3F2FDA7EF800F11ABC /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1DEF5F4E2FD7DC550067993F /* Icon.png in Resources */,
-				1DEF5F502FD7DC550067993F /* Style.css in Resources */,
-				1DEF5F352FD7DC550067993F /* Main.storyboard in Resources */,
-				1DEF5F522FD7DC550067993F /* Script.js in Resources */,
-				1DEF5F562FD7DC550067993F /* Assets.xcassets in Resources */,
-				1DEF5F4C2FD7DC550067993F /* Main.html in Resources */,
+				1DE24C602FDA7EF900F11ABC /* Icon.png in Resources */,
+				1DE24C622FDA7EF900F11ABC /* Style.css in Resources */,
+				1DE24C472FDA7EF800F11ABC /* Main.storyboard in Resources */,
+				1DE24C642FDA7EF900F11ABC /* Script.js in Resources */,
+				1DE24C682FDA7EF900F11ABC /* Assets.xcassets in Resources */,
+				1DE24C5E2FDA7EF900F11ABC /* Main.html in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DEF5F392FD7DC550067993F /* Resources */ = {
+		1DE24C4B2FDA7EF800F11ABC /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1DEF5F6E2FD7DC550067993F /* manifest.json in Resources */,
-				1DEF5F6F2FD7DC550067993F /* src in Resources */,
+				1DE24C802FDA7EF900F11ABC /* manifest.json in Resources */,
+				1DE24C812FDA7EF900F11ABC /* src in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DEF5F432FD7DC550067993F /* Resources */ = {
+		1DE24C552FDA7EF800F11ABC /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1DEF5F6C2FD7DC550067993F /* manifest.json in Resources */,
-				1DEF5F6D2FD7DC550067993F /* src in Resources */,
+				1DE24C7E2FDA7EF900F11ABC /* manifest.json in Resources */,
+				1DE24C7F2FDA7EF900F11ABC /* src in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
-		1DEF5F192FD7DC550067993F /* Sources */ = {
+		1DE24C2B2FDA7EF800F11ABC /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1DEF5F532FD7DC550067993F /* ViewController.swift in Sources */,
-				1DEF5F212FD7DC550067993F /* AppDelegate.swift in Sources */,
-				1DEF5F232FD7DC550067993F /* SceneDelegate.swift in Sources */,
+				1DE24C652FDA7EF900F11ABC /* ViewController.swift in Sources */,
+				1DE24C332FDA7EF800F11ABC /* AppDelegate.swift in Sources */,
+				1DE24C352FDA7EF800F11ABC /* SceneDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DEF5F2B2FD7DC550067993F /* Sources */ = {
+		1DE24C3D2FDA7EF800F11ABC /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1DEF5F542FD7DC550067993F /* ViewController.swift in Sources */,
-				1DEF5F322FD7DC550067993F /* AppDelegate.swift in Sources */,
+				1DE24C662FDA7EF900F11ABC /* ViewController.swift in Sources */,
+				1DE24C442FDA7EF800F11ABC /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DEF5F372FD7DC550067993F /* Sources */ = {
+		1DE24C492FDA7EF800F11ABC /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1DEF5F572FD7DC550067993F /* SafariWebExtensionHandler.swift in Sources */,
+				1DE24C692FDA7EF900F11ABC /* SafariWebExtensionHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		1DEF5F412FD7DC550067993F /* Sources */ = {
+		1DE24C532FDA7EF800F11ABC /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				1DEF5F582FD7DC550067993F /* SafariWebExtensionHandler.swift in Sources */,
+				1DE24C6A2FDA7EF900F11ABC /* SafariWebExtensionHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
-		1DEF5F3E2FD7DC550067993F /* PBXTargetDependency */ = {
+		1DE24C502FDA7EF800F11ABC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 1DEF5F3A2FD7DC550067993F /* Fading Furigana Extension (iOS) */;
-			targetProxy = 1DEF5F3D2FD7DC550067993F /* PBXContainerItemProxy */;
+			target = 1DE24C4C2FDA7EF800F11ABC /* Fading Furigana Extension (iOS) */;
+			targetProxy = 1DE24C4F2FDA7EF800F11ABC /* PBXContainerItemProxy */;
 		};
-		1DEF5F482FD7DC550067993F /* PBXTargetDependency */ = {
+		1DE24C5A2FDA7EF800F11ABC /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
-			target = 1DEF5F442FD7DC550067993F /* Fading Furigana Extension (macOS) */;
-			targetProxy = 1DEF5F472FD7DC550067993F /* PBXContainerItemProxy */;
+			target = 1DE24C562FDA7EF800F11ABC /* Fading Furigana Extension (macOS) */;
+			targetProxy = 1DE24C592FDA7EF800F11ABC /* PBXContainerItemProxy */;
 		};
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		1DEF5F102FD7DC540067993F /* Main.html */ = {
+		1DE24C222FDA7EF800F11ABC /* Main.html */ = {
 			isa = PBXVariantGroup;
 			children = (
-				1DEF5F112FD7DC540067993F /* Base */,
+				1DE24C232FDA7EF800F11ABC /* Base */,
 			);
 			name = Main.html;
 			sourceTree = "<group>";
 		};
-		1DEF5F242FD7DC550067993F /* LaunchScreen.storyboard */ = {
+		1DE24C362FDA7EF800F11ABC /* LaunchScreen.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				1DEF5F252FD7DC550067993F /* Base */,
+				1DE24C372FDA7EF800F11ABC /* Base */,
 			);
 			name = LaunchScreen.storyboard;
 			sourceTree = "<group>";
 		};
-		1DEF5F272FD7DC550067993F /* Main.storyboard */ = {
+		1DE24C392FDA7EF800F11ABC /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				1DEF5F282FD7DC550067993F /* Base */,
+				1DE24C3A2FDA7EF800F11ABC /* Base */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
 		};
-		1DEF5F332FD7DC550067993F /* Main.storyboard */ = {
+		1DE24C452FDA7EF800F11ABC /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				1DEF5F342FD7DC550067993F /* Base */,
+				1DE24C462FDA7EF800F11ABC /* Base */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
@@ -501,7 +501,7 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		1DEF5F592FD7DC550067993F /* Debug */ = {
+		1DE24C6B2FDA7EF900F11ABC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -562,7 +562,7 @@
 			};
 			name = Debug;
 		};
-		1DEF5F5A2FD7DC550067993F /* Release */ = {
+		1DE24C6C2FDA7EF900F11ABC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
@@ -615,7 +615,7 @@
 			};
 			name = Release;
 		};
-		1DEF5F5C2FD7DC550067993F /* Debug */ = {
+		1DE24C6E2FDA7EF900F11ABC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -648,7 +648,7 @@
 			};
 			name = Debug;
 		};
-		1DEF5F5D2FD7DC550067993F /* Release */ = {
+		1DE24C6F2FDA7EF900F11ABC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -682,7 +682,7 @@
 			};
 			name = Release;
 		};
-		1DEF5F602FD7DC550067993F /* Debug */ = {
+		1DE24C722FDA7EF900F11ABC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -722,7 +722,7 @@
 			};
 			name = Debug;
 		};
-		1DEF5F612FD7DC550067993F /* Release */ = {
+		1DE24C732FDA7EF900F11ABC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -763,7 +763,7 @@
 			};
 			name = Release;
 		};
-		1DEF5F632FD7DC550067993F /* Debug */ = {
+		1DE24C752FDA7EF900F11ABC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -798,7 +798,7 @@
 			};
 			name = Debug;
 		};
-		1DEF5F642FD7DC550067993F /* Release */ = {
+		1DE24C762FDA7EF900F11ABC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				CODE_SIGN_STYLE = Automatic;
@@ -833,7 +833,7 @@
 			};
 			name = Release;
 		};
-		1DEF5F672FD7DC550067993F /* Debug */ = {
+		1DE24C792FDA7EF900F11ABC /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -874,7 +874,7 @@
 			};
 			name = Debug;
 		};
-		1DEF5F682FD7DC550067993F /* Release */ = {
+		1DE24C7A2FDA7EF900F11ABC /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
@@ -918,52 +918,52 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		1DEF5F0D2FD7DC540067993F /* Build configuration list for PBXProject "Fading Furigana" */ = {
+		1DE24C1F2FDA7EF800F11ABC /* Build configuration list for PBXProject "Fading Furigana" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				1DEF5F592FD7DC550067993F /* Debug */,
-				1DEF5F5A2FD7DC550067993F /* Release */,
+				1DE24C6B2FDA7EF900F11ABC /* Debug */,
+				1DE24C6C2FDA7EF900F11ABC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1DEF5F5B2FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (iOS)" */ = {
+		1DE24C6D2FDA7EF900F11ABC /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (iOS)" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				1DEF5F5C2FD7DC550067993F /* Debug */,
-				1DEF5F5D2FD7DC550067993F /* Release */,
+				1DE24C6E2FDA7EF900F11ABC /* Debug */,
+				1DE24C6F2FDA7EF900F11ABC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1DEF5F5F2FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana (iOS)" */ = {
+		1DE24C712FDA7EF900F11ABC /* Build configuration list for PBXNativeTarget "Fading Furigana (iOS)" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				1DEF5F602FD7DC550067993F /* Debug */,
-				1DEF5F612FD7DC550067993F /* Release */,
+				1DE24C722FDA7EF900F11ABC /* Debug */,
+				1DE24C732FDA7EF900F11ABC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1DEF5F622FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (macOS)" */ = {
+		1DE24C742FDA7EF900F11ABC /* Build configuration list for PBXNativeTarget "Fading Furigana Extension (macOS)" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				1DEF5F632FD7DC550067993F /* Debug */,
-				1DEF5F642FD7DC550067993F /* Release */,
+				1DE24C752FDA7EF900F11ABC /* Debug */,
+				1DE24C762FDA7EF900F11ABC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		1DEF5F662FD7DC550067993F /* Build configuration list for PBXNativeTarget "Fading Furigana (macOS)" */ = {
+		1DE24C782FDA7EF900F11ABC /* Build configuration list for PBXNativeTarget "Fading Furigana (macOS)" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
-				1DEF5F672FD7DC550067993F /* Debug */,
-				1DEF5F682FD7DC550067993F /* Release */,
+				1DE24C792FDA7EF900F11ABC /* Debug */,
+				1DE24C7A2FDA7EF900F11ABC /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};
-	rootObject = 1DEF5F0A2FD7DC540067993F /* Project object */;
+	rootObject = 1DE24C1C2FDA7EF800F11ABC /* Project object */;
 }

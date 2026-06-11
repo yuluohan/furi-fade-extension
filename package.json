@@ -3,11 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "check": "node --check scripts/generateExtensionIcons.js && node --check scripts/prepareSafariPackage.js && node --check src/core/appState.js && node --check src/core/annotationDecision.js && node --check src/storage/localStorageAdapter.js && node --check src/storage/chromeStorageAdapter.js && node --check src/storage/persistScheduler.js && node --check src/repositories/repositories.js && node --check src/services/wordRepositoryService.js && node --check src/dictionary/localDictionaryProvider.js && node --check src/content/tooltip.js && node --check src/content/annotationEngine.js && node --check src/content/contentScript.js && node --check src/popup/popup.js && node --check worker.js",
+    "check": "node --check scripts/buildJmdictCommonData.js && node --check scripts/generateExtensionIcons.js && node --check scripts/patchSafariWrapper.js && node --check scripts/prepareSafariPackage.js && node --check scripts/vendorKuromoji.js && node --check src/background/background.js && node --check src/tokenizer/kuromojiTokenMapper.js && node --check src/dictionary/backgroundTokenizerClient.js && node --check src/core/appState.js && node --check src/core/annotationDecision.js && node --check src/core/pageLanguage.js && node --check src/storage/localStorageAdapter.js && node --check src/storage/chromeStorageAdapter.js && node --check src/storage/persistScheduler.js && node --check src/repositories/repositories.js && node --check src/services/wordRepositoryService.js && node --check src/dictionary/data/jmdictCommonData.js && node --check src/dictionary/localDictionaryProvider.js && node --check src/content/tooltip.js && node --check src/content/annotationEngine.js && node --check src/content/contentScript.js && node --check src/popup/popup.js && node --check worker.js",
     "ci:local": "node scripts/runLocalCi.js",
     "generate:icons": "node scripts/generateExtensionIcons.js",
+    "vendor:kuromoji": "node scripts/vendorKuromoji.js",
     "build:safari:mac": "node scripts/buildSafariMac.js",
     "package:safari": "npm run generate:icons && node scripts/prepareSafariPackage.js",
-    "test": "node tests/stateRepositories.test.js && node tests/chromeStorageAdapter.test.js && node tests/persistScheduler.test.js && node tests/wordRepositoryService.test.js && node tests/localDictionaryProvider.test.js && node tests/annotationDecision.test.js && node tests/annotationEngine.test.js"
+    "test": "node tests/stateRepositories.test.js && node tests/pageLanguage.test.js && node tests/chromeStorageAdapter.test.js && node tests/persistScheduler.test.js && node tests/wordRepositoryService.test.js && node tests/localDictionaryProvider.test.js && node tests/kuromojiTokenMapper.test.js && node tests/annotationDecision.test.js && node tests/annotationEngine.test.js"
+  },
+  "dependencies": {
+    "kuromoji": "^0.1.2"
   }
 }

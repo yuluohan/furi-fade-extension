@@ -52,18 +52,75 @@
     return text.slice(sentenceStart, sentenceEnd).trim();
   }
 
+  function defaultIsPageEligible() {
+    if (!window.FadingFuriganaPageLanguage) return true;
+    return window.FadingFuriganaPageLanguage.isPageEligibleForAnnotation(document);
+  }
+
+  const ANALYZE_CHUNK_SIZE = 50;
+  // Hard per-page budget of analyzed text nodes. Pages that fight the
+  // annotations (frameworks restoring text in a loop) would otherwise grow
+  // memory without bound; beyond the budget the engine shuts itself off.
+  const PAGE_NODE_BUDGET = 50000;
+  // Annotate slightly ahead of the viewport so scrolling feels seamless.
+  const VIEWPORT_LOOKAHEAD = "600px 0px 600px 0px";
+  // While a freshly loaded page is still mutating (hydration, lazy widgets),
+  // hold annotations back until the DOM has been quiet for a moment, so the
+  // site's re-renders do not make annotations flicker in and out.
+  const STABILITY_QUIET_MS = 600;
+  const STABILITY_MAX_WAIT_MS = 6000;
+  // An element whose children keep getting re-annotated is fighting us
+  // (a framework restores its text on every render): cool down, then give up.
+  const ELEMENT_CHURN_SOFT_LIMIT = 4;
+  const ELEMENT_CHURN_HARD_LIMIT = 12;
+  const ELEMENT_CHURN_COOLDOWN_MS = 5000;
+
+  function createViewportObserver(onVisibleElements) {
+    if (typeof IntersectionObserver !== "function") return null;
+    return new IntersectionObserver(
+      (entries, observer) => {
+        const visible = [];
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue;
+          observer.unobserve(entry.target);
+          visible.push(entry.target);
+        }
+        if (visible.length > 0) onVisibleElements(visible);
+      },
+      { rootMargin: VIEWPORT_LOOKAHEAD }
+    );
+  }
+
   class AnnotationEngine {
-    constructor({ analyzer, repository, tooltip }) {
+    constructor({ analyzer, repository, tooltip, isPageEligible }) {
       this.analyzer = analyzer;
       this.repository = repository;
       this.tooltip = tooltip;
+      this.isPageEligible = isPageEligible || defaultIsPageEligible;
       this.isAnnotating = false;
+      this.rescanRequested = false;
+      this.suspended = false;
+      this.remainingNodeBudget = PAGE_NODE_BUDGET;
+      // Each word counts at most one exposure per page visit, so re-renders
+      // and refreshes cannot inflate the stats or the stored state.
+      this.recordedSeenIds = new Set();
+      // Text nodes that have already been analyzed; never re-tokenize them.
+      this.processedNodes = new WeakSet();
+      // Subtrees added by page mutations, waiting for an incremental pass.
+      this.pendingRoots = new Set();
+      // Text nodes waiting for their parent element to scroll into view.
+      this.queuedNodesByElement = new WeakMap();
+      // Re-annotation counters per parent element, to detect render fights.
+      this.churnByElement = new WeakMap();
+      this.bootAt = Date.now();
+      this.lastForeignMutationAt = 0;
+      this.viewportObserver = createViewportObserver((elements) => this.onElementsVisible(elements));
       this.observer = new MutationObserver((mutations) => this.onMutations(mutations));
       this.scheduleTimer = null;
     }
 
     start() {
-      this.annotateRoot(document.body);
+      this.annotateRoot(document.body).catch(() => {});
       this.observer.observe(document.body, { childList: true, subtree: true });
       document.addEventListener("click", (event) => this.onClick(event));
       window.FadingFurigana = {
@@ -87,8 +144,13 @@
     }
 
     refresh() {
+      this.processedNodes = new WeakSet();
+      this.pendingRoots.clear();
+      this.queuedNodesByElement = new WeakMap();
+      this.churnByElement = new WeakMap();
+      this.viewportObserver?.disconnect();
       this.restore();
-      this.annotateRoot(document.body);
+      return this.annotateRoot(document.body);
     }
 
     restore() {
@@ -99,23 +161,123 @@
     }
 
     onMutations(mutations) {
-      if (this.isAnnotating) return;
-      const hasNewText = mutations.some((mutation) =>
-        [...mutation.addedNodes].some((node) => node.nodeType === Node.TEXT_NODE || node.nodeType === Node.ELEMENT_NODE)
-      );
-      if (!hasNewText) return;
+      const sizeBefore = this.pendingRoots.size;
+      for (const mutation of mutations) {
+        for (const node of mutation.addedNodes) {
+          if (node.nodeType !== Node.TEXT_NODE && node.nodeType !== Node.ELEMENT_NODE) continue;
+          // Ignore our own ruby insertions.
+          if (node.nodeType === Node.ELEMENT_NODE && node.hasAttribute?.(ANNOTATED_ATTR)) continue;
+          if (node.nodeType === Node.TEXT_NODE && this.processedNodes.has(node)) continue;
+          this.pendingRoots.add(node);
+        }
+      }
+      if (this.pendingRoots.size === 0) return;
+      if (this.pendingRoots.size > sizeBefore) {
+        this.lastForeignMutationAt = Date.now();
+      }
 
+      if (this.isAnnotating) {
+        this.rescanRequested = true;
+        return;
+      }
+      this.scheduleRescan();
+    }
+
+    scheduleRescan(delayMs = 120) {
       window.clearTimeout(this.scheduleTimer);
-      this.scheduleTimer = window.setTimeout(() => this.annotateRoot(document.body), 120);
+      this.scheduleTimer = window.setTimeout(() => this.annotatePending().catch(() => {}), delayMs);
+    }
+
+    // Returns how long annotation should still wait for the page to settle.
+    getStabilityDelay() {
+      const now = Date.now();
+      if (now - this.bootAt >= STABILITY_MAX_WAIT_MS) return 0;
+      if (!this.lastForeignMutationAt) return 0;
+      const sinceMutation = now - this.lastForeignMutationAt;
+      return sinceMutation >= STABILITY_QUIET_MS ? 0 : STABILITY_QUIET_MS - sinceMutation;
+    }
+
+    annotatePending() {
+      const roots = [...this.pendingRoots];
+      this.pendingRoots.clear();
+
+      const nodes = new Set();
+      for (const root of roots) {
+        if (root.isConnected === false) continue;
+        for (const node of this.collectTextNodes(root)) {
+          nodes.add(node);
+        }
+      }
+      return this.scheduleNodes([...nodes]);
     }
 
     annotateRoot(root) {
-      if (!root || this.isAnnotating) return;
-      this.isAnnotating = true;
+      if (!root) return Promise.resolve();
+      return this.scheduleNodes(this.collectTextNodes(root));
+    }
+
+    // Defer tokenization until the nodes' parent elements are near the
+    // viewport, so long pages only pay for what the user actually sees.
+    scheduleNodes(nodes) {
+      if (this.suspended || nodes.length === 0 || !this.isPageEligible()) return Promise.resolve();
+
+      const now = Date.now();
+      let retryDelay = 0;
+      const ready = [];
+      for (const node of nodes) {
+        const churn = node.parentElement ? this.churnByElement.get(node.parentElement) : null;
+        if (churn?.unstable) continue;
+        if (churn && churn.blockedUntil > now) {
+          this.pendingRoots.add(node);
+          retryDelay = Math.max(retryDelay, churn.blockedUntil - now);
+          continue;
+        }
+        ready.push(node);
+      }
+      if (retryDelay > 0) this.scheduleRescan(retryDelay);
+      if (ready.length === 0) return Promise.resolve();
+
+      if (!this.viewportObserver) return this.annotateNodes(ready);
+
+      const newlyObserved = [];
+      for (const node of ready) {
+        const element = node.parentElement;
+        if (!element) continue;
+        let queued = this.queuedNodesByElement.get(element);
+        if (!queued) {
+          queued = new Set();
+          this.queuedNodesByElement.set(element, queued);
+          newlyObserved.push(element);
+        }
+        queued.add(node);
+      }
+      for (const element of newlyObserved) {
+        this.viewportObserver.observe(element);
+      }
+      return Promise.resolve();
+    }
+
+    onElementsVisible(elements) {
+      const nodes = [];
+      for (const element of elements) {
+        const queued = this.queuedNodesByElement.get(element);
+        if (!queued) continue;
+        this.queuedNodesByElement.delete(element);
+        nodes.push(...queued);
+      }
+      this.annotateNodes(nodes).catch(() => {});
+    }
+
+    collectTextNodes(root) {
+      const isUnprocessed = (node) => !this.processedNodes.has(node) && !shouldSkipTextNode(node);
+
+      if (root.nodeType === Node.TEXT_NODE) {
+        return isUnprocessed(root) ? [root] : [];
+      }
 
       const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
         acceptNode(node) {
-          return shouldSkipTextNode(node) ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT;
+          return isUnprocessed(node) ? NodeFilter.FILTER_ACCEPT : NodeFilter.FILTER_REJECT;
         }
       });
 
@@ -123,41 +285,140 @@
       while (walker.nextNode()) {
         nodes.push(walker.currentNode);
       }
-
-      for (const node of nodes) {
-        this.annotateTextNode(node);
-      }
-
-      this.isAnnotating = false;
+      return nodes;
     }
 
-    annotateTextNode(node) {
-      const text = node.nodeValue;
-      const tokens = this.analyzer
-        .analyze(text)
-        .filter((token) =>
-          window.FadingFuriganaAnnotationDecision.shouldAnnotate(
-            token,
-            this.repository.getUserWordState(token.lexicalItemId),
-            this.repository.settings
-          )
-        );
+    async annotateNodes(nodes) {
+      if (this.suspended || nodes.length === 0 || !this.isPageEligible()) return;
+      // Skip tokenization entirely while annotation is off; a settings change
+      // triggers refresh(), which re-collects everything.
+      const annotation = this.repository.settings?.annotation;
+      if (!annotation?.enabled || annotation.mode === "off") return;
 
-      if (tokens.length === 0) return;
+      // Let a still-loading page settle first, otherwise the site's own
+      // re-renders strip and re-trigger annotations in a visible flicker.
+      const stabilityDelay = this.getStabilityDelay();
+      if (stabilityDelay > 0) {
+        for (const node of nodes) this.pendingRoots.add(node);
+        this.scheduleRescan(stabilityDelay);
+        return;
+      }
+
+      if (this.isAnnotating) {
+        for (const node of nodes) this.pendingRoots.add(node);
+        this.rescanRequested = true;
+        return;
+      }
+      this.isAnnotating = true;
+
+      try {
+        // Chunked round trips keep messages small and let the page stay
+        // responsive while long pages are tokenized.
+        for (let offset = 0; offset < nodes.length; offset += ANALYZE_CHUNK_SIZE) {
+          const chunk = nodes.slice(offset, offset + ANALYZE_CHUNK_SIZE);
+          const texts = chunk.map((node) => node.nodeValue);
+          const tokenLists = await this.analyzeTexts(texts);
+          const annotatedParents = new Set();
+
+          for (let index = 0; index < chunk.length; index += 1) {
+            if (this.remainingNodeBudget <= 0) {
+              this.suspend();
+              return;
+            }
+            this.remainingNodeBudget -= 1;
+
+            const node = chunk[index];
+            this.processedNodes.add(node);
+            // The page may have changed while waiting for the tokenizer.
+            if (node.isConnected === false || !node.parentElement) continue;
+            if (node.nodeValue !== texts[index]) continue;
+
+            const parentElement = node.parentElement;
+            if (this.annotateTextNode(node, tokenLists[index] || []) && parentElement) {
+              annotatedParents.add(parentElement);
+            }
+          }
+
+          for (const parentElement of annotatedParents) {
+            this.trackElementChurn(parentElement);
+          }
+        }
+      } finally {
+        this.isAnnotating = false;
+      }
+
+      if (this.rescanRequested || this.pendingRoots.size > 0) {
+        this.rescanRequested = false;
+        this.scheduleRescan();
+      }
+    }
+
+    trackElementChurn(element) {
+      const entry = this.churnByElement.get(element) || { count: 0, blockedUntil: 0, unstable: false };
+      entry.count += 1;
+      if (entry.count >= ELEMENT_CHURN_HARD_LIMIT) {
+        entry.unstable = true;
+      } else if (entry.count > ELEMENT_CHURN_SOFT_LIMIT) {
+        entry.blockedUntil = Date.now() + ELEMENT_CHURN_COOLDOWN_MS;
+      }
+      this.churnByElement.set(element, entry);
+    }
+
+    suspend() {
+      this.suspended = true;
+      this.observer.disconnect();
+      this.viewportObserver?.disconnect();
+      this.queuedNodesByElement = new WeakMap();
+      window.clearTimeout(this.scheduleTimer);
+      this.pendingRoots.clear();
+      this.rescanRequested = false;
+      console.warn(
+        "[Fading Furigana] Annotation suspended on this page after hitting the per-page processing budget."
+      );
+    }
+
+    analyzeTexts(texts) {
+      if (typeof this.analyzer.analyzeBatch === "function") {
+        return this.analyzer.analyzeBatch(texts);
+      }
+      return Promise.resolve(texts.map((text) => this.analyzer.analyze(text)));
+    }
+
+    annotateTextNode(node, analyzedTokens) {
+      const text = node.nodeValue;
+      const tokens = analyzedTokens.filter((token) =>
+        window.FadingFuriganaAnnotationDecision.shouldAnnotate(
+          token,
+          this.repository.getUserWordState(token.lexicalItemId),
+          this.repository.settings
+        )
+      );
+
+      if (tokens.length === 0) return false;
 
       const fragment = document.createDocumentFragment();
       let cursor = 0;
 
+      const appendProcessedText = (value) => {
+        const textNode = document.createTextNode(value);
+        this.processedNodes.add(textNode);
+        fragment.appendChild(textNode);
+      };
+
       for (const token of tokens) {
         if (token.start < cursor) continue;
-        fragment.appendChild(document.createTextNode(text.slice(cursor, token.start)));
+        appendProcessedText(text.slice(cursor, token.start));
         fragment.appendChild(this.createRuby(token, extractSentence(text, token.start)));
         cursor = token.end;
-        this.repository.recordSeen(token);
+        if (!this.recordedSeenIds.has(token.lexicalItemId)) {
+          this.recordedSeenIds.add(token.lexicalItemId);
+          this.repository.recordSeen(token);
+        }
       }
 
-      fragment.appendChild(document.createTextNode(text.slice(cursor)));
+      appendProcessedText(text.slice(cursor));
       node.replaceWith(fragment);
+      return true;
     }
 
     createRuby(token, sourceSentence) {

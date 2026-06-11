@@ -12,20 +12,26 @@
     "512": "src/icons/icon-512.png",
     "1024": "src/icons/icon-1024.png"
   },
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "unlimitedStorage", "activeTab"],
   "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "src/background/background.js"
+  },
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
       "js": [
         "src/core/appState.js",
         "src/core/annotationDecision.js",
+        "src/core/pageLanguage.js",
         "src/storage/localStorageAdapter.js",
         "src/storage/chromeStorageAdapter.js",
         "src/storage/persistScheduler.js",
         "src/repositories/repositories.js",
         "src/services/wordRepositoryService.js",
+        "src/dictionary/data/jmdictCommonData.js",
         "src/dictionary/localDictionaryProvider.js",
+        "src/dictionary/backgroundTokenizerClient.js",
         "src/content/tooltip.js",
         "src/content/annotationEngine.js",
         "src/content/contentScript.js"

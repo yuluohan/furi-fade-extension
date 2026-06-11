@@ -4,6 +4,9 @@
   const SCHEMA_VERSION = 1;
 
   const DEFAULT_APP_SETTINGS = {
+    display: {
+      interfaceLanguage: "en"
+    },
     annotation: {
       enabled: true,
       mode: "adaptive",
@@ -75,8 +78,16 @@
     const annotation = settings.annotation || {};
     const exposureTracking = settings.exposureTracking || {};
     const dictionary = settings.dictionary || {};
+    const display = settings.display || {};
 
     return {
+      display: {
+        ...clone(DEFAULT_APP_SETTINGS.display),
+        ...display,
+        interfaceLanguage: normalizeInterfaceLanguage(
+          display.interfaceLanguage || settings.interfaceLanguage || DEFAULT_APP_SETTINGS.display.interfaceLanguage
+        )
+      },
       annotation: {
         ...clone(DEFAULT_APP_SETTINGS.annotation),
         ...annotation,
@@ -94,6 +105,12 @@
         ...dictionary
       }
     };
+  }
+
+  function normalizeInterfaceLanguage(language) {
+    if (language === "zh" || language === "zh-CN" || language === "zhHans") return "zhHans";
+    if (language === "en" || language === "en-US") return "en";
+    return DEFAULT_APP_SETTINGS.display.interfaceLanguage;
   }
 
   function mapLegacyAnnotationMode(mode) {

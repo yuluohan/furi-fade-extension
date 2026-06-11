@@ -6,10 +6,20 @@
     window.__fadingFuriganaLoaded = true;
 
     const storageAdapter = window.FadingFuriganaStorage.createBestAvailableStorageAdapter();
-    const repository = new window.FadingFuriganaWordRepository.WordRepositoryService(storageAdapter);
+    // Batch exposure writes generously; every persist serializes the whole
+    // state, which is expensive on annotation-heavy pages.
+    const repository = new window.FadingFuriganaWordRepository.WordRepositoryService(storageAdapter, {
+      persistDelayMs: 2000
+    });
     await repository.load();
     const dictionaryProvider = new window.FadingFuriganaDictionary.LocalDictionaryProvider();
-    const analyzer = new window.FadingFuriganaDictionary.JapaneseAnalyzer(dictionaryProvider);
+    const localAnalyzer = new window.FadingFuriganaDictionary.JapaneseAnalyzer(dictionaryProvider);
+    const analyzer = window.FadingFuriganaBackgroundTokenizer
+      ? window.FadingFuriganaBackgroundTokenizer.createBestAvailableAnalyzer({
+          localProvider: dictionaryProvider,
+          fallbackAnalyzer: localAnalyzer
+        })
+      : localAnalyzer;
     let engine;
     const tooltip = new window.FadingFuriganaTooltip.Tooltip(repository, () => engine.refresh());
     engine = new window.FadingFuriganaAnnotationEngine.AnnotationEngine({
@@ -19,21 +29,42 @@
     });
     engine.start();
 
-    if (window.chrome?.runtime?.onMessage) {
-      window.chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-        if (message?.type !== "FADING_FURIGANA_SETTINGS_UPDATED") return false;
+    let settingsReloadInFlight = false;
 
+    if (window.chrome?.storage?.onChanged) {
+      window.chrome.storage.onChanged.addListener((changes, areaName) => {
+        if (areaName !== "local") return;
+
+        const change = changes[window.FadingFuriganaStorage.STORAGE_KEY];
+        if (!change) return;
+
+        // Normalize both sides so the comparison is canonical: raw stored
+        // objects can differ in key order or missing defaults without any
+        // semantic change, and that must never trigger a refresh.
+        const normalize = window.FadingFuriganaState.normalizeSettings;
+        const nextSettings = normalize(parseStoredState(change.newValue)?.settings || {});
+        const currentSettings = normalize(repository.settings || {});
+        if (JSON.stringify(nextSettings) === JSON.stringify(currentSettings)) return;
+
+        if (settingsReloadInFlight) return;
+        settingsReloadInFlight = true;
         repository
           .load()
-          .then(() => {
-            engine.refresh();
-            sendResponse({ ok: true });
-          })
-          .catch((error) => {
-            sendResponse({ ok: false, error: error.message });
+          .then(() => engine.refresh())
+          .catch(() => {})
+          .finally(() => {
+            settingsReloadInFlight = false;
           });
-        return true;
       });
+    }
+  }
+
+  function parseStoredState(raw) {
+    if (!raw || typeof raw === "object") return raw || null;
+    try {
+      return JSON.parse(raw);
+    } catch {
+      return null;
     }
   }
 
