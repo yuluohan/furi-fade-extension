@@ -54,105 +54,246 @@ enum WordAction: String {
     case restore
 }
 
-class ViewController: NSViewController {
+extension WordListMode {
+    var symbolName: String {
+        switch self {
+        case .today: return "sun.max"
+        case .week: return "calendar"
+        case .suggested: return "sparkles"
+        case .learning: return "book"
+        case .saved: return "bookmark"
+        case .known: return "checkmark.circle"
+        case .ignored: return "nosign"
+        }
+    }
+
+    var displayTitle: String {
+        switch self {
+        case .today: return "Seen Today"
+        case .week: return "Last 7 Days"
+        case .suggested: return "Suggested for You"
+        case .learning: return "Learning"
+        case .saved: return "Saved Words"
+        case .known: return "Known Words"
+        case .ignored: return "Ignored Words"
+        }
+    }
+}
+
+class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
 
     private let store = AppStateStore()
     private var snapshot = AppStateSnapshot.empty
     private var selectedMode = WordListMode.today
+    private var dueRows: [WordRow] = []
+    private var currentRows: [WordRow] = []
 
-    private let buildVersionLabel = NSTextField(labelWithString: "Version: loading")
-    private let statusLabel = NSTextField(labelWithString: "Checking Safari extension status...")
-    private let storeLabel = NSTextField(labelWithString: "Local store: not loaded")
+    private let sidebarTable = NSTableView()
+    private let wordTable = NSTableView()
+
+    private let sectionTitleLabel = NSTextField(labelWithString: "")
+    private let statusDot = NSView()
+    private let statusLabel = NSTextField(labelWithString: "Checking Safari extension status…")
+    private let emptyStateLabel = NSTextField(wrappingLabelWithString: "")
+    private let versionLabel = NSTextField(labelWithString: "")
+    private let storePathLabel = NSTextField(labelWithString: "")
+    private let reviewButton = NSButton(title: "Start Review", target: nil, action: nil)
+
     private let totalWordsValue = NSTextField(labelWithString: "0")
     private let todayValue = NSTextField(labelWithString: "0")
     private let learningValue = NSTextField(labelWithString: "0")
-    private let savedValue = NSTextField(labelWithString: "0")
     private let dueValue = NSTextField(labelWithString: "0")
-    private let reviewButton = NSButton(title: "Start Review", target: nil, action: nil)
-    private var dueRows: [WordRow] = []
-    private let segmentedControl = NSSegmentedControl(labels: WordListMode.allCases.map(\.rawValue), trackingMode: .selectOne, target: nil, action: nil)
-    private let listStack = NSStackView()
+    private let savedValue = NSTextField(labelWithString: "0")
 
     override func viewDidLoad() {
         super.viewDidLoad()
-        renderLearningDashboard()
+        buildLayout()
+        sidebarTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
         loadDashboard()
         refreshExtensionState()
     }
 
-    private func renderLearningDashboard() {
-        view.wantsLayer = true
-        view.layer?.backgroundColor = NSColor.windowBackgroundColor.cgColor
-
-        let root = NSStackView()
-        root.orientation = .vertical
-        root.spacing = 18
-        root.edgeInsets = NSEdgeInsets(top: 24, left: 24, bottom: 24, right: 24)
-        root.translatesAutoresizingMaskIntoConstraints = false
-        view.addSubview(root)
-
-        NSLayoutConstraint.activate([
-            root.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            root.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            root.topAnchor.constraint(equalTo: view.topAnchor),
-            root.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
-
-        root.addArrangedSubview(makeHeader())
-        root.addArrangedSubview(makeSummaryRow())
-        root.addArrangedSubview(makeModeSelector())
-        root.addArrangedSubview(makeListScrollView())
+    override func viewDidAppear() {
+        super.viewDidAppear()
+        guard let window = view.window else { return }
+        window.minSize = NSSize(width: 880, height: 540)
+        if window.frame.width < 900 {
+            window.setContentSize(NSSize(width: 1000, height: 640))
+            window.center()
+        }
     }
 
-    private func makeHeader() -> NSView {
-        let container = NSStackView()
-        container.orientation = .horizontal
-        container.alignment = .centerY
-        container.spacing = 16
+    override func viewDidLayout() {
+        super.viewDidLayout()
+        sidebarTable.sizeLastColumnToFit()
+        wordTable.sizeLastColumnToFit()
+    }
 
-        let textStack = NSStackView()
-        textStack.orientation = .vertical
-        textStack.spacing = 6
+    // MARK: - Layout
 
-        let title = NSTextField(labelWithString: "Fading Furigana")
-        title.font = NSFont.boldSystemFont(ofSize: 24)
+    private func buildLayout() {
+        let splitView = NSSplitView()
+        splitView.isVertical = true
+        splitView.dividerStyle = .thin
+        splitView.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(splitView)
 
-        buildVersionLabel.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-        buildVersionLabel.textColor = .secondaryLabelColor
-        buildVersionLabel.stringValue = VersionInfo.displayText()
+        NSLayoutConstraint.activate([
+            splitView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            splitView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            splitView.topAnchor.constraint(equalTo: view.topAnchor),
+            splitView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
 
-        statusLabel.font = NSFont.systemFont(ofSize: 13)
+        let sidebar = makeSidebar()
+        let content = makeContent()
+        splitView.addArrangedSubview(sidebar)
+        splitView.addArrangedSubview(content)
+        splitView.setHoldingPriority(NSLayoutConstraint.Priority(260), forSubviewAt: 0)
+
+        NSLayoutConstraint.activate([
+            sidebar.widthAnchor.constraint(greaterThanOrEqualToConstant: 180),
+            sidebar.widthAnchor.constraint(lessThanOrEqualToConstant: 260),
+            content.widthAnchor.constraint(greaterThanOrEqualToConstant: 560)
+        ])
+    }
+
+    private func makeSidebar() -> NSView {
+        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("section"))
+        column.minWidth = 120
+        sidebarTable.addTableColumn(column)
+        sidebarTable.headerView = nil
+        sidebarTable.style = .sourceList
+        sidebarTable.rowHeight = 32
+        sidebarTable.focusRingType = .none
+        sidebarTable.allowsEmptySelection = false
+        sidebarTable.dataSource = self
+        sidebarTable.delegate = self
+
+        let scroll = NSScrollView()
+        scroll.documentView = sidebarTable
+        scroll.hasVerticalScroller = true
+        scroll.drawsBackground = false
+        scroll.translatesAutoresizingMaskIntoConstraints = false
+
+        let effect = NSVisualEffectView()
+        effect.material = .sidebar
+        effect.blendingMode = .behindWindow
+        effect.addSubview(scroll)
+
+        NSLayoutConstraint.activate([
+            scroll.leadingAnchor.constraint(equalTo: effect.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: effect.trailingAnchor),
+            scroll.topAnchor.constraint(equalTo: effect.topAnchor, constant: 10),
+            scroll.bottomAnchor.constraint(equalTo: effect.bottomAnchor)
+        ])
+        return effect
+    }
+
+    private func makeContent() -> NSView {
+        let container = NSView()
+
+        let column = NSStackView()
+        column.orientation = .vertical
+        column.alignment = .leading
+        column.distribution = .fill
+        column.spacing = 16
+        column.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(column)
+
+        let preferredWidth = column.widthAnchor.constraint(equalToConstant: 860)
+        preferredWidth.priority = NSLayoutConstraint.Priority(500)
+
+        NSLayoutConstraint.activate([
+            column.topAnchor.constraint(equalTo: container.topAnchor, constant: 20),
+            column.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -12),
+            column.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            column.widthAnchor.constraint(lessThanOrEqualToConstant: 860),
+            column.leadingAnchor.constraint(greaterThanOrEqualTo: container.leadingAnchor, constant: 24),
+            preferredWidth
+        ])
+
+        let header = makeHeaderRow()
+        let metrics = makeMetricsRow()
+        let table = makeWordTableContainer()
+        let footer = makeFooterRow()
+
+        column.addArrangedSubview(header)
+        column.addArrangedSubview(metrics)
+        column.addArrangedSubview(table)
+        column.addArrangedSubview(footer)
+
+        for child in [header, metrics, table, footer] {
+            NSLayoutConstraint.activate([
+                child.leadingAnchor.constraint(equalTo: column.leadingAnchor),
+                child.trailingAnchor.constraint(equalTo: column.trailingAnchor)
+            ])
+        }
+        table.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .vertical)
+        return container
+    }
+
+    private func makeHeaderRow() -> NSView {
+        sectionTitleLabel.font = NSFont.boldSystemFont(ofSize: 22)
+        sectionTitleLabel.lineBreakMode = .byTruncatingTail
+
+        statusDot.wantsLayer = true
+        statusDot.layer?.cornerRadius = 4
+        statusDot.layer?.backgroundColor = NSColor.systemOrange.cgColor
+        NSLayoutConstraint.activate([
+            statusDot.widthAnchor.constraint(equalToConstant: 8),
+            statusDot.heightAnchor.constraint(equalToConstant: 8)
+        ])
+
+        statusLabel.font = NSFont.systemFont(ofSize: 12)
         statusLabel.textColor = .secondaryLabelColor
-        statusLabel.maximumNumberOfLines = 2
+        statusLabel.lineBreakMode = .byTruncatingTail
+        statusLabel.maximumNumberOfLines = 1
 
-        storeLabel.font = NSFont.userFixedPitchFont(ofSize: 11) ?? NSFont.systemFont(ofSize: 11)
-        storeLabel.textColor = .tertiaryLabelColor
-        storeLabel.maximumNumberOfLines = 2
+        let statusRow = NSStackView(views: [statusDot, statusLabel])
+        statusRow.orientation = .horizontal
+        statusRow.alignment = .centerY
+        statusRow.spacing = 6
 
-        textStack.addArrangedSubview(title)
-        textStack.addArrangedSubview(buildVersionLabel)
-        textStack.addArrangedSubview(statusLabel)
-        textStack.addArrangedSubview(storeLabel)
+        let titleStack = NSStackView(views: [sectionTitleLabel, statusRow])
+        titleStack.orientation = .vertical
+        titleStack.alignment = .leading
+        titleStack.spacing = 4
 
         reviewButton.target = self
         reviewButton.action = #selector(startReviewClicked(_:))
         reviewButton.bezelStyle = .rounded
+        reviewButton.controlSize = .large
+        reviewButton.keyEquivalent = "\r"
         reviewButton.isEnabled = false
 
-        let refreshButton = makeButton("Refresh", action: #selector(refreshButtonClicked(_:)))
-        let preferencesButton = makeButton("Safari Settings", action: #selector(openSafariExtensionPreferences))
+        let refreshButton = makeIconButton(
+            symbol: "arrow.clockwise",
+            tooltip: "Refresh data from the local store",
+            action: #selector(refreshButtonClicked(_:))
+        )
+        let settingsButton = makeIconButton(
+            symbol: "gearshape",
+            tooltip: "Open Safari extension settings",
+            action: #selector(openSafariExtensionPreferences)
+        )
 
-        let buttonStack = NSStackView(views: [reviewButton, refreshButton, preferencesButton])
-        buttonStack.orientation = .horizontal
-        buttonStack.spacing = 8
+        let buttons = NSStackView(views: [reviewButton, refreshButton, settingsButton])
+        buttons.orientation = .horizontal
+        buttons.alignment = .centerY
+        buttons.spacing = 8
 
-        container.addArrangedSubview(textStack)
-        container.addArrangedSubview(NSView())
-        container.addArrangedSubview(buttonStack)
-        return container
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 12
+        row.addArrangedSubview(titleStack)
+        row.addArrangedSubview(NSView())
+        row.addArrangedSubview(buttons)
+        return row
     }
 
-    private func makeSummaryRow() -> NSView {
+    private func makeMetricsRow() -> NSView {
         let row = NSStackView()
         row.orientation = .horizontal
         row.spacing = 10
@@ -167,55 +308,102 @@ class ViewController: NSViewController {
     }
 
     private func makeMetricCard(title: String, value: NSTextField) -> NSView {
-        let stack = NSStackView()
+        let label = NSTextField(labelWithString: title)
+        label.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        label.textColor = .secondaryLabelColor
+
+        value.font = NSFont.monospacedDigitSystemFont(ofSize: 20, weight: .semibold)
+        value.textColor = .labelColor
+
+        let stack = NSStackView(views: [label, value])
         stack.orientation = .vertical
-        stack.spacing = 6
-        stack.edgeInsets = NSEdgeInsets(top: 14, left: 14, bottom: 14, right: 14)
+        stack.alignment = .leading
+        stack.spacing = 4
+        stack.edgeInsets = NSEdgeInsets(top: 10, left: 12, bottom: 10, right: 12)
         stack.wantsLayer = true
         stack.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         stack.layer?.cornerRadius = 8
-
-        let label = NSTextField(labelWithString: title)
-        label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
-        label.textColor = .secondaryLabelColor
-
-        value.font = NSFont.monospacedDigitSystemFont(ofSize: 24, weight: .semibold)
-        value.textColor = .labelColor
-
-        stack.addArrangedSubview(label)
-        stack.addArrangedSubview(value)
         return stack
     }
 
-    private func makeModeSelector() -> NSView {
-        segmentedControl.target = self
-        segmentedControl.action = #selector(modeChanged(_:))
-        segmentedControl.selectedSegment = 0
-        segmentedControl.segmentStyle = .rounded
-        return segmentedControl
-    }
+    private func makeWordTableContainer() -> NSView {
+        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("word"))
+        column.minWidth = 200
+        wordTable.addTableColumn(column)
+        wordTable.headerView = nil
+        wordTable.rowHeight = 56
+        wordTable.intercellSpacing = NSSize(width: 0, height: 6)
+        wordTable.selectionHighlightStyle = .none
+        wordTable.backgroundColor = .clear
+        wordTable.focusRingType = .none
+        wordTable.dataSource = self
+        wordTable.delegate = self
 
-    private func makeListScrollView() -> NSView {
-        listStack.orientation = .vertical
-        listStack.alignment = .leading
-        listStack.spacing = 10
-        listStack.translatesAutoresizingMaskIntoConstraints = false
+        let scroll = NSScrollView()
+        scroll.documentView = wordTable
+        scroll.hasVerticalScroller = true
+        scroll.drawsBackground = false
+        scroll.translatesAutoresizingMaskIntoConstraints = false
 
-        let scrollView = NSScrollView()
-        scrollView.borderType = .noBorder
-        scrollView.hasVerticalScroller = true
-        scrollView.documentView = listStack
+        emptyStateLabel.font = NSFont.systemFont(ofSize: 13)
+        emptyStateLabel.textColor = .secondaryLabelColor
+        emptyStateLabel.alignment = .center
+        emptyStateLabel.maximumNumberOfLines = 3
+        emptyStateLabel.translatesAutoresizingMaskIntoConstraints = false
+        emptyStateLabel.isHidden = true
+
+        let container = NSView()
+        container.addSubview(scroll)
+        container.addSubview(emptyStateLabel)
 
         NSLayoutConstraint.activate([
-            listStack.widthAnchor.constraint(equalTo: scrollView.contentView.widthAnchor)
+            scroll.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            scroll.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            scroll.topAnchor.constraint(equalTo: container.topAnchor),
+            scroll.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            emptyStateLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            emptyStateLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            emptyStateLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 420),
+            container.heightAnchor.constraint(greaterThanOrEqualToConstant: 200)
         ])
-
-        return scrollView
+        return container
     }
+
+    private func makeFooterRow() -> NSView {
+        versionLabel.font = NSFont.systemFont(ofSize: 10)
+        versionLabel.textColor = .tertiaryLabelColor
+
+        storePathLabel.font = NSFont.systemFont(ofSize: 10)
+        storePathLabel.textColor = .tertiaryLabelColor
+        storePathLabel.lineBreakMode = .byTruncatingMiddle
+        storePathLabel.maximumNumberOfLines = 1
+
+        let row = NSStackView()
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 12
+        row.addArrangedSubview(versionLabel)
+        row.addArrangedSubview(NSView())
+        row.addArrangedSubview(storePathLabel)
+        return row
+    }
+
+    private func makeIconButton(symbol: String, tooltip: String, action: Selector) -> NSButton {
+        let image = NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip) ?? NSImage()
+        let button = NSButton(image: image, target: self, action: action)
+        button.bezelStyle = .rounded
+        button.controlSize = .large
+        button.toolTip = tooltip
+        return button
+    }
+
+    // MARK: - Data
 
     private func loadDashboard() {
         snapshot = store.loadSnapshot()
-        storeLabel.stringValue = "Local store: \(store.displayPath)"
+        versionLabel.stringValue = VersionInfo.displayText()
+        storePathLabel.stringValue = store.displayPath
+        storePathLabel.toolTip = store.displayPath
         renderSnapshot()
     }
 
@@ -228,118 +416,227 @@ class ViewController: NSViewController {
         dueValue.stringValue = "\(dueRows.count)"
         reviewButton.title = dueRows.isEmpty ? "Start Review" : "Start Review (\(dueRows.count))"
         reviewButton.isEnabled = !dueRows.isEmpty
+
+        let selected = max(sidebarTable.selectedRow, 0)
+        sidebarTable.reloadData()
+        sidebarTable.selectRowIndexes(IndexSet(integer: selected), byExtendingSelection: false)
         renderWordList()
     }
 
     private func renderWordList() {
-        listStack.arrangedSubviews.forEach { view in
-            listStack.removeArrangedSubview(view)
-            view.removeFromSuperview()
-        }
+        currentRows = Array(snapshot.rows(for: selectedMode).prefix(200))
+        sectionTitleLabel.stringValue = selectedMode.displayTitle
+        wordTable.reloadData()
+        wordTable.sizeLastColumnToFit()
 
-        let rows = snapshot.rows(for: selectedMode)
-        if rows.isEmpty {
-            listStack.addArrangedSubview(makeEmptyState())
-            return
-        }
-
-        for row in rows.prefix(80) {
-            listStack.addArrangedSubview(makeWordRow(row))
-        }
+        emptyStateLabel.stringValue = snapshot.hasLoadedState
+            ? "No words in this list yet."
+            : "No shared data yet. Browse Japanese pages with the Safari extension enabled, then click Refresh."
+        emptyStateLabel.isHidden = !currentRows.isEmpty
     }
 
-    private func makeEmptyState() -> NSView {
-        let label = NSTextField(labelWithString: snapshot.hasLoadedState
-            ? "No words in this section yet."
-            : "No shared AppState file yet. Use the extension first, then refresh this app.")
-        label.font = NSFont.systemFont(ofSize: 14)
-        label.textColor = .secondaryLabelColor
-        label.alignment = .center
-        label.translatesAutoresizingMaskIntoConstraints = false
+    // MARK: - Table view data source / delegate
 
-        let container = NSView()
-        container.addSubview(label)
+    func numberOfRows(in tableView: NSTableView) -> Int {
+        if tableView === sidebarTable { return WordListMode.allCases.count }
+        return currentRows.count
+    }
+
+    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        if tableView === sidebarTable {
+            guard row < WordListMode.allCases.count else { return nil }
+            return makeSidebarCell(for: WordListMode.allCases[row])
+        }
+        guard row < currentRows.count else { return nil }
+        return makeWordCell(currentRows[row])
+    }
+
+    func tableViewSelectionDidChange(_ notification: Notification) {
+        guard (notification.object as? NSTableView) === sidebarTable else { return }
+        let index = sidebarTable.selectedRow
+        guard index >= 0, index < WordListMode.allCases.count else { return }
+        selectedMode = WordListMode.allCases[index]
+        renderWordList()
+    }
+
+    private func makeSidebarCell(for mode: WordListMode) -> NSView {
+        let icon = NSImageView()
+        icon.image = NSImage(systemSymbolName: mode.symbolName, accessibilityDescription: nil)
+        icon.contentTintColor = .secondaryLabelColor
         NSLayoutConstraint.activate([
-            label.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            container.heightAnchor.constraint(equalToConstant: 180),
-            container.widthAnchor.constraint(greaterThanOrEqualToConstant: 400)
+            icon.widthAnchor.constraint(equalToConstant: 18)
         ])
-        return container
+
+        let name = NSTextField(labelWithString: mode.rawValue)
+        name.font = NSFont.systemFont(ofSize: 13)
+        name.lineBreakMode = .byTruncatingTail
+
+        let count = NSTextField(labelWithString: "\(snapshot.rows(for: mode).count)")
+        count.font = NSFont.systemFont(ofSize: 11)
+        count.textColor = .secondaryLabelColor
+
+        let cell = NSStackView()
+        cell.orientation = .horizontal
+        cell.alignment = .centerY
+        cell.spacing = 7
+        cell.edgeInsets = NSEdgeInsets(top: 0, left: 4, bottom: 0, right: 6)
+        cell.addArrangedSubview(icon)
+        cell.addArrangedSubview(name)
+        cell.addArrangedSubview(NSView())
+        cell.addArrangedSubview(count)
+        return cell
     }
 
-    private func makeWordRow(_ row: WordRow) -> NSView {
-        let card = NSStackView()
-        card.orientation = .horizontal
-        card.alignment = .centerY
-        card.spacing = 12
-        card.edgeInsets = NSEdgeInsets(top: 12, left: 14, bottom: 12, right: 14)
-        card.wantsLayer = true
-        card.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
-        card.layer?.cornerRadius = 8
+    private func makeWordCell(_ row: WordRow) -> NSView {
+        let surface = NSTextField(labelWithString: row.surface)
+        surface.font = NSFont.systemFont(ofSize: 15, weight: .semibold)
+        surface.lineBreakMode = .byTruncatingTail
+        surface.setContentCompressionResistancePriority(NSLayoutConstraint.Priority(740), for: .horizontal)
 
-        let textStack = NSStackView()
-        textStack.orientation = .vertical
-        textStack.spacing = 5
+        let reading = NSTextField(labelWithString: row.reading)
+        reading.font = NSFont.systemFont(ofSize: 12)
+        reading.textColor = .secondaryLabelColor
+        reading.lineBreakMode = .byTruncatingTail
+        reading.setContentCompressionResistancePriority(NSLayoutConstraint.Priority(730), for: .horizontal)
 
-        let title = NSTextField(labelWithString: "\(row.surface)  \(row.reading)")
-        title.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
-        title.lineBreakMode = .byTruncatingTail
+        let topLine = NSStackView(views: [surface, reading])
+        topLine.orientation = .horizontal
+        topLine.alignment = .firstBaseline
+        topLine.spacing = 8
 
-        let detail = NSTextField(labelWithString: row.detailText)
-        detail.font = NSFont.systemFont(ofSize: 12)
-        detail.textColor = .secondaryLabelColor
-        detail.maximumNumberOfLines = 2
-        detail.lineBreakMode = .byTruncatingTail
+        if row.saved {
+            topLine.addArrangedSubview(makeInlineFlagIcon("bookmark.fill", tooltip: "Saved"))
+        }
+        if row.pinned {
+            topLine.addArrangedSubview(makeInlineFlagIcon("pin.fill", tooltip: "Always show annotation"))
+        }
 
-        textStack.addArrangedSubview(title)
-        textStack.addArrangedSubview(detail)
+        let meaning = NSTextField(labelWithString: row.meaning.isEmpty ? "—" : row.meaning)
+        meaning.font = NSFont.systemFont(ofSize: 12)
+        meaning.textColor = .secondaryLabelColor
+        meaning.lineBreakMode = .byTruncatingTail
+        meaning.maximumNumberOfLines = 1
+        meaning.setContentCompressionResistancePriority(NSLayoutConstraint.Priority(240), for: .horizontal)
 
-        let actions = NSStackView()
-        actions.orientation = .horizontal
-        actions.spacing = 6
-        actions.addArrangedSubview(makeWordActionButton("Save", action: .save, wordId: row.id))
-        actions.addArrangedSubview(makeWordActionButton("Known", action: .known, wordId: row.id))
-        actions.addArrangedSubview(makeWordActionButton("Forgot", action: .forgot, wordId: row.id))
-        actions.addArrangedSubview(makeWordActionButton("Ignore", action: .ignore, wordId: row.id))
-        actions.addArrangedSubview(makeWordActionButton("Always", action: .alwaysShow, wordId: row.id))
+        let text = NSStackView(views: [topLine, meaning])
+        text.orientation = .vertical
+        text.alignment = .leading
+        text.spacing = 3
 
-        card.addArrangedSubview(textStack)
-        card.addArrangedSubview(NSView())
-        card.addArrangedSubview(actions)
-        return card
+        let displayCount = row.summarySeenCount > 0 ? row.summarySeenCount : row.seenCount
+        let count = NSTextField(labelWithString: "\(displayCount)×")
+        count.font = NSFont.monospacedDigitSystemFont(ofSize: 12, weight: .regular)
+        count.textColor = .secondaryLabelColor
+
+        let badge = makeStatusBadge(for: row)
+        let actions = makeActionsButton(for: row)
+
+        let cell = NSStackView()
+        cell.orientation = .horizontal
+        cell.alignment = .centerY
+        cell.spacing = 10
+        cell.edgeInsets = NSEdgeInsets(top: 6, left: 12, bottom: 6, right: 8)
+        cell.wantsLayer = true
+        cell.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
+        cell.layer?.cornerRadius = 8
+        cell.addArrangedSubview(text)
+        cell.addArrangedSubview(NSView())
+        cell.addArrangedSubview(count)
+        cell.addArrangedSubview(badge)
+        cell.addArrangedSubview(actions)
+        return cell
     }
 
-    private func makeButton(_ title: String, action: Selector) -> NSButton {
-        let button = NSButton(title: title, target: self, action: action)
-        button.bezelStyle = .rounded
-        return button
+    private func makeInlineFlagIcon(_ symbol: String, tooltip: String) -> NSImageView {
+        let icon = NSImageView()
+        icon.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip)
+        icon.contentTintColor = .tertiaryLabelColor
+        icon.toolTip = tooltip
+        icon.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 10, weight: .regular)
+        return icon
     }
 
-    private func makeWordActionButton(_ title: String, action: WordAction, wordId: String) -> NSButton {
-        let button = NSButton(title: title, target: self, action: #selector(wordActionClicked(_:)))
+    private func makeStatusBadge(for row: WordRow) -> NSView {
+        let info = badgeInfo(for: row)
+
+        let label = NSTextField(labelWithString: info.text)
+        label.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        label.textColor = info.color
+
+        let badge = NSStackView(views: [label])
+        badge.orientation = .horizontal
+        badge.edgeInsets = NSEdgeInsets(top: 2, left: 8, bottom: 2, right: 8)
+        badge.wantsLayer = true
+        badge.layer?.backgroundColor = info.color.withAlphaComponent(0.14).cgColor
+        badge.layer?.cornerRadius = 9
+        return badge
+    }
+
+    private func badgeInfo(for row: WordRow) -> (text: String, color: NSColor) {
+        if row.ignored || row.lifecycleStatus == "ignored" { return ("Ignored", .systemGray) }
+        if row.reviewStage == "lapsed" { return ("Lapsed", .systemOrange) }
+        switch row.lifecycleStatus {
+        case "learning": return ("Learning", .systemBlue)
+        case "reviewing": return ("Reviewing", .systemIndigo)
+        case "known", "mastered": return ("Known", .systemGreen)
+        default: return ("New", .systemGray)
+        }
+    }
+
+    private func makeActionsButton(for row: WordRow) -> NSPopUpButton {
+        let button = NSPopUpButton(frame: .zero, pullsDown: true)
         button.bezelStyle = .rounded
         button.controlSize = .small
-        button.identifier = NSUserInterfaceItemIdentifier("\(action.rawValue)|\(wordId)")
+
+        let menu = NSMenu()
+        let face = NSMenuItem(title: "", action: nil, keyEquivalent: "")
+        face.image = NSImage(systemSymbolName: "ellipsis.circle", accessibilityDescription: "Word actions")
+        menu.addItem(face)
+
+        func add(_ title: String, _ action: WordAction) {
+            let item = NSMenuItem(title: title, action: #selector(wordMenuItemClicked(_:)), keyEquivalent: "")
+            item.target = self
+            item.representedObject = "\(action.rawValue)|\(row.id)"
+            menu.addItem(item)
+        }
+
+        let isIgnored = row.ignored || row.lifecycleStatus == "ignored"
+        if !(row.saved && row.lifecycleStatus == "learning") { add("Save to Learning", .save) }
+        if row.lifecycleStatus != "known" && row.lifecycleStatus != "mastered" { add("Mark as Known", .known) }
+        if ["learning", "reviewing", "known", "mastered"].contains(row.lifecycleStatus) { add("Forgot This Word", .forgot) }
+        if isIgnored { add("Restore", .restore) } else { add("Ignore", .ignore) }
+        if !row.pinned { add("Always Show Annotation", .alwaysShow) }
+
+        button.menu = menu
+        button.widthAnchor.constraint(equalToConstant: 44).isActive = true
         return button
     }
+
+    // MARK: - Extension status
 
     private func refreshExtensionState() {
         SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: extensionBundleIdentifier) { state, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    self.statusLabel.stringValue = "Unable to read Safari extension status: \(error.localizedDescription)"
+                    self.setStatus("Unable to read Safari extension status: \(error.localizedDescription)", color: .systemRed)
                     return
                 }
 
                 if state?.isEnabled == true {
-                    self.statusLabel.stringValue = "Safari extension enabled. Dashboard data refreshes from the local AppState store."
+                    self.setStatus("Safari extension enabled", color: .systemGreen)
                 } else {
-                    self.statusLabel.stringValue = "Safari extension installed but disabled. Enable it in Safari Settings > Extensions."
+                    self.setStatus("Extension disabled — enable it in Safari Settings › Extensions", color: .systemOrange)
                 }
             }
         }
     }
+
+    private func setStatus(_ text: String, color: NSColor) {
+        statusLabel.stringValue = text
+        statusDot.layer?.backgroundColor = color.cgColor
+    }
+
+    // MARK: - Actions
 
     @objc private func refreshButtonClicked(_ sender: NSButton) {
         loadDashboard()
@@ -355,15 +652,9 @@ class ViewController: NSViewController {
         presentAsSheet(session)
     }
 
-    @objc private func modeChanged(_ sender: NSSegmentedControl) {
-        let index = max(0, sender.selectedSegment)
-        selectedMode = WordListMode.allCases[index]
-        renderWordList()
-    }
-
-    @objc private func wordActionClicked(_ sender: NSButton) {
+    @objc private func wordMenuItemClicked(_ sender: NSMenuItem) {
         guard
-            let raw = sender.identifier?.rawValue,
+            let raw = sender.representedObject as? String,
             let separator = raw.firstIndex(of: "|")
         else {
             return
@@ -377,7 +668,7 @@ class ViewController: NSViewController {
             try store.apply(action: action, lexicalItemId: wordId)
             loadDashboard()
         } catch {
-            statusLabel.stringValue = "Could not save word action: \(error.localizedDescription)"
+            setStatus("Could not save word action: \(error.localizedDescription)", color: .systemRed)
         }
     }
 
