@@ -274,8 +274,8 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         )
         let settingsButton = makeIconButton(
             symbol: "gearshape",
-            tooltip: "Open Safari extension settings",
-            action: #selector(openSafariExtensionPreferences)
+            tooltip: "App settings",
+            action: #selector(openAppSettings)
         )
 
         let buttons = NSStackView(views: [reviewButton, refreshButton, settingsButton])
@@ -672,12 +672,11 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         }
     }
 
-    @objc private func openSafariExtensionPreferences() {
-        SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { _ in
-            DispatchQueue.main.async {
-                NSApp.activate(ignoringOtherApps: true)
-            }
+    @objc private func openAppSettings() {
+        let settings = AppSettingsViewController(store: store) { [weak self] in
+            self?.loadDashboard()
         }
+        presentAsSheet(settings)
     }
 }
 
@@ -796,6 +795,27 @@ final class AppStateStore {
         states[lexicalItemId] = userState
         raw["userLexicalStates"] = states
 
+        var metadata = raw["metadata"] as? [String: Any] ?? [:]
+        metadata["updatedAt"] = now
+        metadata["lastOpenedAt"] = now
+        raw["metadata"] = metadata
+
+        try save(raw)
+    }
+
+    func settingsDictionary() -> [String: Any] {
+        loadRawState()["settings"] as? [String: Any] ?? [:]
+    }
+
+    // Mutates only the keys the caller touches so unknown settings fields
+    // written by other clients round-trip intact.
+    func updateSettings(_ mutate: (inout [String: Any]) -> Void) throws {
+        var raw = loadRawState()
+        var settings = raw["settings"] as? [String: Any] ?? [:]
+        mutate(&settings)
+        raw["settings"] = settings
+
+        let now = ISO8601DateFormatter().string(from: Date())
         var metadata = raw["metadata"] as? [String: Any] ?? [:]
         metadata["updatedAt"] = now
         metadata["lastOpenedAt"] = now

@@ -27,6 +27,8 @@
 		1DE7868C2FDA81C0001FDFFF /* ViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE7864D2FDA81BF001FDFFF /* ViewController.swift */; };
 		FAD000022FDA81C0001FDFFF /* ReviewSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD000012FDA81C0001FDFFF /* ReviewSession.swift */; };
 		FAD000032FDA81C0001FDFFF /* ReviewSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD000012FDA81C0001FDFFF /* ReviewSession.swift */; };
+		FAD000052FDA81C0001FDFFF /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD000042FDA81C0001FDFFF /* AppSettings.swift */; };
+		FAD000062FDA81C0001FDFFF /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD000042FDA81C0001FDFFF /* AppSettings.swift */; };
 		1DE7868D2FDA81C0001FDFFF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DE7864E2FDA81C0001FDFFF /* Assets.xcassets */; };
 		1DE7868E2FDA81C0001FDFFF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DE7864E2FDA81C0001FDFFF /* Assets.xcassets */; };
 		1DE7868F2FDA81C0001FDFFF /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE786502FDA81C0001FDFFF /* SafariWebExtensionHandler.swift */; };
@@ -86,6 +88,7 @@
 		1DE7864C2FDA81BF001FDFFF /* Script.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = Script.js; sourceTree = "<group>"; };
 		1DE7864D2FDA81BF001FDFFF /* ViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewController.swift; sourceTree = "<group>"; };
 		FAD000012FDA81C0001FDFFF /* ReviewSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewSession.swift; sourceTree = "<group>"; };
+		FAD000042FDA81C0001FDFFF /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		1DE7864E2FDA81C0001FDFFF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1DE786502FDA81C0001FDFFF /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
 		1DE786552FDA81C0001FDFFF /* Fading Furigana.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fading Furigana.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -156,6 +159,7 @@
 			children = (
 				1DE7864D2FDA81BF001FDFFF /* ViewController.swift */,
 				FAD000012FDA81C0001FDFFF /* ReviewSession.swift */,
+				FAD000042FDA81C0001FDFFF /* AppSettings.swift */,
 				1DE7864E2FDA81C0001FDFFF /* Assets.xcassets */,
 				1DE786472FDA81BF001FDFFF /* Resources */,
 			);
@@ -425,6 +429,7 @@
 			files = (
 				1DE7868B2FDA81C0001FDFFF /* ViewController.swift in Sources */,
 				FAD000022FDA81C0001FDFFF /* ReviewSession.swift in Sources */,
+				FAD000052FDA81C0001FDFFF /* AppSettings.swift in Sources */,
 				1DE786592FDA81C0001FDFFF /* AppDelegate.swift in Sources */,
 				1DE7865B2FDA81C0001FDFFF /* SceneDelegate.swift in Sources */,
 			);
@@ -436,6 +441,7 @@
 			files = (
 				1DE7868C2FDA81C0001FDFFF /* ViewController.swift in Sources */,
 				FAD000032FDA81C0001FDFFF /* ReviewSession.swift in Sources */,
+				FAD000062FDA81C0001FDFFF /* AppSettings.swift in Sources */,
 				1DE7866A2FDA81C0001FDFFF /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
