@@ -119,7 +119,6 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         buildLayout()
         sidebarTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
         loadDashboard()
-        refreshExtensionState()
     }
 
     override func viewDidAppear() {
@@ -427,6 +426,9 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         storePathLabel.stringValue = store.displayPath
         storePathLabel.toolTip = store.displayPath
         renderSnapshot()
+        // Re-localized here too: the status text is set asynchronously, so a
+        // language change (settings sheet close -> loadDashboard) must re-issue it.
+        refreshExtensionState()
     }
 
     private func renderSnapshot() {
@@ -663,7 +665,6 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
 
     @objc private func refreshButtonClicked(_ sender: NSButton) {
         loadDashboard()
-        refreshExtensionState()
     }
 
     @objc private func startReviewClicked(_ sender: NSButton) {
