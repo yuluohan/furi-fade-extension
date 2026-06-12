@@ -90,6 +90,8 @@ Deferred:
 
 T025 (review/frequency learning screens) is re-scoped to the planned companion app. The extension keeps only the lightweight stats panel and will expose data through the App Group / sync bridge (see `docs/SAFARI_STORAGE_BRIDGE_DESIGN.md`).
 
+Implemented in the macOS app (2026-06-12): a review session sheet driven by `learning.nextReviewAt` with a fixed interval ladder (1/3/7/14/30/60/120 days). Six consecutive correct answers graduate a word to `known` with `knowledgeConfidence = 1` and `annotationLevel = hidden` — the same contract the manual Known action uses, so graduation fades the annotation in the extension. "Forgot" resets the streak to `lapsed` and re-queues the card in the current session. Every grade appends an entry to `reviewLogs` (append-only, client-generated ID, per the sync merge rules). Frequency-based selection lives in the dashboard's "Suggested" tab: words seen repeatedly that the user has not saved, learned, marked known, or ignored.
+
 ## 6. Level-based filtering with per-word actions (implemented phase A, 2026-06-11)
 
 Annotating every word makes Japanese pages unreadable. Implemented phase A:

@@ -15,8 +15,8 @@ blocked
 
 ```text
 Current branch: dev
-Current phase: annotation quality and display
-Next recommended task: T034 manual browser validation, then T025 companion-app review screens
+Current phase: companion app learning loop
+Next recommended task: manual validation of T025 review session, T034 constrained layout, and T045 Safari→Mac App bridge; then T043 sync schema prep
 ```
 
 ## Tasks
@@ -47,7 +47,7 @@ Next recommended task: T034 manual browser validation, then T025 companion-app r
 | T022 | done | Add Safari storage bridge design | Define background/native/App Group message path | `docs/SAFARI_STORAGE_BRIDGE_DESIGN.md` |
 | T023 | done | Add Safari Web Extension packaging | Xcode app container and Safari extension target | `npm run package:safari`, `xcrun safari-web-extension-packager`, `xcodebuild -list`, macOS no-sign build |
 | T024 | done | Extract word repository service | Move annotation data coordination out of content script | `npm run check`, `npm test`, HTTP script load check, `npm run package:safari` |
-| T025 | blocked | Add review and frequency-based learning screens | Re-scoped to the companion app (see `ANNOTATION_QUALITY_PLAN.md` §5); extension keeps the lightweight stats panel only | Blocked until companion app work starts |
+| T025 | done | Add review and frequency-based learning screens | Mac app review session (sheet over shared AppState): due queue orders lapsed words, never-reviewed saves, then overdue reviews; Forgot/Got It/Easy grading with ladder SRS (1/3/7/14/30/60/120 days; graduation to `known` + hidden annotation at 6-streak; forgot resets to `lapsed` and re-queues); every grade appends an append-only `reviewLogs` entry with a client-generated ID per the sync contract; dashboard adds Due Reviews metric, Start Review button, and frequency-based "Suggested" tab (frequently seen but unlearned words); Learning list/metric now include the `reviewing` stage | `npm run check`, `npm test`, `npm run build:safari:mac` (installed app verified to contain the review code); manual review-session walkthrough pending |
 | T026 | done | Add extension interface language setting | Store UI language in AppState and switch popup text between Chinese and English | `npm run check`, `npm test`, `npm run package:safari` |
 | T027 | done | Integrate packaged JMdict common data | Load 5,000 real JMdict entries locally through DictionaryProvider | `npm run check`, `npm test`, `npm run package:safari` |
 | T028 | done | Skip annotation on Chinese pages | `src/core/pageLanguage.js` gates the annotation engine via declared `lang` plus kana/han heuristic | `npm run check`, `npm test`, `npm run package:safari` |
@@ -79,5 +79,5 @@ Next recommended task: T034 manual browser validation, then T025 companion-app r
 ## Last Updated
 
 ```text
-2026-06-11
+2026-06-12
 ```

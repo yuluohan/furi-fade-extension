@@ -35,16 +35,17 @@ import SafariServices
 
 let extensionBundleIdentifier = "com.banyuguru.fading-furigana.Extension"
 
-private enum WordListMode: String, CaseIterable {
+enum WordListMode: String, CaseIterable {
     case today = "Today"
     case week = "7 Days"
+    case suggested = "Suggested"
     case learning = "Learning"
     case saved = "Saved"
     case known = "Known"
     case ignored = "Ignored"
 }
 
-private enum WordAction: String {
+enum WordAction: String {
     case save
     case known
     case forgot
@@ -66,6 +67,9 @@ class ViewController: NSViewController {
     private let todayValue = NSTextField(labelWithString: "0")
     private let learningValue = NSTextField(labelWithString: "0")
     private let savedValue = NSTextField(labelWithString: "0")
+    private let dueValue = NSTextField(labelWithString: "0")
+    private let reviewButton = NSButton(title: "Start Review", target: nil, action: nil)
+    private var dueRows: [WordRow] = []
     private let segmentedControl = NSSegmentedControl(labels: WordListMode.allCases.map(\.rawValue), trackingMode: .selectOne, target: nil, action: nil)
     private let listStack = NSStackView()
 
@@ -130,10 +134,15 @@ class ViewController: NSViewController {
         textStack.addArrangedSubview(statusLabel)
         textStack.addArrangedSubview(storeLabel)
 
+        reviewButton.target = self
+        reviewButton.action = #selector(startReviewClicked(_:))
+        reviewButton.bezelStyle = .rounded
+        reviewButton.isEnabled = false
+
         let refreshButton = makeButton("Refresh", action: #selector(refreshButtonClicked(_:)))
         let preferencesButton = makeButton("Safari Settings", action: #selector(openSafariExtensionPreferences))
 
-        let buttonStack = NSStackView(views: [refreshButton, preferencesButton])
+        let buttonStack = NSStackView(views: [reviewButton, refreshButton, preferencesButton])
         buttonStack.orientation = .horizontal
         buttonStack.spacing = 8
 
@@ -152,6 +161,7 @@ class ViewController: NSViewController {
         row.addArrangedSubview(makeMetricCard(title: "Vocabulary", value: totalWordsValue))
         row.addArrangedSubview(makeMetricCard(title: "Seen Today", value: todayValue))
         row.addArrangedSubview(makeMetricCard(title: "Learning", value: learningValue))
+        row.addArrangedSubview(makeMetricCard(title: "Due Reviews", value: dueValue))
         row.addArrangedSubview(makeMetricCard(title: "Saved", value: savedValue))
         return row
     }
@@ -210,10 +220,14 @@ class ViewController: NSViewController {
     }
 
     private func renderSnapshot() {
+        dueRows = ReviewScheduler.dueWords(in: snapshot.words)
         totalWordsValue.stringValue = "\(snapshot.totalWordCount)"
         todayValue.stringValue = "\(snapshot.todaySeenCount)"
         learningValue.stringValue = "\(snapshot.learningCount)"
         savedValue.stringValue = "\(snapshot.savedCount)"
+        dueValue.stringValue = "\(dueRows.count)"
+        reviewButton.title = dueRows.isEmpty ? "Start Review" : "Start Review (\(dueRows.count))"
+        reviewButton.isEnabled = !dueRows.isEmpty
         renderWordList()
     }
 
@@ -332,6 +346,15 @@ class ViewController: NSViewController {
         refreshExtensionState()
     }
 
+    @objc private func startReviewClicked(_ sender: NSButton) {
+        guard !dueRows.isEmpty else { return }
+        let queue = Array(dueRows.prefix(ReviewScheduler.sessionLimit))
+        let session = ReviewSessionViewController(queue: queue, store: store) { [weak self] in
+            self?.loadDashboard()
+        }
+        presentAsSheet(session)
+    }
+
     @objc private func modeChanged(_ sender: NSSegmentedControl) {
         let index = max(0, sender.selectedSegment)
         selectedMode = WordListMode.allCases[index]
@@ -393,7 +416,7 @@ private enum VersionInfo {
     }
 }
 
-private final class AppStateStore {
+final class AppStateStore {
     private static let appGroupIdentifier = "group.com.banyuguru.fading-furigana"
     private let fileManager = FileManager.default
 
@@ -485,6 +508,71 @@ private final class AppStateStore {
         var metadata = raw["metadata"] as? [String: Any] ?? [:]
         metadata["updatedAt"] = now
         metadata["lastOpenedAt"] = now
+        raw["metadata"] = metadata
+
+        try save(raw)
+    }
+
+    func applyReview(_ result: ReviewResult, lexicalItemId: String) throws {
+        var raw = loadRawState()
+        var states = raw["userLexicalStates"] as? [String: Any] ?? [:]
+        var userState = states[lexicalItemId] as? [String: Any] ?? createDefaultUserState(lexicalItemId: lexicalItemId)
+        var learning = userState["learning"] as? [String: Any] ?? [:]
+        var intelligence = userState["intelligence"] as? [String: Any] ?? [:]
+        var reasonCodes = intelligence["reasonCodes"] as? [String] ?? []
+
+        let now = Date()
+        let nowText = ISO8601DateFormatter().string(from: now)
+        let previousStreak = learning["correctStreak"] as? Int ?? 0
+        let stageBefore = learning["reviewStage"] as? String ?? "new"
+        let outcome = ReviewScheduler.outcome(for: result, previousStreak: previousStreak, now: now)
+        let nextReviewText = ISO8601DateFormatter().string(from: outcome.nextReviewAt)
+
+        learning["reviewStage"] = outcome.reviewStage
+        learning["reviewCount"] = (learning["reviewCount"] as? Int ?? 0) + 1
+        learning["correctStreak"] = outcome.correctStreak
+        learning["lastReviewedAt"] = nowText
+        learning["nextReviewAt"] = nextReviewText
+        if result == .forgot {
+            learning["wrongCount"] = (learning["wrongCount"] as? Int ?? 0) + 1
+        } else {
+            learning["correctCount"] = (learning["correctCount"] as? Int ?? 0) + 1
+        }
+
+        userState["lifecycleStatus"] = outcome.lifecycleStatus
+        userState["knowledgeConfidence"] = outcome.knowledgeConfidence
+        if let annotationLevel = outcome.annotationLevel {
+            userState["annotationLevel"] = annotationLevel
+        }
+        if let reasonCode = outcome.reasonCode {
+            appendUnique(reasonCode, to: &reasonCodes)
+        }
+
+        intelligence["reasonCodes"] = reasonCodes
+        userState["learning"] = learning
+        userState["intelligence"] = intelligence
+        states[lexicalItemId] = userState
+        raw["userLexicalStates"] = states
+
+        // Append-only review log with a client-generated ID (sync contract).
+        var reviewLogs = raw["reviewLogs"] as? [String: Any] ?? [:]
+        let logId = "rl_\(UUID().uuidString.lowercased())"
+        reviewLogs[logId] = [
+            "id": logId,
+            "lexicalItemId": lexicalItemId,
+            "reviewedAt": nowText,
+            "result": result.rawValue,
+            "stageBefore": stageBefore,
+            "stageAfter": outcome.reviewStage,
+            "intervalDays": outcome.intervalDays,
+            "nextReviewAt": nextReviewText,
+            "source": "macos_app"
+        ]
+        raw["reviewLogs"] = reviewLogs
+
+        var metadata = raw["metadata"] as? [String: Any] ?? [:]
+        metadata["updatedAt"] = nowText
+        metadata["lastOpenedAt"] = nowText
         raw["metadata"] = metadata
 
         try save(raw)
@@ -595,7 +683,7 @@ private final class AppStateStore {
     }
 }
 
-private struct AppStateSnapshot {
+struct AppStateSnapshot {
     static let empty = AppStateSnapshot(raw: [:], hasLoadedState: false)
 
     let raw: [String: Any]
@@ -603,6 +691,7 @@ private struct AppStateSnapshot {
     let words: [WordRow]
     let todayTopRows: [WordRow]
     let weekTopRows: [WordRow]
+    let suggestedRows: [WordRow]
     let todaySeenCount: Int
 
     init(raw: [String: Any], hasLoadedState: Bool) {
@@ -634,6 +723,21 @@ private struct AppStateSnapshot {
         self.words = rowsById.values.sorted(by: WordRow.defaultSort)
         self.todayTopRows = Self.rows(from: todayCounts, rowsById: rowsById)
         self.weekTopRows = Self.rows(from: weekCounts, rowsById: rowsById)
+        self.suggestedRows = Self.suggestedRows(weekTopRows: weekTopRows, allWords: words)
+    }
+
+    // Frequency-based learning suggestions: words the user keeps running into
+    // but has not started learning, marked known, or dismissed.
+    private static func suggestedRows(weekTopRows: [WordRow], allWords: [WordRow]) -> [WordRow] {
+        func isCandidate(_ row: WordRow) -> Bool {
+            row.lifecycleStatus == "new" && !row.saved && !row.ignored && !row.pinned
+        }
+
+        var suggested = weekTopRows.filter(isCandidate)
+        let includedIds = Set(suggested.map(\.id))
+        let allTimeExtras = allWords.filter { isCandidate($0) && $0.seenCount >= 2 && !includedIds.contains($0.id) }
+        suggested.append(contentsOf: allTimeExtras)
+        return Array(suggested.prefix(50))
     }
 
     var totalWordCount: Int {
@@ -641,7 +745,7 @@ private struct AppStateSnapshot {
     }
 
     var learningCount: Int {
-        words.filter { $0.lifecycleStatus == "learning" }.count
+        words.filter { $0.lifecycleStatus == "learning" || $0.lifecycleStatus == "reviewing" }.count
     }
 
     var savedCount: Int {
@@ -654,8 +758,12 @@ private struct AppStateSnapshot {
             return todayTopRows
         case .week:
             return weekTopRows
+        case .suggested:
+            return suggestedRows
         case .learning:
-            return words.filter { $0.lifecycleStatus == "learning" }.sorted(by: WordRow.defaultSort)
+            return words
+                .filter { $0.lifecycleStatus == "learning" || $0.lifecycleStatus == "reviewing" }
+                .sorted(by: WordRow.defaultSort)
         case .saved:
             return words.filter(\.saved).sorted(by: WordRow.defaultSort)
         case .known:
@@ -703,7 +811,7 @@ private struct AppStateSnapshot {
     }
 }
 
-private struct WordRow {
+struct WordRow {
     let id: String
     let surface: String
     let reading: String
@@ -714,11 +822,14 @@ private struct WordRow {
     let pinned: Bool
     let seenCount: Int
     let lastSeenAt: String
+    let reviewStage: String
+    let nextReviewAt: String?
     var summarySeenCount: Int
 
     init(id: String, item: [String: Any], userState: [String: Any], summarySeenCount: Int) {
         let exposure = userState["exposure"] as? [String: Any] ?? [:]
         let userIntent = userState["userIntent"] as? [String: Any] ?? [:]
+        let learning = userState["learning"] as? [String: Any] ?? [:]
         self.id = id
         self.surface = item["surface"] as? String ?? id.components(separatedBy: ":").first ?? id
         self.reading = item["readingKana"] as? String ?? item["baseReadingKana"] as? String ?? ""
@@ -729,6 +840,8 @@ private struct WordRow {
         self.pinned = userIntent["pinnedAnnotation"] as? Bool ?? false
         self.seenCount = exposure["seenCount"] as? Int ?? 0
         self.lastSeenAt = exposure["lastSeenAt"] as? String ?? ""
+        self.reviewStage = learning["reviewStage"] as? String ?? "new"
+        self.nextReviewAt = learning["nextReviewAt"] as? String
         self.summarySeenCount = summarySeenCount
     }
 
