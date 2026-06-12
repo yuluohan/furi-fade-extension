@@ -150,8 +150,10 @@ final class ReviewSessionViewController: NSViewController {
 
     private let progressLabel = NSTextField(labelWithString: "")
     private let surfaceLabel = NSTextField(labelWithString: "")
+    private let exampleLabel = NSTextField(wrappingLabelWithString: "")
     private let readingLabel = NSTextField(labelWithString: "")
     private let meaningLabel = NSTextField(wrappingLabelWithString: "")
+    private let sourceLabel = NSTextField(labelWithString: "")
     private let errorLabel = NSTextField(labelWithString: "")
     private let revealButton = NSButton(title: "Show Answer", target: nil, action: nil)
     private let forgotButton = NSButton(title: "Forgot", target: nil, action: nil)
@@ -173,8 +175,8 @@ final class ReviewSessionViewController: NSViewController {
     }
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 560, height: 400))
-        preferredContentSize = NSSize(width: 560, height: 400)
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 560, height: 460))
+        preferredContentSize = NSSize(width: 560, height: 460)
 
         let root = NSStackView()
         root.orientation = .vertical
@@ -198,6 +200,10 @@ final class ReviewSessionViewController: NSViewController {
         surfaceLabel.alignment = .center
         surfaceLabel.lineBreakMode = .byTruncatingTail
 
+        exampleLabel.alignment = .center
+        exampleLabel.maximumNumberOfLines = 3
+        exampleLabel.textColor = .labelColor
+
         readingLabel.font = NSFont.systemFont(ofSize: 22)
         readingLabel.textColor = .secondaryLabelColor
         readingLabel.alignment = .center
@@ -206,6 +212,12 @@ final class ReviewSessionViewController: NSViewController {
         meaningLabel.textColor = .labelColor
         meaningLabel.alignment = .center
         meaningLabel.maximumNumberOfLines = 4
+
+        sourceLabel.font = NSFont.systemFont(ofSize: 11)
+        sourceLabel.textColor = .tertiaryLabelColor
+        sourceLabel.alignment = .center
+        sourceLabel.maximumNumberOfLines = 1
+        sourceLabel.lineBreakMode = .byTruncatingTail
 
         errorLabel.font = NSFont.systemFont(ofSize: 11)
         errorLabel.textColor = .systemRed
@@ -232,14 +244,16 @@ final class ReviewSessionViewController: NSViewController {
         gradeStack.orientation = .horizontal
         gradeStack.spacing = 10
 
-        let cardStack = NSStackView(views: [surfaceLabel, readingLabel, meaningLabel])
+        let cardStack = NSStackView(views: [surfaceLabel, exampleLabel, readingLabel, meaningLabel, sourceLabel])
         cardStack.orientation = .vertical
         cardStack.alignment = .centerX
         cardStack.spacing = 10
 
         NSLayoutConstraint.activate([
             meaningLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 480),
-            cardStack.heightAnchor.constraint(greaterThanOrEqualToConstant: 180)
+            exampleLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 480),
+            sourceLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 480),
+            cardStack.heightAnchor.constraint(greaterThanOrEqualToConstant: 200)
         ])
 
         root.addArrangedSubview(progressLabel)
@@ -265,10 +279,21 @@ final class ReviewSessionViewController: NSViewController {
         finished = false
         progressLabel.stringValue = L.f("Remaining %d of %d · Answered %d", pending.count, initialWordCount, answeredCount)
         surfaceLabel.stringValue = row.surface
+        // Context sentence shows on the front: it contains the surface form but
+        // no kana reading, so it hints meaning without revealing the answer.
+        if let sentence = row.exampleSentence {
+            exampleLabel.attributedStringValue = Self.highlight(row.surface, in: sentence)
+            exampleLabel.isHidden = false
+        } else {
+            exampleLabel.stringValue = ""
+            exampleLabel.isHidden = true
+        }
         readingLabel.stringValue = row.reading.isEmpty ? L.t("(no reading)") : row.reading
         meaningLabel.stringValue = row.meaning.isEmpty ? L.t("No meaning saved yet") : row.meaning
+        sourceLabel.stringValue = row.exampleSource.map { L.f("From: %@", $0) } ?? ""
         readingLabel.isHidden = true
         meaningLabel.isHidden = true
+        sourceLabel.isHidden = true
         errorLabel.stringValue = ""
 
         revealButton.isHidden = false
@@ -284,7 +309,9 @@ final class ReviewSessionViewController: NSViewController {
         finished = true
         progressLabel.stringValue = L.t("Session complete")
         surfaceLabel.stringValue = L.t("All done")
+        exampleLabel.isHidden = true
         readingLabel.isHidden = true
+        sourceLabel.isHidden = true
         meaningLabel.isHidden = false
         meaningLabel.stringValue = L.f("Reviewed %d answers · %d words marked forgot", answeredCount, forgotWordIds.count)
         errorLabel.stringValue = ""
@@ -301,12 +328,44 @@ final class ReviewSessionViewController: NSViewController {
     @objc private func revealClicked() {
         readingLabel.isHidden = false
         meaningLabel.isHidden = false
+        sourceLabel.isHidden = currentRow?.exampleSource == nil
         revealButton.isHidden = true
         revealButton.keyEquivalent = ""
         forgotButton.isHidden = false
         goodButton.isHidden = false
         easyButton.isHidden = false
         goodButton.keyEquivalent = "\r"
+    }
+
+    // Bold + accent-color every occurrence of the surface form in the sentence.
+    private static func highlight(_ surface: String, in sentence: String) -> NSAttributedString {
+        let attributed = NSMutableAttributedString(
+            string: sentence,
+            attributes: [
+                .font: NSFont.systemFont(ofSize: 15),
+                .foregroundColor: NSColor.labelColor
+            ]
+        )
+        guard !surface.isEmpty else { return attributed }
+        let text = sentence as NSString
+        var searchStart = 0
+        while searchStart < text.length {
+            let found = text.range(
+                of: surface,
+                options: [],
+                range: NSRange(location: searchStart, length: text.length - searchStart)
+            )
+            if found.location == NSNotFound { break }
+            attributed.addAttributes(
+                [
+                    .font: NSFont.systemFont(ofSize: 15, weight: .bold),
+                    .foregroundColor: NSColor.controlAccentColor
+                ],
+                range: found
+            )
+            searchStart = found.location + max(found.length, 1)
+        }
+        return attributed
     }
 
     @objc private func forgotClicked() {

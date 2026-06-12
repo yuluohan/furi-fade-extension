@@ -341,7 +341,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         column.minWidth = 200
         wordTable.addTableColumn(column)
         wordTable.headerView = nil
-        wordTable.rowHeight = 56
+        wordTable.rowHeight = 64
         wordTable.intercellSpacing = NSSize(width: 0, height: 6)
         wordTable.selectionHighlightStyle = .none
         wordTable.backgroundColor = .clear
@@ -547,6 +547,18 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         text.orientation = .vertical
         text.alignment = .leading
         text.spacing = 3
+
+        // Context preview for words the user is actually working on.
+        let learningStatuses = ["learning", "reviewing"]
+        if row.saved || learningStatuses.contains(row.lifecycleStatus), let sentence = row.exampleSentence {
+            let example = NSTextField(labelWithString: sentence)
+            example.font = NSFont.systemFont(ofSize: 11)
+            example.textColor = .tertiaryLabelColor
+            example.lineBreakMode = .byTruncatingTail
+            example.maximumNumberOfLines = 1
+            example.setContentCompressionResistancePriority(NSLayoutConstraint.Priority(230), for: .horizontal)
+            text.addArrangedSubview(example)
+        }
 
         let displayCount = row.summarySeenCount > 0 ? row.summarySeenCount : row.seenCount
         let count = NSTextField(labelWithString: "\(displayCount)×")
@@ -1036,6 +1048,7 @@ struct AppStateSnapshot {
         let lexicalItems = raw["lexicalItems"] as? [String: Any] ?? [:]
         let userStates = raw["userLexicalStates"] as? [String: Any] ?? [:]
         let summaries = raw["dailyExposureSummaries"] as? [String: Any] ?? [:]
+        let examples = Self.latestExamples(from: raw["sourceOccurrences"] as? [String: Any] ?? [:])
         let todayKey = Self.localDateKey(Date())
         let weekStart = Calendar.current.date(byAdding: .day, value: -6, to: Date()).map(Self.localDateKey) ?? todayKey
 
@@ -1043,12 +1056,12 @@ struct AppStateSnapshot {
         for (id, itemValue) in lexicalItems {
             let item = itemValue as? [String: Any] ?? [:]
             let state = userStates[id] as? [String: Any] ?? [:]
-            rowsById[id] = WordRow(id: id, item: item, userState: state, summarySeenCount: 0)
+            rowsById[id] = WordRow(id: id, item: item, userState: state, summarySeenCount: 0, example: examples[id])
         }
 
         for (id, stateValue) in userStates where rowsById[id] == nil {
             let state = stateValue as? [String: Any] ?? [:]
-            rowsById[id] = WordRow(id: id, item: [:], userState: state, summarySeenCount: 0)
+            rowsById[id] = WordRow(id: id, item: [:], userState: state, summarySeenCount: 0, example: examples[id])
         }
 
         let todayCounts = Self.counts(from: summaries, startDate: todayKey, endDate: todayKey)
@@ -1119,6 +1132,34 @@ struct AppStateSnapshot {
         .sorted { $0.summarySeenCount == $1.summarySeenCount ? WordRow.defaultSort($0, $1) : $0.summarySeenCount > $1.summarySeenCount }
     }
 
+    // Most recent source sentence per lexical item (occurrences are written
+    // when a word is saved; never pruned by compactState).
+    private static func latestExamples(from occurrences: [String: Any]) -> [String: WordExample] {
+        var latestAt: [String: String] = [:]
+        var result: [String: WordExample] = [:]
+        for value in occurrences.values {
+            let occ = value as? [String: Any] ?? [:]
+            guard
+                let itemId = occ["lexicalItemId"] as? String,
+                let sentence = occ["sentence"] as? String,
+                !sentence.isEmpty
+            else {
+                continue
+            }
+            let createdAt = occ["createdAt"] as? String ?? ""
+            if let prev = latestAt[itemId], prev >= createdAt { continue }
+            latestAt[itemId] = createdAt
+            let title = occ["pageTitle"] as? String
+            let domain = occ["domain"] as? String
+            let source = [title, domain]
+                .compactMap { $0 }
+                .filter { !$0.isEmpty }
+                .joined(separator: " · ")
+            result[itemId] = WordExample(sentence: sentence, source: source)
+        }
+        return result
+    }
+
     private static func counts(from summaries: [String: Any], startDate: String, endDate: String) -> [String: Int] {
         var totals: [String: Int] = [:]
         for summaryValue in summaries.values {
@@ -1146,6 +1187,12 @@ struct AppStateSnapshot {
     }
 }
 
+// A sentence the word was seen in, plus where it came from.
+struct WordExample {
+    let sentence: String
+    let source: String
+}
+
 struct WordRow {
     let id: String
     let surface: String
@@ -1159,9 +1206,11 @@ struct WordRow {
     let lastSeenAt: String
     let reviewStage: String
     let nextReviewAt: String?
+    let exampleSentence: String?
+    let exampleSource: String?
     var summarySeenCount: Int
 
-    init(id: String, item: [String: Any], userState: [String: Any], summarySeenCount: Int) {
+    init(id: String, item: [String: Any], userState: [String: Any], summarySeenCount: Int, example: WordExample? = nil) {
         let exposure = userState["exposure"] as? [String: Any] ?? [:]
         let userIntent = userState["userIntent"] as? [String: Any] ?? [:]
         let learning = userState["learning"] as? [String: Any] ?? [:]
@@ -1177,6 +1226,15 @@ struct WordRow {
         self.lastSeenAt = exposure["lastSeenAt"] as? String ?? ""
         self.reviewStage = learning["reviewStage"] as? String ?? "new"
         self.nextReviewAt = learning["nextReviewAt"] as? String
+        // Only keep a sentence that adds context beyond the word itself
+        // (some occurrences record just the surface, e.g. "トップ").
+        if let example, example.sentence.count > self.surface.count {
+            self.exampleSentence = example.sentence
+            self.exampleSource = example.source.isEmpty ? nil : example.source
+        } else {
+            self.exampleSentence = nil
+            self.exampleSource = nil
+        }
         self.summarySeenCount = summarySeenCount
     }
 

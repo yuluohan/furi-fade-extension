@@ -87,6 +87,7 @@ enum L {
         "All done": "全部完成",
         "Reviewed %d answers · %d words marked forgot": "共回答 %d 次 · %d 个词标记为忘记",
         "Could not save review: %@": "无法保存复习记录：%@",
+        "From: %@": "出自：%@",
 
         // Settings sheet
         "Settings": "设置",
