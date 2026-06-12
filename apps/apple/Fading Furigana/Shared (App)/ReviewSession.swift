@@ -211,6 +211,12 @@ final class ReviewSessionViewController: NSViewController {
         errorLabel.textColor = .systemRed
         errorLabel.maximumNumberOfLines = 2
 
+        revealButton.title = L.t("Show Answer")
+        forgotButton.title = L.t("Forgot")
+        goodButton.title = L.t("Got It")
+        easyButton.title = L.t("Easy")
+        closeButton.title = L.t("End Session")
+
         for button in [revealButton, forgotButton, goodButton, easyButton, closeButton] {
             button.bezelStyle = .rounded
             button.target = self
@@ -257,10 +263,10 @@ final class ReviewSessionViewController: NSViewController {
         }
 
         finished = false
-        progressLabel.stringValue = "Remaining \(pending.count) of \(initialWordCount) · Answered \(answeredCount)"
+        progressLabel.stringValue = L.f("Remaining %d of %d · Answered %d", pending.count, initialWordCount, answeredCount)
         surfaceLabel.stringValue = row.surface
-        readingLabel.stringValue = row.reading.isEmpty ? "(no reading)" : row.reading
-        meaningLabel.stringValue = row.meaning.isEmpty ? "No meaning saved yet" : row.meaning
+        readingLabel.stringValue = row.reading.isEmpty ? L.t("(no reading)") : row.reading
+        meaningLabel.stringValue = row.meaning.isEmpty ? L.t("No meaning saved yet") : row.meaning
         readingLabel.isHidden = true
         meaningLabel.isHidden = true
         errorLabel.stringValue = ""
@@ -271,23 +277,23 @@ final class ReviewSessionViewController: NSViewController {
         goodButton.isHidden = true
         easyButton.isHidden = true
         goodButton.keyEquivalent = ""
-        closeButton.title = "End Session"
+        closeButton.title = L.t("End Session")
     }
 
     private func renderSummary() {
         finished = true
-        progressLabel.stringValue = "Session complete"
-        surfaceLabel.stringValue = "All done"
+        progressLabel.stringValue = L.t("Session complete")
+        surfaceLabel.stringValue = L.t("All done")
         readingLabel.isHidden = true
         meaningLabel.isHidden = false
-        meaningLabel.stringValue = "Reviewed \(answeredCount) answers · \(forgotWordIds.count) words marked forgot"
+        meaningLabel.stringValue = L.f("Reviewed %d answers · %d words marked forgot", answeredCount, forgotWordIds.count)
         errorLabel.stringValue = ""
 
         revealButton.isHidden = true
         forgotButton.isHidden = true
         goodButton.isHidden = true
         easyButton.isHidden = true
-        closeButton.title = "Done"
+        closeButton.title = L.t("Done")
         closeButton.keyEquivalent = "\r"
         closeButton.controlSize = .regular
     }
@@ -326,7 +332,7 @@ final class ReviewSessionViewController: NSViewController {
         do {
             try store.applyReview(result, lexicalItemId: row.id)
         } catch {
-            errorLabel.stringValue = "Could not save review: \(error.localizedDescription)"
+            errorLabel.stringValue = L.f("Could not save review: %@", error.localizedDescription)
             return
         }
 

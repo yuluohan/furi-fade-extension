@@ -5,6 +5,7 @@
 //  Native settings sheet over the shared AppState `settings` object.
 //  Edits the same fields the extension popup manages, so changes apply to
 //  Safari annotation behavior; unknown settings keys are preserved.
+//  The whole sheet rebuilds when the interface language changes.
 //
 
 #if os(macOS)
@@ -17,9 +18,9 @@ final class AppSettingsViewController: NSViewController {
     private let onClose: () -> Void
     private var settings: [String: Any]
 
-    private let annotationEnabled = NSButton(checkboxWithTitle: "Annotate Japanese words on web pages", target: nil, action: nil)
-    private let hideKnownCheckbox = NSButton(checkboxWithTitle: "Hide words I already know", target: nil, action: nil)
-    private let exposureEnabled = NSButton(checkboxWithTitle: "Track word exposure while browsing", target: nil, action: nil)
+    private let annotationEnabled = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let hideKnownCheckbox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let exposureEnabled = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let modePopup = NSPopUpButton()
     private let levelPopup = NSPopUpButton()
     private let displayStylePopup = NSPopUpButton()
@@ -28,6 +29,7 @@ final class AppSettingsViewController: NSViewController {
     private let languagePopup = NSPopUpButton()
     private let statusLabel = NSTextField(labelWithString: "")
 
+    // English titles double as localization keys (see Localization.swift).
     private let modeOptions: [(String, String)] = [
         ("Adaptive", "adaptive"),
         ("All words", "all_items"),
@@ -59,6 +61,7 @@ final class AppSettingsViewController: NSViewController {
         ("180 days", 180),
         ("1 year", 365)
     ]
+    // Language names stay in their own language on purpose.
     private let languageOptions: [(String, String)] = [
         ("中文", "zhHans"),
         ("English", "en")
@@ -79,22 +82,27 @@ final class AppSettingsViewController: NSViewController {
     override func loadView() {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 560))
         preferredContentSize = NSSize(width: 520, height: 560)
+        buildUI()
+    }
+
+    private func buildUI() {
+        view.subviews.forEach { $0.removeFromSuperview() }
 
         let annotation = dict("annotation")
         let exposure = dict("exposureTracking")
         let display = dict("display")
 
-        configureCheckbox(annotationEnabled, isOn: annotation["enabled"] as? Bool ?? true)
-        configureCheckbox(hideKnownCheckbox, isOn: annotation["hideKnownItems"] as? Bool ?? true)
-        configureCheckbox(exposureEnabled, isOn: exposure["enabled"] as? Bool ?? true)
+        configureCheckbox(annotationEnabled, titleKey: "Annotate Japanese words on web pages", isOn: annotation["enabled"] as? Bool ?? true)
+        configureCheckbox(hideKnownCheckbox, titleKey: "Hide words I already know", isOn: annotation["hideKnownItems"] as? Bool ?? true)
+        configureCheckbox(exposureEnabled, titleKey: "Track word exposure while browsing", isOn: exposure["enabled"] as? Bool ?? true)
         configurePopup(modePopup, options: modeOptions, selected: annotation["mode"] as? String ?? "adaptive")
         configurePopup(levelPopup, options: levelOptions, selected: annotation["userLevel"] as? String ?? "none")
         configurePopup(displayStylePopup, options: displayStyleOptions, selected: annotation["constrainedLayoutMode"] as? String ?? "tap_only")
         configurePopup(urlPrivacyPopup, options: urlPrivacyOptions, selected: exposure["saveUrls"] as? String ?? "domain_only")
         configureRetentionPopup(selected: exposure["retentionDays"] as? Int ?? 90)
-        configurePopup(languagePopup, options: languageOptions, selected: display["interfaceLanguage"] as? String ?? "en")
+        configurePopup(languagePopup, options: languageOptions, selected: display["interfaceLanguage"] as? String ?? "en", localizeTitles: false)
 
-        let title = NSTextField(labelWithString: "Settings")
+        let title = NSTextField(labelWithString: L.t("Settings"))
         title.font = NSFont.boldSystemFont(ofSize: 18)
 
         let root = NSStackView()
@@ -113,39 +121,41 @@ final class AppSettingsViewController: NSViewController {
         ])
 
         root.addArrangedSubview(title)
-        root.addArrangedSubview(makeSection("Annotation", grid: makeGrid([
+        root.addArrangedSubview(makeSection(L.t("Annotation"), grid: makeGrid([
             ("", annotationEnabled),
-            ("Mode:", modePopup),
-            ("Hide words at or below:", levelPopup),
-            ("Display style:", displayStylePopup),
+            (L.t("Mode:"), modePopup),
+            (L.t("Hide words at or below:"), levelPopup),
+            (L.t("Display style:"), displayStylePopup),
             ("", hideKnownCheckbox)
         ])))
-        root.addArrangedSubview(makeSection("Exposure Tracking", grid: makeGrid([
+        root.addArrangedSubview(makeSection(L.t("Exposure Tracking"), grid: makeGrid([
             ("", exposureEnabled),
-            ("Save page URLs:", urlPrivacyPopup),
-            ("Keep statistics for:", retentionPopup)
+            (L.t("Save page URLs:"), urlPrivacyPopup),
+            (L.t("Keep statistics for:"), retentionPopup)
         ])))
-        root.addArrangedSubview(makeSection("Extension", grid: makeGrid([
-            ("Popup language:", languagePopup),
-            ("", makeLinkButton("Open Safari Extension Settings…", action: #selector(openSafariPreferences)))
+        root.addArrangedSubview(makeSection(L.t("Extension"), grid: makeGrid([
+            (L.t("Interface language:"), languagePopup),
+            ("", makeLinkButton(L.t("Open Safari Extension Settings…"), action: #selector(openSafariPreferences)))
         ])))
-        root.addArrangedSubview(makeSection("Data", grid: makeGrid([
-            ("", makeLinkButton("Show Data File in Finder", action: #selector(revealDataFile)))
+        root.addArrangedSubview(makeSection(L.t("Data"), grid: makeGrid([
+            ("", makeLinkButton(L.t("Show Data File in Finder"), action: #selector(revealDataFile)))
         ])))
         root.addArrangedSubview(makeFooter())
     }
 
     // MARK: - UI helpers
 
-    private func configureCheckbox(_ checkbox: NSButton, isOn: Bool) {
+    private func configureCheckbox(_ checkbox: NSButton, titleKey: String, isOn: Bool) {
+        checkbox.title = L.t(titleKey)
         checkbox.state = isOn ? .on : .off
         checkbox.target = self
         checkbox.action = #selector(controlChanged(_:))
     }
 
-    private func configurePopup(_ popup: NSPopUpButton, options: [(String, String)], selected: String) {
+    private func configurePopup(_ popup: NSPopUpButton, options: [(String, String)], selected: String, localizeTitles: Bool = true) {
+        popup.removeAllItems()
         for (title, value) in options {
-            popup.addItem(withTitle: title)
+            popup.addItem(withTitle: localizeTitles ? L.t(title) : title)
             popup.lastItem?.representedObject = value
         }
         let index = options.firstIndex { $0.1 == selected } ?? 0
@@ -157,10 +167,11 @@ final class AppSettingsViewController: NSViewController {
     private func configureRetentionPopup(selected: Int) {
         var options = retentionOptions
         if !options.contains(where: { $0.1 == selected }) {
-            options.append(("\(selected) days", selected))
+            options.append((L.f("%d days", selected), selected))
         }
+        retentionPopup.removeAllItems()
         for (title, value) in options {
-            retentionPopup.addItem(withTitle: title)
+            retentionPopup.addItem(withTitle: L.t(title))
             retentionPopup.lastItem?.representedObject = value
         }
         let index = options.firstIndex { $0.1 == selected } ?? 1
@@ -207,7 +218,7 @@ final class AppSettingsViewController: NSViewController {
         statusLabel.font = NSFont.systemFont(ofSize: 11)
         statusLabel.textColor = .secondaryLabelColor
 
-        let doneButton = NSButton(title: "Done", target: self, action: #selector(doneClicked))
+        let doneButton = NSButton(title: L.t("Done"), target: self, action: #selector(doneClicked))
         doneButton.bezelStyle = .rounded
         doneButton.keyEquivalent = "\r"
 
@@ -227,6 +238,7 @@ final class AppSettingsViewController: NSViewController {
     // MARK: - Actions
 
     @objc private func controlChanged(_ sender: Any?) {
+        let previousLanguage = L.language
         do {
             try store.updateSettings { settings in
                 Self.setValue(self.annotationEnabled.state == .on, in: &settings, section: "annotation", key: "enabled")
@@ -239,9 +251,16 @@ final class AppSettingsViewController: NSViewController {
                 Self.setValue(self.retentionPopup.selectedItem?.representedObject as? Int ?? 90, in: &settings, section: "exposureTracking", key: "retentionDays")
                 Self.setValue(self.selectedString(self.languagePopup, fallback: "en"), in: &settings, section: "display", key: "interfaceLanguage")
             }
-            showStatus("Settings saved")
+
+            let newLanguage = selectedString(languagePopup, fallback: "en")
+            if newLanguage != previousLanguage {
+                L.language = newLanguage
+                settings = store.settingsDictionary()
+                buildUI()
+            }
+            showStatus(L.t("Settings saved"))
         } catch {
-            showStatus("Could not save settings: \(error.localizedDescription)")
+            showStatus(L.f("Could not save settings: %@", error.localizedDescription))
         }
     }
 

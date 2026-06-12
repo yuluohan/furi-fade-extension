@@ -67,15 +67,19 @@ extension WordListMode {
         }
     }
 
+    var displayName: String {
+        L.t(rawValue)
+    }
+
     var displayTitle: String {
         switch self {
-        case .today: return "Seen Today"
-        case .week: return "Last 7 Days"
-        case .suggested: return "Suggested for You"
-        case .learning: return "Learning"
-        case .saved: return "Saved Words"
-        case .known: return "Known Words"
-        case .ignored: return "Ignored Words"
+        case .today: return L.t("Seen Today")
+        case .week: return L.t("Last 7 Days")
+        case .suggested: return L.t("Suggested for You")
+        case .learning: return L.t("Learning")
+        case .saved: return L.t("Saved Words")
+        case .known: return L.t("Known Words")
+        case .ignored: return L.t("Ignored Words")
         }
     }
 }
@@ -105,8 +109,13 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     private let dueValue = NSTextField(labelWithString: "0")
     private let savedValue = NSTextField(labelWithString: "0")
 
+    // Static UI texts re-localized when the interface language changes.
+    private var localizedLabels: [(NSTextField, String)] = []
+    private var localizedTooltips: [(NSButton, String)] = []
+
     override func viewDidLoad() {
         super.viewDidLoad()
+        L.update(fromSettings: store.settingsDictionary())
         buildLayout()
         sidebarTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
         loadDashboard()
@@ -249,6 +258,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         statusLabel.textColor = .secondaryLabelColor
         statusLabel.lineBreakMode = .byTruncatingTail
         statusLabel.maximumNumberOfLines = 1
+        statusLabel.stringValue = L.t("Checking Safari extension status…")
 
         let statusRow = NSStackView(views: [statusDot, statusLabel])
         statusRow.orientation = .horizontal
@@ -299,18 +309,19 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         row.spacing = 10
         row.distribution = .fillEqually
 
-        row.addArrangedSubview(makeMetricCard(title: "Vocabulary", value: totalWordsValue))
-        row.addArrangedSubview(makeMetricCard(title: "Seen Today", value: todayValue))
-        row.addArrangedSubview(makeMetricCard(title: "Learning", value: learningValue))
-        row.addArrangedSubview(makeMetricCard(title: "Due Reviews", value: dueValue))
-        row.addArrangedSubview(makeMetricCard(title: "Saved", value: savedValue))
+        row.addArrangedSubview(makeMetricCard(titleKey: "Vocabulary", value: totalWordsValue))
+        row.addArrangedSubview(makeMetricCard(titleKey: "Seen Today", value: todayValue))
+        row.addArrangedSubview(makeMetricCard(titleKey: "Learning", value: learningValue))
+        row.addArrangedSubview(makeMetricCard(titleKey: "Due Reviews", value: dueValue))
+        row.addArrangedSubview(makeMetricCard(titleKey: "Saved", value: savedValue))
         return row
     }
 
-    private func makeMetricCard(title: String, value: NSTextField) -> NSView {
-        let label = NSTextField(labelWithString: title)
+    private func makeMetricCard(titleKey: String, value: NSTextField) -> NSView {
+        let label = NSTextField(labelWithString: L.t(titleKey))
         label.font = NSFont.systemFont(ofSize: 11, weight: .medium)
         label.textColor = .secondaryLabelColor
+        localizedLabels.append((label, titleKey))
 
         value.font = NSFont.monospacedDigitSystemFont(ofSize: 20, weight: .semibold)
         value.textColor = .labelColor
@@ -393,14 +404,25 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         let button = NSButton(image: image, target: self, action: action)
         button.bezelStyle = .rounded
         button.controlSize = .large
-        button.toolTip = tooltip
+        button.toolTip = L.t(tooltip)
+        localizedTooltips.append((button, tooltip))
         return button
+    }
+
+    private func applyStaticTexts() {
+        for (label, key) in localizedLabels {
+            label.stringValue = L.t(key)
+        }
+        for (button, key) in localizedTooltips {
+            button.toolTip = L.t(key)
+        }
     }
 
     // MARK: - Data
 
     private func loadDashboard() {
         snapshot = store.loadSnapshot()
+        L.update(fromSettings: snapshot.raw["settings"] as? [String: Any] ?? [:])
         versionLabel.stringValue = VersionInfo.displayText()
         storePathLabel.stringValue = store.displayPath
         storePathLabel.toolTip = store.displayPath
@@ -408,13 +430,14 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     }
 
     private func renderSnapshot() {
+        applyStaticTexts()
         dueRows = ReviewScheduler.dueWords(in: snapshot.words)
         totalWordsValue.stringValue = "\(snapshot.totalWordCount)"
         todayValue.stringValue = "\(snapshot.todaySeenCount)"
         learningValue.stringValue = "\(snapshot.learningCount)"
         savedValue.stringValue = "\(snapshot.savedCount)"
         dueValue.stringValue = "\(dueRows.count)"
-        reviewButton.title = dueRows.isEmpty ? "Start Review" : "Start Review (\(dueRows.count))"
+        reviewButton.title = dueRows.isEmpty ? L.t("Start Review") : L.f("Start Review (%d)", dueRows.count)
         reviewButton.isEnabled = !dueRows.isEmpty
 
         let selected = max(sidebarTable.selectedRow, 0)
@@ -430,8 +453,8 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         wordTable.sizeLastColumnToFit()
 
         emptyStateLabel.stringValue = snapshot.hasLoadedState
-            ? "No words in this list yet."
-            : "No shared data yet. Browse Japanese pages with the Safari extension enabled, then click Refresh."
+            ? L.t("No words in this list yet.")
+            : L.t("No shared data yet. Browse Japanese pages with the Safari extension enabled, then click Refresh.")
         emptyStateLabel.isHidden = !currentRows.isEmpty
     }
 
@@ -467,7 +490,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             icon.widthAnchor.constraint(equalToConstant: 18)
         ])
 
-        let name = NSTextField(labelWithString: mode.rawValue)
+        let name = NSTextField(labelWithString: mode.displayName)
         name.font = NSFont.systemFont(ofSize: 13)
         name.lineBreakMode = .byTruncatingTail
 
@@ -505,10 +528,10 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         topLine.spacing = 8
 
         if row.saved {
-            topLine.addArrangedSubview(makeInlineFlagIcon("bookmark.fill", tooltip: "Saved"))
+            topLine.addArrangedSubview(makeInlineFlagIcon("bookmark.fill", tooltip: L.t("Saved")))
         }
         if row.pinned {
-            topLine.addArrangedSubview(makeInlineFlagIcon("pin.fill", tooltip: "Always show annotation"))
+            topLine.addArrangedSubview(makeInlineFlagIcon("pin.fill", tooltip: L.t("Always Show Annotation")))
         }
 
         let meaning = NSTextField(labelWithString: row.meaning.isEmpty ? "—" : row.meaning)
@@ -573,13 +596,13 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     }
 
     private func badgeInfo(for row: WordRow) -> (text: String, color: NSColor) {
-        if row.ignored || row.lifecycleStatus == "ignored" { return ("Ignored", .systemGray) }
-        if row.reviewStage == "lapsed" { return ("Lapsed", .systemOrange) }
+        if row.ignored || row.lifecycleStatus == "ignored" { return (L.t("Ignored"), .systemGray) }
+        if row.reviewStage == "lapsed" { return (L.t("Lapsed"), .systemOrange) }
         switch row.lifecycleStatus {
-        case "learning": return ("Learning", .systemBlue)
-        case "reviewing": return ("Reviewing", .systemIndigo)
-        case "known", "mastered": return ("Known", .systemGreen)
-        default: return ("New", .systemGray)
+        case "learning": return (L.t("Learning"), .systemBlue)
+        case "reviewing": return (L.t("Reviewing"), .systemIndigo)
+        case "known", "mastered": return (L.t("Known"), .systemGreen)
+        default: return (L.t("New"), .systemGray)
         }
     }
 
@@ -593,8 +616,8 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         face.image = NSImage(systemSymbolName: "ellipsis.circle", accessibilityDescription: "Word actions")
         menu.addItem(face)
 
-        func add(_ title: String, _ action: WordAction) {
-            let item = NSMenuItem(title: title, action: #selector(wordMenuItemClicked(_:)), keyEquivalent: "")
+        func add(_ titleKey: String, _ action: WordAction) {
+            let item = NSMenuItem(title: L.t(titleKey), action: #selector(wordMenuItemClicked(_:)), keyEquivalent: "")
             item.target = self
             item.representedObject = "\(action.rawValue)|\(row.id)"
             menu.addItem(item)
@@ -618,14 +641,14 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: extensionBundleIdentifier) { state, error in
             DispatchQueue.main.async {
                 if let error = error {
-                    self.setStatus("Unable to read Safari extension status: \(error.localizedDescription)", color: .systemRed)
+                    self.setStatus(L.f("Unable to read Safari extension status: %@", error.localizedDescription), color: .systemRed)
                     return
                 }
 
                 if state?.isEnabled == true {
-                    self.setStatus("Safari extension enabled", color: .systemGreen)
+                    self.setStatus(L.t("Safari extension enabled"), color: .systemGreen)
                 } else {
-                    self.setStatus("Extension disabled — enable it in Safari Settings › Extensions", color: .systemOrange)
+                    self.setStatus(L.t("Extension disabled — enable it in Safari Settings › Extensions"), color: .systemOrange)
                 }
             }
         }
@@ -668,7 +691,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             try store.apply(action: action, lexicalItemId: wordId)
             loadDashboard()
         } catch {
-            setStatus("Could not save word action: \(error.localizedDescription)", color: .systemRed)
+            setStatus(L.f("Could not save word action: %@", error.localizedDescription), color: .systemRed)
         }
     }
 
@@ -700,7 +723,7 @@ private enum VersionInfo {
             let extensionURL,
             let extensionBundle = Bundle(url: extensionURL)
         else {
-            return "not installed"
+            return L.t("not installed")
         }
         return bundleVersionText(extensionBundle)
     }
