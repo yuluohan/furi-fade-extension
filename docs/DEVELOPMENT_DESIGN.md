@@ -119,8 +119,9 @@ Storage adapters must not contain annotation decisions or vocabulary learning ru
 The product should remain local-first on every client:
 
 ```text
-Single device usage: local storage, free, no account required.
-Cross-device sync: account-based cloud sync, paid.
+Trial: one month of local Basic functionality, no account required.
+Basic: one-time purchase for one platform's local learning loop.
+Pro: account-based paid cloud sync, cloud backup, and advanced intelligence.
 ```
 
 No client should become the only data center. The macOS Safari host app is allowed to become a full learning app because Safari requires a native app container, but it must still be treated as one client beside:
@@ -142,10 +143,10 @@ Browser extensions
   In-page annotation, lightweight save/ignore/known actions, exposure capture.
 
 Desktop/mobile apps
-  Vocabulary management, review, statistics, account, subscription, import/export, sync status.
+  Vocabulary management, review, statistics, account, subscription, sync status, local recovery.
 
 Cloud Sync API
-  Cross-device AppState replication, merge, backup, restore, subscription gating, device list.
+  Cross-device AppState replication, merge, paid sync backup/restore, subscription gating, device list.
 ```
 
 The sync layer should be added as an adapter/coordinator around `AppState`, not by making annotation code call cloud APIs directly.

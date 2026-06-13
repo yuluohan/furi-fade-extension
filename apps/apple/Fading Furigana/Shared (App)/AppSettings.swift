@@ -17,9 +17,11 @@ final class AppSettingsViewController: NSViewController {
     private let store: AppStateStore
     private let onClose: () -> Void
     private var settings: [String: Any]
+    private var entitlementSummary: AppEntitlementSummary
 
     private let annotationEnabled = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let hideKnownCheckbox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
+    private let smartContextCheckbox = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let exposureEnabled = NSButton(checkboxWithTitle: "", target: nil, action: nil)
     private let modePopup = NSPopUpButton()
     private let levelPopup = NSPopUpButton()
@@ -27,6 +29,7 @@ final class AppSettingsViewController: NSViewController {
     private let urlPrivacyPopup = NSPopUpButton()
     private let retentionPopup = NSPopUpButton()
     private let languagePopup = NSPopUpButton()
+    private let entitlementOverridePopup = NSPopUpButton()
     private let statusLabel = NSTextField(labelWithString: "")
 
     // English titles double as localization keys (see Localization.swift).
@@ -66,11 +69,19 @@ final class AppSettingsViewController: NSViewController {
         ("中文", "zhHans"),
         ("English", "en")
     ]
+    private let entitlementOverrideOptions: [(String, String)] = [
+        ("None", "none"),
+        ("Force Trial", "trial"),
+        ("Force Expired", "expired"),
+        ("Force Basic", "basic"),
+        ("Force Pro", "pro")
+    ]
 
     init(store: AppStateStore, onClose: @escaping () -> Void) {
         self.store = store
         self.onClose = onClose
         self.settings = store.settingsDictionary()
+        self.entitlementSummary = store.entitlementSummary()
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -80,8 +91,8 @@ final class AppSettingsViewController: NSViewController {
     }
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 520, height: 560))
-        preferredContentSize = NSSize(width: 520, height: 560)
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 560, height: 690))
+        preferredContentSize = NSSize(width: 560, height: 690)
         buildUI()
     }
 
@@ -94,6 +105,7 @@ final class AppSettingsViewController: NSViewController {
 
         configureCheckbox(annotationEnabled, titleKey: "Annotate Japanese words on web pages", isOn: annotation["enabled"] as? Bool ?? true)
         configureCheckbox(hideKnownCheckbox, titleKey: "Hide words I already know", isOn: annotation["hideKnownItems"] as? Bool ?? true)
+        configureCheckbox(smartContextCheckbox, titleKey: "Use tap hints in titles and navigation", isOn: annotation["useSmartContextDisplay"] as? Bool ?? true)
         configureCheckbox(exposureEnabled, titleKey: "Track word exposure while browsing", isOn: exposure["enabled"] as? Bool ?? true)
         configurePopup(modePopup, options: modeOptions, selected: annotation["mode"] as? String ?? "adaptive")
         configurePopup(levelPopup, options: levelOptions, selected: annotation["userLevel"] as? String ?? "none")
@@ -101,6 +113,7 @@ final class AppSettingsViewController: NSViewController {
         configurePopup(urlPrivacyPopup, options: urlPrivacyOptions, selected: exposure["saveUrls"] as? String ?? "domain_only")
         configureRetentionPopup(selected: exposure["retentionDays"] as? Int ?? 90)
         configurePopup(languagePopup, options: languageOptions, selected: display["interfaceLanguage"] as? String ?? "en", localizeTitles: false)
+        configurePopup(entitlementOverridePopup, options: entitlementOverrideOptions, selected: entitlementSummary.developmentOverride)
 
         let title = NSTextField(labelWithString: L.t("Settings"))
         title.font = NSFont.boldSystemFont(ofSize: 18)
@@ -126,6 +139,7 @@ final class AppSettingsViewController: NSViewController {
             (L.t("Mode:"), modePopup),
             (L.t("Hide words at or below:"), levelPopup),
             (L.t("Display style:"), displayStylePopup),
+            ("", smartContextCheckbox),
             ("", hideKnownCheckbox)
         ])))
         root.addArrangedSubview(makeSection(L.t("Exposure Tracking"), grid: makeGrid([
@@ -137,8 +151,13 @@ final class AppSettingsViewController: NSViewController {
             (L.t("Interface language:"), languagePopup),
             ("", makeLinkButton(L.t("Open Safari Extension Settings…"), action: #selector(openSafariPreferences)))
         ])))
-        root.addArrangedSubview(makeSection(L.t("Data"), grid: makeGrid([
-            ("", makeLinkButton(L.t("Show Data File in Finder"), action: #selector(revealDataFile)))
+        root.addArrangedSubview(makeSection(L.t("Purchase"), grid: makeGrid([
+            (L.t("Current access:"), makeValueLabel(entitlementSummary.tierTitle)),
+            (L.t("Trial:"), makeValueLabel(entitlementSummary.trialDetail)),
+            (L.t("Basic:"), makeValueLabel(entitlementSummary.basicStatusTitle)),
+            (L.t("Development state:"), entitlementOverridePopup),
+            ("", makeCaption(L.t("Local vocabulary stays on this device even if purchase status changes."))),
+            ("", makeCaption(L.t("Sync and cloud backup require Pro.")))
         ])))
         root.addArrangedSubview(makeFooter())
     }
@@ -214,6 +233,22 @@ final class AppSettingsViewController: NSViewController {
         return button
     }
 
+    private func makeValueLabel(_ title: String) -> NSTextField {
+        let label = NSTextField(labelWithString: title)
+        label.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        label.textColor = .labelColor
+        return label
+    }
+
+    private func makeCaption(_ title: String) -> NSTextField {
+        let label = NSTextField(wrappingLabelWithString: title)
+        label.font = NSFont.systemFont(ofSize: 11)
+        label.textColor = .secondaryLabelColor
+        label.maximumNumberOfLines = 2
+        label.preferredMaxLayoutWidth = 300
+        return label
+    }
+
     private func makeFooter() -> NSView {
         statusLabel.font = NSFont.systemFont(ofSize: 11)
         statusLabel.textColor = .secondaryLabelColor
@@ -245,19 +280,22 @@ final class AppSettingsViewController: NSViewController {
                 Self.setValue(self.selectedString(self.modePopup, fallback: "adaptive"), in: &settings, section: "annotation", key: "mode")
                 Self.setValue(self.selectedString(self.levelPopup, fallback: "none"), in: &settings, section: "annotation", key: "userLevel")
                 Self.setValue(self.selectedString(self.displayStylePopup, fallback: "tap_only"), in: &settings, section: "annotation", key: "constrainedLayoutMode")
+                Self.setValue(self.smartContextCheckbox.state == .on, in: &settings, section: "annotation", key: "useSmartContextDisplay")
                 Self.setValue(self.hideKnownCheckbox.state == .on, in: &settings, section: "annotation", key: "hideKnownItems")
                 Self.setValue(self.exposureEnabled.state == .on, in: &settings, section: "exposureTracking", key: "enabled")
                 Self.setValue(self.selectedString(self.urlPrivacyPopup, fallback: "domain_only"), in: &settings, section: "exposureTracking", key: "saveUrls")
                 Self.setValue(self.retentionPopup.selectedItem?.representedObject as? Int ?? 90, in: &settings, section: "exposureTracking", key: "retentionDays")
                 Self.setValue(self.selectedString(self.languagePopup, fallback: "en"), in: &settings, section: "display", key: "interfaceLanguage")
             }
+            try store.updateEntitlementDevelopmentOverride(selectedString(entitlementOverridePopup, fallback: "none"))
 
             let newLanguage = selectedString(languagePopup, fallback: "en")
             if newLanguage != previousLanguage {
                 L.language = newLanguage
-                settings = store.settingsDictionary()
-                buildUI()
             }
+            settings = store.settingsDictionary()
+            entitlementSummary = store.entitlementSummary()
+            buildUI()
             showStatus(L.t("Settings saved"))
         } catch {
             showStatus(L.f("Could not save settings: %@", error.localizedDescription))
@@ -270,10 +308,6 @@ final class AppSettingsViewController: NSViewController {
                 NSApp.activate(ignoringOtherApps: true)
             }
         }
-    }
-
-    @objc private func revealDataFile() {
-        NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: store.displayPath)])
     }
 
     @objc private func doneClicked() {

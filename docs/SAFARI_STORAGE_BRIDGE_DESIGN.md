@@ -109,9 +109,9 @@ On load failure, return a default AppState and surface a debug status later in t
 
 The native container can later provide:
 
-- Import/export AppState.
-- iCloud sync.
-- Cross-device backup.
+- Local AppState recovery from automatic same-device backups.
+- Paid cross-device sync.
+- Cross-device cloud backup for subscribed accounts.
 - Larger dictionary assets.
 - Shared Safari extension configuration.
 

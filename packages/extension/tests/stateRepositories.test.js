@@ -57,9 +57,75 @@ test("creates AppState v1 defaults", () => {
   assert.equal(state.settings.annotation.mode, "adaptive");
   assert.equal(state.settings.annotation.userLevel, "none");
   assert.equal(state.settings.annotation.constrainedLayoutMode, "tap_only");
+  assert.equal(state.settings.annotation.useSmartContextDisplay, true);
   assert.equal(state.settings.exposureTracking.saveUrls, "domain_only");
+  assert.equal(state.entitlements.platform, "browser-extension");
+  assert.equal(state.entitlements.access.tier, "trial");
+  assert.equal(state.entitlements.access.basicUnlocked, true);
+  assert.equal(state.entitlements.basic.status, "not_purchased");
   assert.deepEqual(Object.keys(state.lexicalItems), []);
   assert.deepEqual(Object.keys(state.dailyExposureSummaries), []);
+});
+
+test("normalizes entitlement access states", () => {
+  const trial = window.FadingFuriganaState.normalizeEntitlements(
+    {
+      platform: "apple-macos",
+      trial: {
+        startedAt: "2026-06-01T00:00:00.000Z",
+        expiresAt: "2026-07-02T00:00:00.000Z"
+      }
+    },
+    "2026-06-13T00:00:00.000Z"
+  );
+  const expired = window.FadingFuriganaState.normalizeEntitlements(
+    {
+      trial: {
+        startedAt: "2026-05-01T00:00:00.000Z",
+        expiresAt: "2026-06-01T00:00:00.000Z"
+      }
+    },
+    "2026-06-13T00:00:00.000Z"
+  );
+  const basic = window.FadingFuriganaState.normalizeEntitlements(
+    {
+      basic: {
+        status: "purchased",
+        verificationStatus: "verified"
+      }
+    },
+    "2026-06-13T00:00:00.000Z"
+  );
+  const pro = window.FadingFuriganaState.normalizeEntitlements(
+    {
+      pro: {
+        status: "active"
+      }
+    },
+    "2026-06-13T00:00:00.000Z"
+  );
+  const override = window.FadingFuriganaState.normalizeEntitlements(
+    {
+      basic: {
+        status: "purchased"
+      },
+      developmentOverride: "expired"
+    },
+    "2026-06-13T00:00:00.000Z"
+  );
+  const recovered = window.FadingFuriganaState.normalizeEntitlements(null, "2026-06-13T00:00:00.000Z");
+
+  assert.equal(trial.platform, "apple-macos");
+  assert.equal(trial.basic.productId, "com.banyuguru.fadingfurigana.basic.macos");
+  assert.equal(trial.access.tier, "trial");
+  assert.equal(expired.access.tier, "expired");
+  assert.equal(expired.access.basicUnlocked, false);
+  assert.equal(basic.access.tier, "basic");
+  assert.equal(basic.access.basicUnlocked, true);
+  assert.equal(pro.access.tier, "pro");
+  assert.equal(pro.access.proUnlocked, true);
+  assert.equal(override.access.tier, "expired");
+  assert.equal(recovered.access.tier, "trial");
 });
 
 test("normalizes interface language settings", () => {

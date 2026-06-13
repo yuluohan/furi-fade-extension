@@ -19,6 +19,18 @@
   const JAPANESE_RE = /[\u3040-\u30ff\u3400-\u9fff]/;
   const SENTENCE_END_RE = /[。！？!?]/;
   const ANNOTATED_ATTR = "data-jr-annotated";
+  const SMART_CONTEXT_TAGS = new Set(["H1", "H2", "H3", "H4", "H5", "H6", "NAV", "HEADER", "FOOTER", "ASIDE", "MENU"]);
+  const SMART_CONTEXT_ROLES = new Set([
+    "button",
+    "link",
+    "menu",
+    "menuitem",
+    "navigation",
+    "option",
+    "search",
+    "tab"
+  ]);
+  const SMART_CONTEXT_PATTERN = /\b(nav|menu|search|result|title|headline|breadcrumb|button|btn|tab)\b/iu;
 
   function shouldSkipTextNode(node) {
     if (!node.nodeValue || !node.nodeValue.trim() || !JAPANESE_RE.test(node.nodeValue)) return true;
@@ -433,7 +445,9 @@
       for (const token of tokens) {
         if (token.start < cursor) continue;
         appendProcessedText(text.slice(cursor, token.start));
-        fragment.appendChild(this.createAnnotationElement(token, extractSentence(text, token.start), node.parentElement));
+        fragment.appendChild(
+          this.createAnnotationElement(token, extractSentence(text, token.start), node.parentElement, text)
+        );
         cursor = token.end;
         if (!this.recordedSeenIds.has(token.lexicalItemId)) {
           this.recordedSeenIds.add(token.lexicalItemId);
@@ -446,7 +460,7 @@
       return true;
     }
 
-    createAnnotationElement(token, sourceSentence, parentElement) {
+    createAnnotationElement(token, sourceSentence, parentElement, textContext = "") {
       const annotationSettings = this.repository.settings?.annotation;
       const annotationLevel = window.FadingFuriganaAnnotationDecision.getAnnotationLevel(
         this.repository.getUserWordState(token.lexicalItemId),
@@ -455,6 +469,7 @@
       const forceTapOnly =
         annotationLevel === "tap_only" ||
         annotationSettings?.constrainedLayoutMode === "compact" ||
+        shouldUseTapOnlyInSmartContext(parentElement, textContext, annotationSettings) ||
         shouldUseTapOnlyInLayout(parentElement, annotationSettings);
       const element = forceTapOnly ? document.createElement("span") : document.createElement("ruby");
       element.className = forceTapOnly ? "jr-ruby jr-ruby--tap-only" : "jr-ruby";
@@ -541,6 +556,37 @@
     return false;
   }
 
+  function shouldUseTapOnlyInSmartContext(parentElement, text = "", annotation = {}) {
+    if (annotation.useSmartContextDisplay === false) return false;
+    if (!parentElement) return false;
+
+    const normalizedText = String(text || "").replace(/\s+/gu, "");
+    let element = parentElement;
+    let depth = 0;
+    let insideMainText = false;
+
+    while (element && depth < 6) {
+      const tagName = element.tagName || "";
+      const role = String(element.getAttribute?.("role") || "").toLowerCase();
+      const classAndId = `${element.getAttribute?.("class") || ""} ${element.getAttribute?.("id") || ""}`;
+
+      if (tagName === "MAIN" || tagName === "ARTICLE") insideMainText = true;
+      if (SMART_CONTEXT_TAGS.has(tagName)) return true;
+      if (SMART_CONTEXT_ROLES.has(role)) return true;
+      if (SMART_CONTEXT_PATTERN.test(classAndId)) return true;
+      if (tagName === "A" && normalizedText.length <= 48) return true;
+      if (tagName === "BUTTON") return true;
+
+      element = element.parentElement;
+      depth += 1;
+    }
+
+    if (insideMainText) return false;
+    if (SENTENCE_END_RE.test(normalizedText)) return false;
+    if (["P", "ARTICLE", "MAIN"].includes(parentElement.tagName || "")) return false;
+    return normalizedText.length > 0 && normalizedText.length <= 18;
+  }
+
   function getComputedStyleSafe(element) {
     try {
       return typeof window.getComputedStyle === "function" ? window.getComputedStyle(element) : null;
@@ -567,6 +613,7 @@
   window.FadingFuriganaAnnotationEngine = {
     AnnotationEngine,
     extractSentence,
+    shouldUseTapOnlyInSmartContext,
     shouldUseTapOnlyInLayout,
     shouldSkipTextNode
   };

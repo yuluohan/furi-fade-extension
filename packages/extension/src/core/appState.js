@@ -15,7 +15,8 @@
       showLoanwordOrigins: true,
       showMeaningsInTooltip: true,
       userLevel: "none",
-      constrainedLayoutMode: "tap_only"
+      constrainedLayoutMode: "tap_only",
+      useSmartContextDisplay: true
     },
     exposureTracking: {
       enabled: true,
@@ -31,6 +32,13 @@
     targetLanguage: "ja",
     nativeLanguages: ["zhHans"],
     preferredMeaningLanguages: ["zhHans", "en", "ja"]
+  };
+
+  const DEFAULT_ENTITLEMENT_PLATFORM = "browser-extension";
+  const BASIC_PRODUCT_IDS = {
+    "apple-macos": "com.banyuguru.fadingfurigana.basic.macos",
+    "apple-ios": "com.banyuguru.fadingfurigana.basic.ios",
+    "browser-extension": "com.banyuguru.fadingfurigana.basic.browser"
   };
 
   function createTimestamp() {
@@ -57,11 +65,138 @@
     return JSON.parse(JSON.stringify(value));
   }
 
+  function addDaysIso(isoText, days) {
+    const date = new Date(isoText);
+    const safeDate = Number.isNaN(date.getTime()) ? new Date() : date;
+    safeDate.setUTCDate(safeDate.getUTCDate() + days);
+    return safeDate.toISOString();
+  }
+
+  function createDefaultEntitlements(now = createTimestamp(), platform = DEFAULT_ENTITLEMENT_PLATFORM) {
+    const productId = BASIC_PRODUCT_IDS[platform] || BASIC_PRODUCT_IDS[DEFAULT_ENTITLEMENT_PLATFORM];
+
+    return {
+      schemaVersion: 1,
+      platform,
+      trial: {
+        startedAt: now,
+        expiresAt: addDaysIso(now, 31),
+        source: "first_app_launch"
+      },
+      basic: {
+        status: "not_purchased",
+        productId,
+        purchasedAt: null,
+        lastVerifiedAt: null,
+        verificationStatus: "not_checked"
+      },
+      pro: {
+        status: "not_subscribed",
+        productId: null,
+        currentPeriodEndsAt: null,
+        lastVerifiedAt: null
+      },
+      access: {
+        tier: "trial",
+        basicUnlocked: true,
+        proUnlocked: false,
+        computedAt: now
+      }
+    };
+  }
+
+  function normalizeEntitlements(entitlements = {}, now = createTimestamp(), platform = DEFAULT_ENTITLEMENT_PLATFORM) {
+    const source = entitlements && typeof entitlements === "object" ? entitlements : {};
+    const targetPlatform = source.platform || platform;
+    const defaults = createDefaultEntitlements(now, targetPlatform);
+    const normalized = {
+      ...defaults,
+      ...source,
+      schemaVersion: 1,
+      platform: targetPlatform,
+      trial: {
+        ...defaults.trial,
+        ...(source.trial || {})
+      },
+      basic: {
+        ...defaults.basic,
+        ...(source.basic || {}),
+        status: normalizeBasicStatus(source.basic?.status),
+        verificationStatus: normalizeVerificationStatus(source.basic?.verificationStatus)
+      },
+      pro: {
+        ...defaults.pro,
+        ...(source.pro || {}),
+        status: normalizeProStatus(source.pro?.status)
+      }
+    };
+
+    if (source.developmentOverride) {
+      normalized.developmentOverride = normalizeDevelopmentOverride(source.developmentOverride);
+    }
+    normalized.access = computeEntitlementAccess(normalized, now);
+    return normalized;
+  }
+
+  function computeEntitlementAccess(entitlements = {}, now = createTimestamp()) {
+    const override = normalizeDevelopmentOverride(entitlements.developmentOverride);
+    if (override !== "none") {
+      return accessForTier(override, now);
+    }
+
+    const proStatus = normalizeProStatus(entitlements.pro?.status);
+    if (proStatus === "active" || proStatus === "grace_period") {
+      return accessForTier("pro", now);
+    }
+
+    const basicStatus = normalizeBasicStatus(entitlements.basic?.status);
+    if (basicStatus === "purchased") {
+      return accessForTier("basic", now);
+    }
+
+    const trialExpiresAt = entitlements.trial?.expiresAt;
+    if (trialExpiresAt && new Date(trialExpiresAt).getTime() > new Date(now).getTime()) {
+      return accessForTier("trial", now);
+    }
+
+    return accessForTier("expired", now);
+  }
+
+  function accessForTier(tier, now) {
+    return {
+      tier,
+      basicUnlocked: tier === "trial" || tier === "basic" || tier === "pro",
+      proUnlocked: tier === "pro",
+      computedAt: now
+    };
+  }
+
+  function normalizeBasicStatus(status) {
+    return ["not_purchased", "purchased", "refunded", "unknown"].includes(status) ? status : "not_purchased";
+  }
+
+  function normalizeVerificationStatus(status) {
+    return ["not_checked", "verified", "failed_offline", "failed_invalid", "pending_restore"].includes(status)
+      ? status
+      : "not_checked";
+  }
+
+  function normalizeProStatus(status) {
+    return ["not_subscribed", "active", "grace_period", "expired", "unknown"].includes(status)
+      ? status
+      : "not_subscribed";
+  }
+
+  function normalizeDevelopmentOverride(value) {
+    return ["trial", "expired", "basic", "pro"].includes(value) ? value : "none";
+  }
+
   function createDefaultAppState(now = createTimestamp()) {
     return {
       schemaVersion: SCHEMA_VERSION,
       userProfile: clone(DEFAULT_USER_PROFILE),
       settings: clone(DEFAULT_APP_SETTINGS),
+      entitlements: createDefaultEntitlements(now),
       lexicalItems: {},
       userLexicalStates: {},
       sourceOccurrences: {},
@@ -97,6 +232,8 @@
         mode: annotation.mode || mapLegacyAnnotationMode(legacyMode),
         userLevel: normalizeUserLevel(annotation.userLevel || settings.userLevel),
         constrainedLayoutMode: normalizeConstrainedLayoutMode(annotation.constrainedLayoutMode),
+        useSmartContextDisplay:
+          annotation.useSmartContextDisplay ?? DEFAULT_APP_SETTINGS.annotation.useSmartContextDisplay,
         hideKnownItems:
           annotation.hideKnownItems ?? settings.hideMasteredWords ?? DEFAULT_APP_SETTINGS.annotation.hideKnownItems
       },
@@ -231,6 +368,7 @@
   function migrateLegacyState(parsed, now = createTimestamp()) {
     const state = createDefaultAppState(now);
     state.settings = normalizeSettings(parsed.settings);
+    state.entitlements = normalizeEntitlements(parsed.entitlements, now);
 
     for (const [wordId, word] of Object.entries(parsed.words || {})) {
       state.lexicalItems[wordId] = createLexicalItemFromToken({
@@ -325,6 +463,7 @@
         ...parsed.userProfile
       },
       settings: normalizeSettings(parsed.settings),
+      entitlements: normalizeEntitlements(parsed.entitlements, now),
       metadata: {
         ...createDefaultAppState(now).metadata,
         ...parsed.metadata,
@@ -337,14 +476,19 @@
   window.FadingFuriganaState = {
     SCHEMA_VERSION,
     DEFAULT_APP_SETTINGS,
+    DEFAULT_ENTITLEMENT_PLATFORM,
     DEFAULT_USER_PROFILE,
+    BASIC_PRODUCT_IDS,
+    computeEntitlementAccess,
     createDefaultAppState,
+    createDefaultEntitlements,
     createDefaultUserLexicalState,
     createId,
     createLexicalItemFromToken,
     createTimestamp,
     getLocalDateKey,
     migrateAppState,
+    normalizeEntitlements,
     normalizeSettings
   };
 })();

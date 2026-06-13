@@ -53,7 +53,7 @@ global.MutationObserver = class {
 loadBrowserScript("src/core/annotationDecision.js");
 loadBrowserScript("src/content/annotationEngine.js");
 
-const { AnnotationEngine, extractSentence, shouldSkipTextNode, shouldUseTapOnlyInLayout } =
+const { AnnotationEngine, extractSentence, shouldSkipTextNode, shouldUseTapOnlyInLayout, shouldUseTapOnlyInSmartContext } =
   window.FadingFuriganaAnnotationEngine;
 
 class FakeTextNode {
@@ -424,6 +424,67 @@ test("uses tap-only annotation inside constrained layout", async () => {
   assert.equal(annotation.textContent, "確認");
   assert.equal(annotation.children.some((child) => child.tagName === "RT"), false);
   assert.deepEqual(seenTokens, ["確認"]);
+});
+
+test("uses tap-only annotation in smart page chrome contexts", async () => {
+  const root = new FakeElement("div");
+  const heading = new FakeElement("h2");
+  heading.appendChild(new FakeTextNode("重要な確認"));
+  root.appendChild(heading);
+
+  const { engine } = createEngine({
+    root,
+    tokens: [createToken({ start: 3, end: 5 })]
+  });
+
+  await engine.annotateRoot(root);
+
+  const annotation = collectByClass(root, "jr-ruby")[0];
+  assert.equal(shouldUseTapOnlyInSmartContext(heading, "重要な確認", { useSmartContextDisplay: true }), true);
+  assert.equal(annotation.tagName, "SPAN");
+  assert.equal(annotation.className, "jr-ruby jr-ruby--tap-only");
+});
+
+test("keeps normal paragraph ruby while smart context display is enabled", async () => {
+  const root = new FakeElement("div");
+  const paragraph = new FakeElement("p");
+  paragraph.computedStyle = {
+    overflow: "visible",
+    lineHeight: "24px"
+  };
+  paragraph.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+  root.appendChild(paragraph);
+
+  const { engine } = createEngine({ root, tokens: [createToken()] });
+
+  await engine.annotateRoot(root);
+
+  const annotation = collectByClass(root, "jr-ruby")[0];
+  assert.equal(shouldUseTapOnlyInSmartContext(paragraph, "メールの内容を確認してください。", { useSmartContextDisplay: true }), false);
+  assert.equal(annotation.tagName, "RUBY");
+});
+
+test("smart page chrome display can be disabled", async () => {
+  const root = new FakeElement("div");
+  const heading = new FakeElement("h2");
+  heading.appendChild(new FakeTextNode("重要な確認"));
+  root.appendChild(heading);
+
+  const { engine } = createEngine({
+    root,
+    tokens: [createToken({ start: 3, end: 5 })],
+    settings: {
+      annotation: {
+        useSmartContextDisplay: false
+      }
+    }
+  });
+
+  await engine.annotateRoot(root);
+
+  const annotation = collectByClass(root, "jr-ruby")[0];
+  assert.equal(shouldUseTapOnlyInSmartContext(heading, "重要な確認", { useSmartContextDisplay: false }), false);
+  assert.equal(annotation.tagName, "RUBY");
 });
 
 test("uses tap-only annotation globally in compact display mode", async () => {

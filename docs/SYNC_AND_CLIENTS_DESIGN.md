@@ -2,21 +2,23 @@
 
 Date: 2026-06-11
 
-Concrete design for the product rule defined in `DEVELOPMENT_DESIGN.md` §6: free single-device local use, paid multi-device cloud sync. Covers Safari (macOS), Safari (iOS), Chrome, and the macOS / Windows / iOS / Android apps.
+Concrete design for the product rule defined in `DEVELOPMENT_DESIGN.md` §6: one-month trial, Basic single-platform buyout, and Pro paid multi-device cloud sync. Covers Safari (macOS), Safari (iOS), Chrome, and the macOS / Windows / iOS / Android apps.
 
 ## 1. The product rule, stated precisely
 
 ```text
-Free  = full local functionality on each device, no account, no sync.
-Paid  = an account plus cloud sync that connects devices together.
+Trial = time-limited access to Basic local functionality, no account required.
+Basic = one-time purchase for one platform's local learning loop, no account, no sync.
+Pro   = account plus subscription-gated cloud sync and advanced intelligence.
 ```
 
 Two consequences that simplify everything:
 
-- **"One device free" needs no enforcement.** A free user may install on three devices; they simply get three independent local datasets. The thing being sold is the *connection*, not the features. No device fingerprinting, no local license checks, nothing to crack — the paid capability physically lives on the server.
-- **The free path must never touch the account system.** No login wall, no nag on first run. The account UI appears only when the user asks for sync.
+- **Trial and Basic must stay local.** They need local entitlement checks, but no account wall and no server dependency for the core learning loop.
+- **Pro is where identity belongs.** The account UI appears when the user asks for sync, cloud backup, cross-platform data, or advanced server-side intelligence.
+- **Cross-device migration belongs to paid sync.** Do not add user-facing portable export/import as a workaround.
 
-One deliberate exception: a Safari extension and its container app on the *same* device share data for free through App Group storage (`SAFARI_STORAGE_BRIDGE_DESIGN.md`). That is one device, not sync.
+One deliberate exception: a Safari extension and its container app on the *same* device share data through App Group storage (`SAFARI_STORAGE_BRIDGE_DESIGN.md`). That is one licensed platform/client bundle, not sync.
 
 ## 2. Client matrix and code sharing
 
@@ -34,7 +36,7 @@ Decisions:
 
 - **One WebExtension codebase for all three extensions.** Already true. The iOS Safari extension cannot host kuromoji (extension memory limits); it runs the existing local-analyzer fallback (Intl.Segmenter + packaged dictionary), which the architecture already supports. A native tokenizer bridge through the containing app is a later optimization, not a blocker.
 - **macOS and iOS apps are one SwiftUI multiplatform target** — the Xcode project that exists today as the Safari container. The apps must exist anyway to distribute the Safari extensions, so the learning app rides along for free. This pairs each Safari extension with a same-device app sharing data via App Group.
-- **Do not build seven clients at once.** Android and Windows are phase 3; Chrome on Windows already covers annotation there, and export/import covers migration until then.
+- **Do not build seven clients at once.** Android and Windows are phase 3; Chrome on Windows already covers annotation there. Cross-device data migration is a paid sync capability, not a portable export/import feature.
 
 ### The single source of truth is the data contract, not a code library
 
@@ -102,10 +104,10 @@ Required schema additions (cheap now, expensive to retrofit — see §7): per-re
 
 Cloudflare Workers + D1 (SQLite), reusing the deployment rail this repo already has (wrangler + GitHub Actions):
 
-- Endpoints: `auth` (Apple/magic-link), `sync/push`, `sync/pull`, `sync/snapshot`, `billing/webhooks`, `account/devices`, `account/export`, `account/delete`.
+- Endpoints: `auth` (Apple/magic-link), `sync/push`, `sync/pull`, `sync/snapshot`, `billing/webhooks`, `account/devices`, `account/data-copy`, `account/delete`.
 - Tables: `accounts`, `devices`, `entitlements`, `ops` (account, device, seq, domain, payload, ts), `snapshots`.
 - Scale shape is friendly: ops are tiny, exposure deltas batch naturally, snapshots compact the log.
-- Privacy: exposure data derives from browsing. Domain-only URL policy already exists client-side; the server stores whatever the client chose to record, plus mandatory account export and delete endpoints from day one.
+- Privacy: exposure data derives from browsing. Domain-only URL policy already exists client-side; the server stores whatever the client chose to record. Any mandatory account data-copy endpoint is for privacy/compliance review only and must not become an importable migration format that bypasses paid sync.
 
 ## 7. Phasing
 

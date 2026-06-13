@@ -7,6 +7,7 @@
     annotationMode: document.querySelector("#annotation-mode"),
     userLevel: document.querySelector("#user-level"),
     displayStyle: document.querySelector("#display-style"),
+    smartContextDisplay: document.querySelector("#smart-context-display"),
     hideKnownItems: document.querySelector("#hide-known-items"),
     exposureEnabled: document.querySelector("#exposure-enabled"),
     urlPrivacy: document.querySelector("#url-privacy"),
@@ -41,6 +42,8 @@
       displayAuto: "Auto",
       displayRuby: "Ruby",
       displayCompact: "Tap hints",
+      smartContextDisplay: "Smart compact areas",
+      smartContextDisplayHint: "Use tap hints in titles, navigation, and search results",
       hideKnownWords: "Hide known words",
       hideKnownWordsHint: "Fade out words already mastered",
       exposureSettings: "Exposure tracking settings",
@@ -95,6 +98,8 @@
       displayAuto: "自动",
       displayRuby: "假名标注",
       displayCompact: "点按提示",
+      smartContextDisplay: "智能紧凑区域",
+      smartContextDisplayHint: "标题、导航和搜索结果使用点按提示",
       hideKnownWords: "隐藏已掌握词",
       hideKnownWordsHint: "已掌握的词会逐渐淡出",
       exposureSettings: "遇见统计设置",
@@ -150,6 +155,7 @@
     controls.annotationMode.value = annotation.mode;
     controls.userLevel.value = annotation.userLevel || "none";
     controls.displayStyle.value = annotation.constrainedLayoutMode || "tap_only";
+    controls.smartContextDisplay.checked = annotation.useSmartContextDisplay !== false;
     controls.hideKnownItems.checked = annotation.hideKnownItems;
     controls.exposureEnabled.checked = exposureTracking.enabled;
     controls.urlPrivacy.value = exposureTracking.saveUrls;
@@ -201,6 +207,7 @@
         mode: controls.annotationMode.value,
         userLevel: controls.userLevel.value,
         constrainedLayoutMode: controls.displayStyle.value,
+        useSmartContextDisplay: controls.smartContextDisplay.checked,
         hideKnownItems: controls.hideKnownItems.checked
       },
       exposureTracking: {

@@ -35,16 +35,6 @@ import SafariServices
 
 let extensionBundleIdentifier = "com.banyuguru.fading-furigana.Extension"
 
-enum WordListMode: String, CaseIterable {
-    case today = "Today"
-    case week = "7 Days"
-    case suggested = "Suggested"
-    case learning = "Learning"
-    case saved = "Saved"
-    case known = "Known"
-    case ignored = "Ignored"
-}
-
 enum WordAction: String {
     case save
     case known
@@ -54,75 +44,166 @@ enum WordAction: String {
     case restore
 }
 
-extension WordListMode {
+struct AppEntitlementSummary {
+    let tier: String
+    let basicUnlocked: Bool
+    let proUnlocked: Bool
+    let trialDaysRemaining: Int?
+    let basicStatus: String
+    let verificationStatus: String
+    let proStatus: String
+    let developmentOverride: String
+
+    var tierTitle: String {
+        switch tier {
+        case "trial": return L.t("Trial")
+        case "basic": return L.t("Basic")
+        case "pro": return L.t("Pro")
+        case "expired": return L.t("Trial Expired")
+        default: return L.t("Unknown")
+        }
+    }
+
+    var trialDetail: String {
+        if let trialDaysRemaining {
+            return L.f("%d days remaining", trialDaysRemaining)
+        }
+        return L.t("Trial ended")
+    }
+
+    var basicStatusTitle: String {
+        switch basicStatus {
+        case "purchased": return L.t("Purchased")
+        case "refunded": return L.t("Refunded")
+        case "unknown": return L.t("Unknown")
+        default: return L.t("Not purchased")
+        }
+    }
+}
+
+// Sidebar destinations: one per user intent (review now / manage words / pick new words).
+enum AppSection: Int, CaseIterable {
+    case today
+    case library
+    case discover
+
+    var displayName: String {
+        switch self {
+        case .today: return L.t("Today")
+        case .library: return L.t("Library")
+        case .discover: return L.t("Discover")
+        }
+    }
+
     var symbolName: String {
         switch self {
         case .today: return "sun.max"
-        case .week: return "calendar"
-        case .suggested: return "sparkles"
-        case .learning: return "book"
-        case .saved: return "bookmark"
-        case .known: return "checkmark.circle"
-        case .ignored: return "nosign"
+        case .library: return "books.vertical"
+        case .discover: return "sparkles"
         }
     }
+}
+
+enum LibraryFilter: Int, CaseIterable {
+    case all
+    case learning
+    case saved
+    case known
+    case ignored
 
     var displayName: String {
-        L.t(rawValue)
-    }
-
-    var displayTitle: String {
         switch self {
-        case .today: return L.t("Seen Today")
-        case .week: return L.t("Last 7 Days")
-        case .suggested: return L.t("Suggested for You")
+        case .all: return L.t("All")
         case .learning: return L.t("Learning")
-        case .saved: return L.t("Saved Words")
-        case .known: return L.t("Known Words")
-        case .ignored: return L.t("Ignored Words")
+        case .saved: return L.t("Saved")
+        case .known: return L.t("Known")
+        case .ignored: return L.t("Ignored")
         }
     }
+}
+
+enum DiscoverScope: Int, CaseIterable {
+    case today
+    case week
+    case allTime
+
+    var displayName: String {
+        switch self {
+        case .today: return L.t("Today")
+        case .week: return L.t("7 Days")
+        case .allTime: return L.t("All Time")
+        }
+    }
+}
+
+// Scroll-view document container that lays content out top-down.
+final class FlippedStackContainer: NSView {
+    override var isFlipped: Bool { true }
 }
 
 class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelegate {
 
     private let store = AppStateStore()
     private var snapshot = AppStateSnapshot.empty
-    private var selectedMode = WordListMode.today
     private var dueRows: [WordRow] = []
     private var currentRows: [WordRow] = []
+    private var currentRowsShowSave = false
+
+    private var selectedSection = AppSection.today
+    private var libraryFilter = LibraryFilter.all
+    private var libraryQuery = ""
+    private var librarySortByRecent = false
+    private var discoverScope = DiscoverScope.week
+    private var extensionEnabled: Bool?
+    private var isNavigationCollapsed = false
+    private var appStateAutoRefreshTimer: Timer?
+    private var lastObservedStateSignature: String?
+    private var pendingUndoState: [String: Any]?
+    private weak var splitView: NSSplitView?
+    private weak var sidebarView: NSView?
 
     private let sidebarTable = NSTableView()
     private let wordTable = NSTableView()
+    private let wordScrollView = NSScrollView()
+    private let navigationToggleButton = NSButton()
 
     private let sectionTitleLabel = NSTextField(labelWithString: "")
     private let statusDot = NSView()
-    private let statusLabel = NSTextField(labelWithString: "Checking Safari extension status…")
+    private let statusLabel = NSTextField(labelWithString: "")
     private let emptyStateLabel = NSTextField(wrappingLabelWithString: "")
-    private let wordScrollView = NSScrollView()
-    private let onboardingContainer = NSStackView()
-    private var extensionEnabled: Bool?
     private let versionLabel = NSTextField(labelWithString: "")
     private let storePathLabel = NSTextField(labelWithString: "")
     private let updatedLabel = NSTextField(labelWithString: "")
-    private let reviewButton = NSButton(title: "Start Review", target: nil, action: nil)
+    private let actionFeedbackLabel = NSTextField(labelWithString: "")
+    private let undoButton = NSButton(title: "", target: nil, action: nil)
 
-    private let totalWordsValue = NSTextField(labelWithString: "0")
-    private let todayValue = NSTextField(labelWithString: "0")
-    private let learningValue = NSTextField(labelWithString: "0")
-    private let dueValue = NSTextField(labelWithString: "0")
-    private let savedValue = NSTextField(labelWithString: "0")
+    private let todayScroll = NSScrollView()
+    private let todayStack = NSStackView()
+    private let onboardingContainer = NSStackView()
+    private let libraryControlsRow = NSStackView()
+    private let discoverControlsRow = NSStackView()
+    private let tableContainer = NSView()
 
-    // Static UI texts re-localized when the interface language changes.
-    private var localizedLabels: [(NSTextField, String)] = []
+    private let searchField = NSSearchField()
+    private let filterControl = NSSegmentedControl()
+    private let sortPopup = NSPopUpButton()
+    private let scopeControl = NSSegmentedControl()
+
+    // Icon-button tooltips re-localized when the interface language changes.
     private var localizedTooltips: [(NSButton, String)] = []
 
     override func viewDidLoad() {
         super.viewDidLoad()
+        try? store.initializeEntitlementsIfNeeded()
         L.update(fromSettings: store.settingsDictionary())
         buildLayout()
         sidebarTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
         loadDashboard()
+        startAppStateAutoRefresh()
+    }
+
+    deinit {
+        appStateAutoRefreshTimer?.invalidate()
     }
 
     override func viewDidAppear() {
@@ -145,6 +226,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
 
     private func buildLayout() {
         let splitView = NSSplitView()
+        self.splitView = splitView
         splitView.isVertical = true
         splitView.dividerStyle = .thin
         splitView.translatesAutoresizingMaskIntoConstraints = false
@@ -158,6 +240,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         ])
 
         let sidebar = makeSidebar()
+        sidebarView = sidebar
         let content = makeContent()
         splitView.addArrangedSubview(sidebar)
         splitView.addArrangedSubview(content)
@@ -226,21 +309,26 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         ])
 
         let header = makeHeaderRow()
-        let metrics = makeMetricsRow()
+        let today = makeTodaySection()
+        let libraryControls = makeLibraryControlsRow()
+        let discoverControls = makeDiscoverControlsRow()
         let table = makeWordTableContainer()
         let footer = makeFooterRow()
 
         column.addArrangedSubview(header)
-        column.addArrangedSubview(metrics)
+        column.addArrangedSubview(today)
+        column.addArrangedSubview(libraryControls)
+        column.addArrangedSubview(discoverControls)
         column.addArrangedSubview(table)
         column.addArrangedSubview(footer)
 
-        for child in [header, metrics, table, footer] {
+        for child in [header, today, libraryControls, discoverControls, table, footer] {
             NSLayoutConstraint.activate([
                 child.leadingAnchor.constraint(equalTo: column.leadingAnchor),
                 child.trailingAnchor.constraint(equalTo: column.trailingAnchor)
             ])
         }
+        today.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .vertical)
         table.setContentHuggingPriority(NSLayoutConstraint.Priority(1), for: .vertical)
         return container
     }
@@ -248,6 +336,13 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     private func makeHeaderRow() -> NSView {
         sectionTitleLabel.font = NSFont.boldSystemFont(ofSize: 22)
         sectionTitleLabel.lineBreakMode = .byTruncatingTail
+
+        configureIconButton(
+            navigationToggleButton,
+            symbol: "sidebar.leading",
+            tooltip: "Collapse navigation",
+            action: #selector(toggleNavigationClicked)
+        )
 
         statusDot.wantsLayer = true
         statusDot.layer?.cornerRadius = 4
@@ -273,13 +368,6 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         titleStack.alignment = .leading
         titleStack.spacing = 4
 
-        reviewButton.target = self
-        reviewButton.action = #selector(startReviewClicked(_:))
-        reviewButton.bezelStyle = .rounded
-        reviewButton.controlSize = .large
-        reviewButton.keyEquivalent = "\r"
-        reviewButton.isEnabled = false
-
         let refreshButton = makeIconButton(
             symbol: "arrow.clockwise",
             tooltip: "Refresh data from the local store",
@@ -291,7 +379,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             action: #selector(openAppSettings)
         )
 
-        let buttons = NSStackView(views: [reviewButton, refreshButton, settingsButton])
+        let buttons = NSStackView(views: [refreshButton, settingsButton])
         buttons.orientation = .horizontal
         buttons.alignment = .centerY
         buttons.spacing = 8
@@ -300,36 +388,170 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 12
+        row.addArrangedSubview(navigationToggleButton)
         row.addArrangedSubview(titleStack)
         row.addArrangedSubview(NSView())
         row.addArrangedSubview(buttons)
         return row
     }
 
-    private func makeMetricsRow() -> NSView {
+    // MARK: - Today section
+
+    private func makeTodaySection() -> NSView {
+        todayStack.orientation = .vertical
+        todayStack.alignment = .leading
+        todayStack.spacing = 16
+        todayStack.translatesAutoresizingMaskIntoConstraints = false
+
+        onboardingContainer.orientation = .vertical
+        onboardingContainer.alignment = .leading
+        onboardingContainer.spacing = 16
+
+        let document = FlippedStackContainer()
+        document.translatesAutoresizingMaskIntoConstraints = false
+        document.addSubview(todayStack)
+
+        todayScroll.documentView = document
+        todayScroll.hasVerticalScroller = true
+        todayScroll.drawsBackground = false
+        todayScroll.translatesAutoresizingMaskIntoConstraints = false
+
+        NSLayoutConstraint.activate([
+            todayStack.leadingAnchor.constraint(equalTo: document.leadingAnchor),
+            todayStack.trailingAnchor.constraint(equalTo: document.trailingAnchor),
+            todayStack.topAnchor.constraint(equalTo: document.topAnchor),
+            todayStack.bottomAnchor.constraint(equalTo: document.bottomAnchor),
+            document.leadingAnchor.constraint(equalTo: todayScroll.contentView.leadingAnchor),
+            document.topAnchor.constraint(equalTo: todayScroll.contentView.topAnchor),
+            document.widthAnchor.constraint(equalTo: todayScroll.contentView.widthAnchor)
+        ])
+        return todayScroll
+    }
+
+    private func rebuildToday() {
+        todayStack.arrangedSubviews.forEach {
+            todayStack.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+
+        if shouldShowOnboarding {
+            rebuildOnboarding()
+            todayStack.addArrangedSubview(onboardingContainer)
+            return
+        }
+
+        let hero = makeHeroCard()
+        let metrics = makeTodayMetricsRow()
+        let suggested = makeSuggestedSection()
+
+        todayStack.addArrangedSubview(hero)
+        todayStack.addArrangedSubview(metrics)
+        todayStack.addArrangedSubview(suggested)
+
+        for child in [hero, metrics, suggested] {
+            NSLayoutConstraint.activate([
+                child.leadingAnchor.constraint(equalTo: todayStack.leadingAnchor),
+                child.trailingAnchor.constraint(equalTo: todayStack.trailingAnchor)
+            ])
+        }
+    }
+
+    private func makeHeroCard() -> NSView {
+        let due = dueRows.count
+        let lapsed = snapshot.words.filter { $0.reviewStage == "lapsed" }.count
+
+        let card = NSStackView()
+        card.orientation = .horizontal
+        card.alignment = .centerY
+        card.spacing = 16
+        card.edgeInsets = NSEdgeInsets(top: 18, left: 20, bottom: 18, right: 20)
+        card.wantsLayer = true
+        card.layer?.cornerRadius = 12
+
+        let textStack = NSStackView()
+        textStack.orientation = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 4
+
+        if due > 0 {
+            card.layer?.backgroundColor = NSColor.controlAccentColor.withAlphaComponent(0.12).cgColor
+
+            let number = NSTextField(labelWithString: "\(due)")
+            number.font = NSFont.monospacedDigitSystemFont(ofSize: 40, weight: .semibold)
+            number.textColor = .controlAccentColor
+
+            let caption = NSTextField(labelWithString: L.t("words due for review"))
+            caption.font = NSFont.systemFont(ofSize: 15, weight: .medium)
+
+            let countRow = NSStackView(views: [number, caption])
+            countRow.orientation = .horizontal
+            countRow.alignment = .lastBaseline
+            countRow.spacing = 6
+            textStack.addArrangedSubview(countRow)
+
+            if lapsed > 0 {
+                let sub = NSTextField(labelWithString: L.f("%d lapsed words come first", lapsed))
+                sub.font = NSFont.systemFont(ofSize: 12)
+                sub.textColor = .secondaryLabelColor
+                textStack.addArrangedSubview(sub)
+            }
+
+            let button = NSButton(title: L.t("Start Review"), target: self, action: #selector(startReviewClicked(_:)))
+            button.bezelStyle = .rounded
+            button.controlSize = .large
+            button.keyEquivalent = "\r"
+
+            card.addArrangedSubview(textStack)
+            card.addArrangedSubview(NSView())
+            card.addArrangedSubview(button)
+        } else {
+            card.layer?.backgroundColor = NSColor.systemGreen.withAlphaComponent(0.10).cgColor
+
+            let check = NSImageView()
+            check.image = NSImage(systemSymbolName: "checkmark.circle.fill", accessibilityDescription: nil)
+            check.symbolConfiguration = NSImage.SymbolConfiguration(pointSize: 26, weight: .semibold)
+            check.contentTintColor = .systemGreen
+
+            let title = NSTextField(labelWithString: L.t("All reviews done"))
+            title.font = NSFont.systemFont(ofSize: 16, weight: .semibold)
+
+            let caption = NSTextField(labelWithString: L.t("Browse Japanese pages to collect new words."))
+            caption.font = NSFont.systemFont(ofSize: 12)
+            caption.textColor = .secondaryLabelColor
+
+            textStack.addArrangedSubview(title)
+            textStack.addArrangedSubview(caption)
+
+            card.addArrangedSubview(check)
+            card.addArrangedSubview(textStack)
+            card.addArrangedSubview(NSView())
+        }
+        return card
+    }
+
+    private func makeTodayMetricsRow() -> NSView {
         let row = NSStackView()
         row.orientation = .horizontal
         row.spacing = 10
         row.distribution = .fillEqually
 
-        row.addArrangedSubview(makeMetricCard(titleKey: "Vocabulary", value: totalWordsValue))
-        row.addArrangedSubview(makeMetricCard(titleKey: "Seen Today", value: todayValue))
-        row.addArrangedSubview(makeMetricCard(titleKey: "Learning", value: learningValue))
-        row.addArrangedSubview(makeMetricCard(titleKey: "Due Reviews", value: dueValue))
-        row.addArrangedSubview(makeMetricCard(titleKey: "Saved", value: savedValue))
+        row.addArrangedSubview(makeMetricCard(title: L.t("Seen Today"), value: "\(snapshot.todaySeenCount)"))
+        row.addArrangedSubview(makeMetricCard(title: L.t("Reviewed today"), value: "\(snapshot.reviewedTodayCount)"))
+        row.addArrangedSubview(makeMetricCard(title: L.t("Learning"), value: "\(snapshot.learningCount)"))
+        row.addArrangedSubview(makeMetricCard(title: L.t("Vocabulary"), value: "\(snapshot.totalWordCount)"))
         return row
     }
 
-    private func makeMetricCard(titleKey: String, value: NSTextField) -> NSView {
-        let label = NSTextField(labelWithString: L.t(titleKey))
+    private func makeMetricCard(title: String, value: String) -> NSView {
+        let label = NSTextField(labelWithString: title)
         label.font = NSFont.systemFont(ofSize: 11, weight: .medium)
         label.textColor = .secondaryLabelColor
-        localizedLabels.append((label, titleKey))
 
-        value.font = NSFont.monospacedDigitSystemFont(ofSize: 20, weight: .semibold)
-        value.textColor = .labelColor
+        let valueLabel = NSTextField(labelWithString: value)
+        valueLabel.font = NSFont.monospacedDigitSystemFont(ofSize: 20, weight: .semibold)
+        valueLabel.textColor = .labelColor
 
-        let stack = NSStackView(views: [label, value])
+        let stack = NSStackView(views: [label, valueLabel])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 4
@@ -339,6 +561,114 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         stack.layer?.cornerRadius = 8
         return stack
     }
+
+    private func makeSuggestedSection() -> NSView {
+        let section = NSStackView()
+        section.orientation = .vertical
+        section.alignment = .leading
+        section.spacing = 8
+
+        let headerLabel = NSTextField(labelWithString: L.t("Suggested to learn"))
+        headerLabel.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        headerLabel.textColor = .secondaryLabelColor
+
+        let viewAll = makeTextButton(L.t("View all"), action: #selector(viewAllSuggestionsClicked))
+        viewAll.controlSize = .small
+
+        let headerRow = NSStackView(views: [headerLabel, NSView(), viewAll])
+        headerRow.orientation = .horizontal
+        headerRow.alignment = .centerY
+        headerRow.spacing = 8
+
+        section.addArrangedSubview(headerRow)
+
+        let rows = Array(snapshot.suggestedRows.prefix(3))
+        if rows.isEmpty {
+            let empty = NSTextField(labelWithString: L.t("No suggestions yet — keep browsing."))
+            empty.font = NSFont.systemFont(ofSize: 12)
+            empty.textColor = .tertiaryLabelColor
+            section.addArrangedSubview(empty)
+        } else {
+            for row in rows {
+                let cell = makeWordCell(row, withSaveButton: true)
+                section.addArrangedSubview(cell)
+                NSLayoutConstraint.activate([
+                    cell.leadingAnchor.constraint(equalTo: section.leadingAnchor),
+                    cell.trailingAnchor.constraint(equalTo: section.trailingAnchor)
+                ])
+            }
+        }
+
+        NSLayoutConstraint.activate([
+            headerRow.leadingAnchor.constraint(equalTo: section.leadingAnchor),
+            headerRow.trailingAnchor.constraint(equalTo: section.trailingAnchor)
+        ])
+        return section
+    }
+
+    // MARK: - Library / Discover controls
+
+    private func makeLibraryControlsRow() -> NSView {
+        searchField.sendsSearchStringImmediately = true
+        searchField.target = self
+        searchField.action = #selector(searchChanged(_:))
+        searchField.widthAnchor.constraint(equalToConstant: 220).isActive = true
+
+        filterControl.segmentCount = LibraryFilter.allCases.count
+        filterControl.trackingMode = .selectOne
+        filterControl.target = self
+        filterControl.action = #selector(libraryFilterChanged(_:))
+        filterControl.selectedSegment = 0
+
+        sortPopup.target = self
+        sortPopup.action = #selector(sortChanged(_:))
+
+        libraryControlsRow.orientation = .horizontal
+        libraryControlsRow.alignment = .centerY
+        libraryControlsRow.spacing = 10
+        libraryControlsRow.addArrangedSubview(searchField)
+        libraryControlsRow.addArrangedSubview(filterControl)
+        libraryControlsRow.addArrangedSubview(NSView())
+        libraryControlsRow.addArrangedSubview(sortPopup)
+        return libraryControlsRow
+    }
+
+    private func makeDiscoverControlsRow() -> NSView {
+        scopeControl.segmentCount = DiscoverScope.allCases.count
+        scopeControl.trackingMode = .selectOne
+        scopeControl.target = self
+        scopeControl.action = #selector(scopeChanged(_:))
+        scopeControl.selectedSegment = discoverScope.rawValue
+
+        discoverControlsRow.orientation = .horizontal
+        discoverControlsRow.alignment = .centerY
+        discoverControlsRow.spacing = 10
+        discoverControlsRow.addArrangedSubview(scopeControl)
+        discoverControlsRow.addArrangedSubview(NSView())
+        return discoverControlsRow
+    }
+
+    private func refreshLibraryControls() {
+        searchField.placeholderString = L.t("Search words")
+        for (index, filter) in LibraryFilter.allCases.enumerated() {
+            filterControl.setLabel("\(filter.displayName) \(snapshot.libraryCount(for: filter))", forSegment: index)
+        }
+        filterControl.selectedSegment = libraryFilter.rawValue
+
+        let selectedSort = librarySortByRecent ? 1 : 0
+        sortPopup.removeAllItems()
+        sortPopup.addItems(withTitles: [L.t("Most seen"), L.t("Recently seen")])
+        sortPopup.selectItem(at: selectedSort)
+    }
+
+    private func refreshDiscoverControls() {
+        for (index, scope) in DiscoverScope.allCases.enumerated() {
+            scopeControl.setLabel(scope.displayName, forSegment: index)
+        }
+        scopeControl.selectedSegment = discoverScope.rawValue
+    }
+
+    // MARK: - Word table container
 
     private func makeWordTableContainer() -> NSView {
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("word"))
@@ -352,6 +682,8 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         wordTable.focusRingType = .none
         wordTable.dataSource = self
         wordTable.delegate = self
+        wordTable.target = self
+        wordTable.doubleAction = #selector(openSelectedWordDetail)
 
         wordScrollView.documentView = wordTable
         wordScrollView.hasVerticalScroller = true
@@ -365,31 +697,20 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         emptyStateLabel.translatesAutoresizingMaskIntoConstraints = false
         emptyStateLabel.isHidden = true
 
-        onboardingContainer.orientation = .vertical
-        onboardingContainer.alignment = .leading
-        onboardingContainer.spacing = 16
-        onboardingContainer.translatesAutoresizingMaskIntoConstraints = false
-        onboardingContainer.isHidden = true
-
-        let container = NSView()
-        container.addSubview(wordScrollView)
-        container.addSubview(emptyStateLabel)
-        container.addSubview(onboardingContainer)
+        tableContainer.addSubview(wordScrollView)
+        tableContainer.addSubview(emptyStateLabel)
 
         NSLayoutConstraint.activate([
-            wordScrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            wordScrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            wordScrollView.topAnchor.constraint(equalTo: container.topAnchor),
-            wordScrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
-            emptyStateLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            emptyStateLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            wordScrollView.leadingAnchor.constraint(equalTo: tableContainer.leadingAnchor),
+            wordScrollView.trailingAnchor.constraint(equalTo: tableContainer.trailingAnchor),
+            wordScrollView.topAnchor.constraint(equalTo: tableContainer.topAnchor),
+            wordScrollView.bottomAnchor.constraint(equalTo: tableContainer.bottomAnchor),
+            emptyStateLabel.centerXAnchor.constraint(equalTo: tableContainer.centerXAnchor),
+            emptyStateLabel.centerYAnchor.constraint(equalTo: tableContainer.centerYAnchor),
             emptyStateLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 420),
-            onboardingContainer.centerYAnchor.constraint(equalTo: container.centerYAnchor),
-            onboardingContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            onboardingContainer.widthAnchor.constraint(lessThanOrEqualToConstant: 520),
-            container.heightAnchor.constraint(greaterThanOrEqualToConstant: 200)
+            tableContainer.heightAnchor.constraint(greaterThanOrEqualToConstant: 200)
         ])
-        return container
+        return tableContainer
     }
 
     private func makeFooterRow() -> NSView {
@@ -405,6 +726,18 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         updatedLabel.textColor = .tertiaryLabelColor
         updatedLabel.maximumNumberOfLines = 1
 
+        actionFeedbackLabel.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+        actionFeedbackLabel.textColor = .secondaryLabelColor
+        actionFeedbackLabel.lineBreakMode = .byTruncatingTail
+        actionFeedbackLabel.isHidden = true
+
+        undoButton.title = L.t("Undo")
+        undoButton.target = self
+        undoButton.action = #selector(undoLastWordActionClicked(_:))
+        undoButton.bezelStyle = .rounded
+        undoButton.controlSize = .small
+        undoButton.isHidden = true
+
         let row = NSStackView()
         row.orientation = .horizontal
         row.alignment = .centerY
@@ -412,6 +745,8 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         row.addArrangedSubview(versionLabel)
         row.addArrangedSubview(storePathLabel)
         row.addArrangedSubview(NSView())
+        row.addArrangedSubview(actionFeedbackLabel)
+        row.addArrangedSubview(undoButton)
         row.addArrangedSubview(updatedLabel)
         return row
     }
@@ -432,13 +767,28 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         return button
     }
 
+    private func configureIconButton(_ button: NSButton, symbol: String, tooltip: String, action: Selector) {
+        button.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip)
+        button.target = self
+        button.action = action
+        button.bezelStyle = .rounded
+        button.controlSize = .large
+        button.toolTip = L.t(tooltip)
+    }
+
     private func applyStaticTexts() {
-        for (label, key) in localizedLabels {
-            label.stringValue = L.t(key)
-        }
         for (button, key) in localizedTooltips {
             button.toolTip = L.t(key)
         }
+        undoButton.title = L.t("Undo")
+        updateNavigationToggleButton()
+    }
+
+    private func updateNavigationToggleButton() {
+        let symbol = isNavigationCollapsed ? "sidebar.leading" : "sidebar.left"
+        let tooltip = isNavigationCollapsed ? "Expand navigation" : "Collapse navigation"
+        navigationToggleButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip)
+        navigationToggleButton.toolTip = L.t(tooltip)
     }
 
     // MARK: - Data
@@ -454,6 +804,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
 
     private func loadDashboard() {
         snapshot = store.loadSnapshot()
+        lastObservedStateSignature = store.stateSignature()
         L.update(fromSettings: snapshot.raw["settings"] as? [String: Any] ?? [:])
         versionLabel.stringValue = VersionInfo.displayText()
         let storageMode = store.isUsingAppGroup ? L.t("Shared container") : L.t("Local fallback")
@@ -467,48 +818,69 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         refreshExtensionState()
     }
 
+    private func startAppStateAutoRefresh() {
+        appStateAutoRefreshTimer?.invalidate()
+        appStateAutoRefreshTimer = Timer(timeInterval: 2, repeats: true) { [weak self] _ in
+            self?.refreshIfAppStateChanged()
+        }
+        if let appStateAutoRefreshTimer {
+            RunLoop.main.add(appStateAutoRefreshTimer, forMode: .common)
+        }
+    }
+
+    private func refreshIfAppStateChanged() {
+        let signature = store.stateSignature()
+        guard signature != lastObservedStateSignature else { return }
+        loadDashboard()
+    }
+
     private func renderSnapshot() {
         applyStaticTexts()
         dueRows = ReviewScheduler.dueWords(in: snapshot.words)
-        totalWordsValue.stringValue = "\(snapshot.totalWordCount)"
-        todayValue.stringValue = "\(snapshot.todaySeenCount)"
-        learningValue.stringValue = "\(snapshot.learningCount)"
-        savedValue.stringValue = "\(snapshot.savedCount)"
-        dueValue.stringValue = "\(dueRows.count)"
-        reviewButton.title = dueRows.isEmpty ? L.t("Start Review") : L.f("Start Review (%d)", dueRows.count)
-        reviewButton.isEnabled = !dueRows.isEmpty
 
         let selected = max(sidebarTable.selectedRow, 0)
         sidebarTable.reloadData()
         sidebarTable.selectRowIndexes(IndexSet(integer: selected), byExtendingSelection: false)
-        renderWordList()
+        renderSection()
     }
 
-    private func renderWordList() {
-        currentRows = Array(snapshot.rows(for: selectedMode).prefix(200))
-        sectionTitleLabel.stringValue = selectedMode.displayTitle
+    private func renderSection() {
+        sectionTitleLabel.stringValue = selectedSection.displayName
+        todayScroll.isHidden = selectedSection != .today
+        libraryControlsRow.isHidden = selectedSection != .library
+        discoverControlsRow.isHidden = selectedSection != .discover
+        tableContainer.isHidden = selectedSection == .today
+
+        switch selectedSection {
+        case .today:
+            rebuildToday()
+        case .library:
+            refreshLibraryControls()
+            currentRows = Array(snapshot.libraryRows(filter: libraryFilter, search: libraryQuery, sortByRecent: librarySortByRecent).prefix(300))
+            currentRowsShowSave = false
+            emptyStateLabel.stringValue = libraryQuery.isEmpty
+                ? L.t("No words in this list yet.")
+                : L.t("No matches.")
+            reloadWordTable()
+        case .discover:
+            refreshDiscoverControls()
+            currentRows = Array(snapshot.discoverRows(scope: discoverScope).prefix(200))
+            currentRowsShowSave = true
+            emptyStateLabel.stringValue = L.t("Keep browsing Japanese pages — frequently seen new words will appear here.")
+            reloadWordTable()
+        }
+    }
+
+    private func reloadWordTable() {
         wordTable.reloadData()
         wordTable.sizeLastColumnToFit()
-
-        emptyStateLabel.stringValue = snapshot.hasLoadedState
-            ? L.t("No words in this list yet.")
-            : L.t("No shared data yet. Browse Japanese pages with the Safari extension enabled, then click Refresh.")
-        updateContentVisibility()
+        emptyStateLabel.isHidden = !currentRows.isEmpty
     }
 
-    // Show onboarding instead of the (empty) list until the extension is
-    // enabled and at least one word has been collected.
+    // Onboarding replaces the Today content until the first word arrives;
+    // an extension problem alone is surfaced by the header status instead.
     private var shouldShowOnboarding: Bool {
-        if snapshot.totalWordCount == 0 { return true }
-        return extensionEnabled == false
-    }
-
-    private func updateContentVisibility() {
-        let onboarding = shouldShowOnboarding
-        if onboarding { rebuildOnboarding() }
-        onboardingContainer.isHidden = !onboarding
-        wordScrollView.isHidden = onboarding
-        emptyStateLabel.isHidden = onboarding || !currentRows.isEmpty
+        snapshot.totalWordCount == 0
     }
 
     private func rebuildOnboarding() {
@@ -622,42 +994,48 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     // MARK: - Table view data source / delegate
 
     func numberOfRows(in tableView: NSTableView) -> Int {
-        if tableView === sidebarTable { return WordListMode.allCases.count }
+        if tableView === sidebarTable { return AppSection.allCases.count }
         return currentRows.count
     }
 
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
         if tableView === sidebarTable {
-            guard row < WordListMode.allCases.count else { return nil }
-            return makeSidebarCell(for: WordListMode.allCases[row])
+            guard row < AppSection.allCases.count else { return nil }
+            return makeSidebarCell(for: AppSection.allCases[row])
         }
         guard row < currentRows.count else { return nil }
-        return makeWordCell(currentRows[row])
+        return makeWordCell(currentRows[row], withSaveButton: currentRowsShowSave)
     }
 
     func tableViewSelectionDidChange(_ notification: Notification) {
         guard (notification.object as? NSTableView) === sidebarTable else { return }
         let index = sidebarTable.selectedRow
-        guard index >= 0, index < WordListMode.allCases.count else { return }
-        selectedMode = WordListMode.allCases[index]
-        renderWordList()
+        guard index >= 0, index < AppSection.allCases.count else { return }
+        selectedSection = AppSection.allCases[index]
+        renderSection()
     }
 
-    private func makeSidebarCell(for mode: WordListMode) -> NSView {
+    private func makeSidebarCell(for section: AppSection) -> NSView {
         let icon = NSImageView()
-        icon.image = NSImage(systemSymbolName: mode.symbolName, accessibilityDescription: nil)
+        icon.image = NSImage(systemSymbolName: section.symbolName, accessibilityDescription: nil)
         icon.contentTintColor = .secondaryLabelColor
         NSLayoutConstraint.activate([
             icon.widthAnchor.constraint(equalToConstant: 18)
         ])
 
-        let name = NSTextField(labelWithString: mode.displayName)
+        let name = NSTextField(labelWithString: section.displayName)
         name.font = NSFont.systemFont(ofSize: 13)
         name.lineBreakMode = .byTruncatingTail
 
-        let count = NSTextField(labelWithString: "\(snapshot.rows(for: mode).count)")
+        let countValue: Int
+        switch section {
+        case .today: countValue = dueRows.count
+        case .library: countValue = snapshot.totalWordCount
+        case .discover: countValue = snapshot.discoverRows(scope: discoverScope).count
+        }
+        let count = NSTextField(labelWithString: "\(countValue)")
         count.font = NSFont.systemFont(ofSize: 11)
-        count.textColor = .secondaryLabelColor
+        count.textColor = section == .today && countValue > 0 ? .controlAccentColor : .secondaryLabelColor
 
         let cell = NSStackView()
         cell.orientation = .horizontal
@@ -671,7 +1049,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         return cell
     }
 
-    private func makeWordCell(_ row: WordRow) -> NSView {
+    private func makeWordCell(_ row: WordRow, withSaveButton: Bool = false) -> NSView {
         let surface = NSTextField(labelWithString: row.surface)
         surface.font = NSFont.systemFont(ofSize: 15, weight: .semibold)
         surface.lineBreakMode = .byTruncatingTail
@@ -739,6 +1117,24 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         cell.addArrangedSubview(NSView())
         cell.addArrangedSubview(count)
         cell.addArrangedSubview(badge)
+        if withSaveButton && !row.saved {
+            let save = NSButton(title: L.t("Save"), target: self, action: #selector(saveWordClicked(_:)))
+            save.bezelStyle = .rounded
+            save.controlSize = .small
+            save.identifier = NSUserInterfaceItemIdentifier(row.id)
+            cell.addArrangedSubview(save)
+        }
+        let details = NSButton(
+            image: NSImage(systemSymbolName: "info.circle", accessibilityDescription: L.t("Word details")) ?? NSImage(),
+            target: self,
+            action: #selector(openWordDetailButtonClicked(_:))
+        )
+        details.bezelStyle = .rounded
+        details.controlSize = .small
+        details.toolTip = L.t("Word details")
+        details.identifier = NSUserInterfaceItemIdentifier(row.id)
+        details.widthAnchor.constraint(equalToConstant: 34).isActive = true
+        cell.addArrangedSubview(details)
         cell.addArrangedSubview(actions)
         return cell
     }
@@ -825,7 +1221,9 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
                 } else {
                     self.setStatus(L.t("Extension disabled — enable it in Safari Settings › Extensions"), color: .systemOrange)
                 }
-                self.updateContentVisibility()
+                if self.selectedSection == .today {
+                    self.renderSection()
+                }
             }
         }
     }
@@ -841,6 +1239,13 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         loadDashboard()
     }
 
+    @objc private func toggleNavigationClicked(_ sender: NSButton) {
+        isNavigationCollapsed.toggle()
+        sidebarView?.isHidden = isNavigationCollapsed
+        splitView?.adjustSubviews()
+        updateNavigationToggleButton()
+    }
+
     @objc private func startReviewClicked(_ sender: NSButton) {
         guard !dueRows.isEmpty else { return }
         let queue = Array(dueRows.prefix(ReviewScheduler.sessionLimit))
@@ -848,6 +1253,64 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             self?.loadDashboard()
         }
         presentAsSheet(session)
+    }
+
+    @objc private func openSelectedWordDetail() {
+        let rowIndex = wordTable.clickedRow >= 0 ? wordTable.clickedRow : wordTable.selectedRow
+        guard rowIndex >= 0, rowIndex < currentRows.count else { return }
+        presentWordDetail(currentRows[rowIndex])
+    }
+
+    @objc private func openWordDetailButtonClicked(_ sender: NSButton) {
+        guard let wordId = sender.identifier?.rawValue else { return }
+        guard let row = currentRows.first(where: { $0.id == wordId })
+            ?? snapshot.suggestedRows.first(where: { $0.id == wordId })
+            ?? snapshot.words.first(where: { $0.id == wordId })
+        else {
+            return
+        }
+        presentWordDetail(row)
+    }
+
+    private func presentWordDetail(_ row: WordRow) {
+        let detail = WordDetailViewController(row: row) { [weak self] action, wordId in
+            guard let self else { return }
+            try self.performWordAction(action, lexicalItemId: wordId)
+        }
+        presentAsSheet(detail)
+    }
+
+    @objc private func saveWordClicked(_ sender: NSButton) {
+        guard let wordId = sender.identifier?.rawValue, !wordId.isEmpty else { return }
+        performWordActionWithStatus(.save, lexicalItemId: wordId)
+    }
+
+    @objc private func searchChanged(_ sender: NSSearchField) {
+        libraryQuery = sender.stringValue
+        renderSection()
+    }
+
+    @objc private func libraryFilterChanged(_ sender: NSSegmentedControl) {
+        libraryFilter = LibraryFilter(rawValue: sender.selectedSegment) ?? .all
+        renderSection()
+    }
+
+    @objc private func sortChanged(_ sender: NSPopUpButton) {
+        librarySortByRecent = sender.indexOfSelectedItem == 1
+        renderSection()
+    }
+
+    @objc private func scopeChanged(_ sender: NSSegmentedControl) {
+        discoverScope = DiscoverScope(rawValue: sender.selectedSegment) ?? .week
+        renderSection()
+        // The Discover sidebar count follows the selected scope.
+        let selected = max(sidebarTable.selectedRow, 0)
+        sidebarTable.reloadData()
+        sidebarTable.selectRowIndexes(IndexSet(integer: selected), byExtendingSelection: false)
+    }
+
+    @objc private func viewAllSuggestionsClicked(_ sender: NSButton) {
+        sidebarTable.selectRowIndexes(IndexSet(integer: AppSection.discover.rawValue), byExtendingSelection: false)
     }
 
     @objc private func wordMenuItemClicked(_ sender: NSMenuItem) {
@@ -862,11 +1325,51 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         let wordId = String(raw[raw.index(after: separator)...])
         guard let action = WordAction(rawValue: actionName) else { return }
 
+        performWordActionWithStatus(action, lexicalItemId: wordId)
+    }
+
+    private func performWordActionWithStatus(_ action: WordAction, lexicalItemId: String) {
         do {
-            try store.apply(action: action, lexicalItemId: wordId)
-            loadDashboard()
+            try performWordAction(action, lexicalItemId: lexicalItemId)
         } catch {
             setStatus(L.f("Could not save word action: %@", error.localizedDescription), color: .systemRed)
+        }
+    }
+
+    private func performWordAction(_ action: WordAction, lexicalItemId: String) throws {
+        let undoState = store.rawStateForUndo()
+        try store.apply(action: action, lexicalItemId: lexicalItemId)
+        pendingUndoState = undoState
+        loadDashboard()
+        showActionFeedback(actionFeedbackText(for: action), canUndo: true)
+    }
+
+    private func actionFeedbackText(for action: WordAction) -> String {
+        switch action {
+        case .save: return L.t("Saved to learning.")
+        case .known: return L.t("Marked as known.")
+        case .forgot: return L.t("Marked as forgotten.")
+        case .ignore: return L.t("Ignored.")
+        case .alwaysShow: return L.t("Always showing annotations.")
+        case .restore: return L.t("Restored.")
+        }
+    }
+
+    private func showActionFeedback(_ text: String, canUndo: Bool) {
+        actionFeedbackLabel.stringValue = text
+        actionFeedbackLabel.isHidden = false
+        undoButton.isHidden = !canUndo
+    }
+
+    @objc private func undoLastWordActionClicked(_ sender: NSButton) {
+        guard let pendingUndoState else { return }
+        do {
+            try store.restoreRawState(pendingUndoState)
+            self.pendingUndoState = nil
+            loadDashboard()
+            showActionFeedback(L.t("Undone."), canUndo: false)
+        } catch {
+            setStatus(L.f("Could not undo: %@", error.localizedDescription), color: .systemRed)
         }
     }
 
@@ -883,6 +1386,219 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             self?.loadDashboard()
         }
         presentAsSheet(settings)
+    }
+}
+
+final class WordDetailViewController: NSViewController {
+    private let row: WordRow
+    private let onAction: (WordAction, String) throws -> Void
+    private let errorLabel = NSTextField(labelWithString: "")
+
+    init(row: WordRow, onAction: @escaping (WordAction, String) throws -> Void) {
+        self.row = row
+        self.onAction = onAction
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+
+    override func loadView() {
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 600, height: 520))
+        preferredContentSize = NSSize(width: 600, height: 520)
+
+        let column = NSStackView()
+        column.orientation = .vertical
+        column.alignment = .leading
+        column.spacing = 18
+        column.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(column)
+
+        NSLayoutConstraint.activate([
+            column.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 24),
+            column.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -24),
+            column.topAnchor.constraint(equalTo: view.topAnchor, constant: 22),
+            column.bottomAnchor.constraint(lessThanOrEqualTo: view.bottomAnchor, constant: -18)
+        ])
+
+        column.addArrangedSubview(makeHeader())
+        column.addArrangedSubview(makeFactsSection())
+        column.addArrangedSubview(makeExampleSection())
+        column.addArrangedSubview(makeActionsSection())
+
+        errorLabel.font = NSFont.systemFont(ofSize: 12)
+        errorLabel.textColor = .systemRed
+        errorLabel.maximumNumberOfLines = 2
+        errorLabel.isHidden = true
+        column.addArrangedSubview(errorLabel)
+        column.addArrangedSubview(makeFooter())
+    }
+
+    private func makeHeader() -> NSView {
+        let surface = NSTextField(labelWithString: row.surface)
+        surface.font = NSFont.systemFont(ofSize: 34, weight: .semibold)
+        surface.lineBreakMode = .byTruncatingTail
+
+        let reading = NSTextField(labelWithString: row.reading.isEmpty ? L.t("(no reading)") : row.reading)
+        reading.font = NSFont.systemFont(ofSize: 15)
+        reading.textColor = .secondaryLabelColor
+
+        let badge = makeStatusBadge()
+
+        let top = NSStackView(views: [surface, NSView(), badge])
+        top.orientation = .horizontal
+        top.alignment = .centerY
+        top.spacing = 12
+
+        let stack = NSStackView(views: [top, reading])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 4
+        return stack
+    }
+
+    private func makeStatusBadge() -> NSView {
+        let label = NSTextField(labelWithString: statusText)
+        label.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        label.textColor = statusColor
+
+        let badge = NSStackView(views: [label])
+        badge.orientation = .horizontal
+        badge.edgeInsets = NSEdgeInsets(top: 3, left: 9, bottom: 3, right: 9)
+        badge.wantsLayer = true
+        badge.layer?.backgroundColor = statusColor.withAlphaComponent(0.14).cgColor
+        badge.layer?.cornerRadius = 10
+        return badge
+    }
+
+    private var statusText: String {
+        if row.ignored || row.lifecycleStatus == "ignored" { return L.t("Ignored") }
+        if row.reviewStage == "lapsed" { return L.t("Lapsed") }
+        switch row.lifecycleStatus {
+        case "learning": return L.t("Learning")
+        case "reviewing": return L.t("Reviewing")
+        case "known", "mastered": return L.t("Known")
+        default: return L.t("New")
+        }
+    }
+
+    private var statusColor: NSColor {
+        if row.ignored || row.lifecycleStatus == "ignored" { return .systemGray }
+        if row.reviewStage == "lapsed" { return .systemOrange }
+        switch row.lifecycleStatus {
+        case "learning": return .systemBlue
+        case "reviewing": return .systemIndigo
+        case "known", "mastered": return .systemGreen
+        default: return .systemGray
+        }
+    }
+
+    private func makeFactsSection() -> NSView {
+        let grid = NSGridView(views: [
+            makeFactRow(L.t("Meaning"), row.meaning.isEmpty ? L.t("No meaning saved yet") : row.meaning),
+            makeFactRow(L.t("Status"), statusText),
+            makeFactRow(L.t("Seen"), L.f("%d times", row.seenCount)),
+            makeFactRow(L.t("Next review"), row.nextReviewAt ?? L.t("never"))
+        ])
+        grid.column(at: 0).xPlacement = .trailing
+        grid.column(at: 1).xPlacement = .leading
+        grid.rowSpacing = 8
+        grid.columnSpacing = 14
+        return grid
+    }
+
+    private func makeFactRow(_ title: String, _ value: String) -> [NSView] {
+        let key = NSTextField(labelWithString: title)
+        key.font = NSFont.systemFont(ofSize: 12, weight: .medium)
+        key.textColor = .secondaryLabelColor
+
+        let val = NSTextField(wrappingLabelWithString: value)
+        val.font = NSFont.systemFont(ofSize: 13)
+        val.maximumNumberOfLines = 2
+        val.preferredMaxLayoutWidth = 410
+        return [key, val]
+    }
+
+    private func makeExampleSection() -> NSView {
+        let title = NSTextField(labelWithString: L.t("Example"))
+        title.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        title.textColor = .secondaryLabelColor
+
+        let sentence = NSTextField(wrappingLabelWithString: row.exampleSentence ?? "—")
+        sentence.font = NSFont.systemFont(ofSize: 14)
+        sentence.maximumNumberOfLines = 4
+        sentence.preferredMaxLayoutWidth = 520
+
+        let source = NSTextField(labelWithString: row.exampleSource.map { "\(L.t("Source")): \($0)" } ?? "")
+        source.font = NSFont.systemFont(ofSize: 11)
+        source.textColor = .tertiaryLabelColor
+        source.lineBreakMode = .byTruncatingTail
+        source.isHidden = row.exampleSource == nil
+
+        let stack = NSStackView(views: [title, sentence, source])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 6
+        return stack
+    }
+
+    private func makeActionsSection() -> NSView {
+        let title = NSTextField(labelWithString: L.t("Actions"))
+        title.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        title.textColor = .secondaryLabelColor
+
+        let save = makeActionButton("Save to Learning", action: .save)
+        let known = makeActionButton("Mark as Known", action: .known)
+        let forgot = makeActionButton("Forgot This Word", action: .forgot)
+        let ignoreTitle = (row.ignored || row.lifecycleStatus == "ignored") ? "Restore" : "Ignore"
+        let ignore = makeActionButton(ignoreTitle, action: (row.ignored || row.lifecycleStatus == "ignored") ? .restore : .ignore)
+        let pin = makeActionButton("Always Show Annotation", action: .alwaysShow)
+        pin.isEnabled = !row.pinned
+
+        let buttons = NSStackView(views: [save, known, forgot, ignore, pin])
+        buttons.orientation = .horizontal
+        buttons.alignment = .centerY
+        buttons.spacing = 8
+
+        let stack = NSStackView(views: [title, buttons])
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = 8
+        return stack
+    }
+
+    private func makeActionButton(_ titleKey: String, action: WordAction) -> NSButton {
+        let button = NSButton(title: L.t(titleKey), target: self, action: #selector(actionClicked(_:)))
+        button.bezelStyle = .rounded
+        button.identifier = NSUserInterfaceItemIdentifier(action.rawValue)
+        return button
+    }
+
+    private func makeFooter() -> NSView {
+        let close = NSButton(title: L.t("Close"), target: self, action: #selector(closeClicked))
+        close.bezelStyle = .rounded
+
+        let row = NSStackView(views: [NSView(), close])
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        return row
+    }
+
+    @objc private func actionClicked(_ sender: NSButton) {
+        guard let raw = sender.identifier?.rawValue, let action = WordAction(rawValue: raw) else { return }
+        do {
+            try onAction(action, row.id)
+            dismiss(nil)
+        } catch {
+            errorLabel.stringValue = L.f("Could not save word action: %@", error.localizedDescription)
+            errorLabel.isHidden = false
+        }
+    }
+
+    @objc private func closeClicked() {
+        dismiss(nil)
     }
 }
 
@@ -924,6 +1640,72 @@ final class AppStateStore {
 
     var displayPath: String {
         stateFileURL.path
+    }
+
+    func stateSignature() -> String? {
+        guard
+            let attributes = try? fileManager.attributesOfItem(atPath: stateFileURL.path),
+            let modifiedAt = attributes[.modificationDate] as? Date
+        else {
+            return nil
+        }
+        let size = attributes[.size] as? NSNumber
+        return "\(modifiedAt.timeIntervalSince1970):\(size?.intValue ?? 0)"
+    }
+
+    func rawStateForUndo() -> [String: Any] {
+        loadRawState()
+    }
+
+    func restoreRawState(_ raw: [String: Any]) throws {
+        try save(raw)
+    }
+
+    func initializeEntitlementsIfNeeded() throws {
+        let fileExists = fileManager.fileExists(atPath: stateFileURL.path)
+        var raw = loadRawState()
+        let existing = raw["entitlements"] as? [String: Any]
+        let needsInitialization = !fileExists || existing == nil || existing?["access"] == nil
+        guard needsInitialization else { return }
+
+        let now = Date()
+        raw["entitlements"] = Self.normalizedEntitlements(existing, now: now)
+        touchMetadata(in: &raw, now: now)
+        try save(raw)
+    }
+
+    func entitlementSummary() -> AppEntitlementSummary {
+        let raw = loadRawState()
+        let entitlements = Self.normalizedEntitlements(raw["entitlements"] as? [String: Any], now: Date())
+        let access = entitlements["access"] as? [String: Any] ?? [:]
+        let trial = entitlements["trial"] as? [String: Any] ?? [:]
+        let basic = entitlements["basic"] as? [String: Any] ?? [:]
+        let pro = entitlements["pro"] as? [String: Any] ?? [:]
+
+        return AppEntitlementSummary(
+            tier: access["tier"] as? String ?? "trial",
+            basicUnlocked: access["basicUnlocked"] as? Bool ?? true,
+            proUnlocked: access["proUnlocked"] as? Bool ?? false,
+            trialDaysRemaining: Self.daysRemaining(until: trial["expiresAt"] as? String, now: Date()),
+            basicStatus: basic["status"] as? String ?? "not_purchased",
+            verificationStatus: basic["verificationStatus"] as? String ?? "not_checked",
+            proStatus: pro["status"] as? String ?? "not_subscribed",
+            developmentOverride: entitlements["developmentOverride"] as? String ?? "none"
+        )
+    }
+
+    func updateEntitlementDevelopmentOverride(_ override: String) throws {
+        var raw = loadRawState()
+        var entitlements = Self.normalizedEntitlements(raw["entitlements"] as? [String: Any], now: Date())
+        if override == "none" {
+            entitlements.removeValue(forKey: "developmentOverride")
+        } else {
+            entitlements["developmentOverride"] = override
+        }
+        entitlements = Self.normalizedEntitlements(entitlements, now: Date())
+        raw["entitlements"] = entitlements
+        touchMetadata(in: &raw)
+        try save(raw)
     }
 
     private var stateFileURL: URL {
@@ -1027,11 +1809,7 @@ final class AppStateStore {
         mutate(&settings)
         raw["settings"] = settings
 
-        let now = ISO8601DateFormatter().string(from: Date())
-        var metadata = raw["metadata"] as? [String: Any] ?? [:]
-        metadata["updatedAt"] = now
-        metadata["lastOpenedAt"] = now
-        raw["metadata"] = metadata
+        touchMetadata(in: &raw)
 
         try save(raw)
     }
@@ -1123,6 +1901,14 @@ final class AppStateStore {
         try data.write(to: url, options: .atomic)
     }
 
+    private func touchMetadata(in raw: inout [String: Any], now: Date = Date()) {
+        let nowText = ISO8601DateFormatter().string(from: now)
+        var metadata = raw["metadata"] as? [String: Any] ?? [:]
+        metadata["updatedAt"] = nowText
+        metadata["lastOpenedAt"] = nowText
+        raw["metadata"] = metadata
+    }
+
     private static func stateFileURL(fileManager: FileManager = .default) -> URL {
         if let appGroupURL = fileManager.containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier) {
             return appGroupURL
@@ -1144,6 +1930,7 @@ final class AppStateStore {
         return [
             "schemaVersion": 1,
             "settings": [:],
+            "entitlements": Self.defaultEntitlements(now: Date()),
             "lexicalItems": [:],
             "userLexicalStates": [:],
             "sourceOccurrences": [:],
@@ -1204,6 +1991,116 @@ final class AppStateStore {
             values.append(value)
         }
     }
+
+    private static func defaultEntitlements(now: Date) -> [String: Any] {
+        let nowText = ISO8601DateFormatter().string(from: now)
+        let expiresAt = Calendar(identifier: .gregorian).date(byAdding: .day, value: 31, to: now) ?? now
+        let expiresText = ISO8601DateFormatter().string(from: expiresAt)
+        return [
+            "schemaVersion": 1,
+            "platform": "apple-macos",
+            "trial": [
+                "startedAt": nowText,
+                "expiresAt": expiresText,
+                "source": "first_app_launch"
+            ],
+            "basic": [
+                "status": "not_purchased",
+                "productId": "com.banyuguru.fadingfurigana.basic.macos",
+                "verificationStatus": "not_checked"
+            ],
+            "pro": [
+                "status": "not_subscribed"
+            ],
+            "access": accessForTier("trial", now: now)
+        ]
+    }
+
+    private static func normalizedEntitlements(_ raw: [String: Any]?, now: Date) -> [String: Any] {
+        let defaults = defaultEntitlements(now: now)
+        var entitlements = defaults.merging(raw ?? [:]) { _, new in new }
+        entitlements["schemaVersion"] = 1
+        entitlements["platform"] = entitlements["platform"] as? String ?? "apple-macos"
+
+        let defaultTrial = defaults["trial"] as? [String: Any] ?? [:]
+        let defaultBasic = defaults["basic"] as? [String: Any] ?? [:]
+        let defaultPro = defaults["pro"] as? [String: Any] ?? [:]
+        var trial = defaultTrial.merging(entitlements["trial"] as? [String: Any] ?? [:]) { _, new in new }
+        var basic = defaultBasic.merging(entitlements["basic"] as? [String: Any] ?? [:]) { _, new in new }
+        var pro = defaultPro.merging(entitlements["pro"] as? [String: Any] ?? [:]) { _, new in new }
+
+        trial["startedAt"] = trial["startedAt"] as? String ?? defaultTrial["startedAt"]
+        trial["expiresAt"] = trial["expiresAt"] as? String ?? defaultTrial["expiresAt"]
+        basic["status"] = normalize(basic["status"] as? String, allowed: ["not_purchased", "purchased", "refunded", "unknown"], fallback: "not_purchased")
+        basic["verificationStatus"] = normalize(basic["verificationStatus"] as? String, allowed: ["not_checked", "verified", "failed_offline", "failed_invalid", "pending_restore"], fallback: "not_checked")
+        pro["status"] = normalize(pro["status"] as? String, allowed: ["not_subscribed", "active", "grace_period", "expired", "unknown"], fallback: "not_subscribed")
+
+        entitlements["trial"] = trial
+        entitlements["basic"] = basic
+        entitlements["pro"] = pro
+
+        if let override = entitlements["developmentOverride"] as? String {
+            let normalizedOverride = normalize(override, allowed: ["none", "trial", "expired", "basic", "pro"], fallback: "none")
+            if normalizedOverride == "none" {
+                entitlements.removeValue(forKey: "developmentOverride")
+            } else {
+                entitlements["developmentOverride"] = normalizedOverride
+            }
+        }
+
+        entitlements["access"] = computeAccess(entitlements, now: now)
+        return entitlements
+    }
+
+    private static func computeAccess(_ entitlements: [String: Any], now: Date) -> [String: Any] {
+        if let override = entitlements["developmentOverride"] as? String, override != "none" {
+            return accessForTier(override, now: now)
+        }
+
+        let basic = entitlements["basic"] as? [String: Any] ?? [:]
+        let pro = entitlements["pro"] as? [String: Any] ?? [:]
+        let trial = entitlements["trial"] as? [String: Any] ?? [:]
+
+        let proStatus = pro["status"] as? String ?? "not_subscribed"
+        if proStatus == "active" || proStatus == "grace_period" {
+            return accessForTier("pro", now: now)
+        }
+
+        if (basic["status"] as? String) == "purchased" {
+            return accessForTier("basic", now: now)
+        }
+
+        if let expiresAt = parseDate(trial["expiresAt"] as? String), expiresAt > now {
+            return accessForTier("trial", now: now)
+        }
+
+        return accessForTier("expired", now: now)
+    }
+
+    private static func accessForTier(_ tier: String, now: Date) -> [String: Any] {
+        [
+            "tier": tier,
+            "basicUnlocked": tier == "trial" || tier == "basic" || tier == "pro",
+            "proUnlocked": tier == "pro",
+            "computedAt": ISO8601DateFormatter().string(from: now)
+        ]
+    }
+
+    private static func daysRemaining(until expiresAt: String?, now: Date) -> Int? {
+        guard let expiresAt = parseDate(expiresAt), expiresAt > now else { return nil }
+        let seconds = expiresAt.timeIntervalSince(now)
+        return max(0, Int(ceil(seconds / 86_400)))
+    }
+
+    private static func parseDate(_ value: String?) -> Date? {
+        guard let value else { return nil }
+        return ISO8601DateFormatter().date(from: value)
+    }
+
+    private static func normalize(_ value: String?, allowed: [String], fallback: String) -> String {
+        guard let value, allowed.contains(value) else { return fallback }
+        return value
+    }
 }
 
 struct AppStateSnapshot {
@@ -1216,6 +2113,7 @@ struct AppStateSnapshot {
     let weekTopRows: [WordRow]
     let suggestedRows: [WordRow]
     let todaySeenCount: Int
+    let reviewedTodayCount: Int
 
     init(raw: [String: Any], hasLoadedState: Bool) {
         self.raw = raw
@@ -1244,24 +2142,35 @@ struct AppStateSnapshot {
         let weekCounts = Self.counts(from: summaries, startDate: weekStart, endDate: todayKey)
 
         self.todaySeenCount = todayCounts.values.reduce(0, +)
+        self.reviewedTodayCount = Self.reviewedToday(from: raw["reviewLogs"] as? [String: Any] ?? [:])
         self.words = rowsById.values.sorted(by: WordRow.defaultSort)
         self.todayTopRows = Self.rows(from: todayCounts, rowsById: rowsById)
         self.weekTopRows = Self.rows(from: weekCounts, rowsById: rowsById)
         self.suggestedRows = Self.suggestedRows(weekTopRows: weekTopRows, allWords: words)
     }
 
-    // Frequency-based learning suggestions: words the user keeps running into
-    // but has not started learning, marked known, or dismissed.
-    private static func suggestedRows(weekTopRows: [WordRow], allWords: [WordRow]) -> [WordRow] {
-        func isCandidate(_ row: WordRow) -> Bool {
-            row.lifecycleStatus == "new" && !row.saved && !row.ignored && !row.pinned
-        }
+    // A word the user keeps running into but has not started learning,
+    // marked known, or dismissed.
+    static func isSuggestionCandidate(_ row: WordRow) -> Bool {
+        row.lifecycleStatus == "new" && !row.saved && !row.ignored && !row.pinned
+    }
 
-        var suggested = weekTopRows.filter(isCandidate)
+    private static func suggestedRows(weekTopRows: [WordRow], allWords: [WordRow]) -> [WordRow] {
+        var suggested = weekTopRows.filter { isSuggestionCandidate($0) }
         let includedIds = Set(suggested.map(\.id))
-        let allTimeExtras = allWords.filter { isCandidate($0) && $0.seenCount >= 2 && !includedIds.contains($0.id) }
+        let allTimeExtras = allWords.filter { isSuggestionCandidate($0) && $0.seenCount >= 2 && !includedIds.contains($0.id) }
         suggested.append(contentsOf: allTimeExtras)
         return Array(suggested.prefix(50))
+    }
+
+    private static func reviewedToday(from logs: [String: Any]) -> Int {
+        var count = 0
+        for value in logs.values {
+            let log = value as? [String: Any] ?? [:]
+            guard let date = ReviewScheduler.parseISODate(log["reviewedAt"] as? String) else { continue }
+            if Calendar.current.isDateInToday(date) { count += 1 }
+        }
+        return count
     }
 
     var totalWordCount: Int {
@@ -1276,24 +2185,53 @@ struct AppStateSnapshot {
         words.filter(\.saved).count
     }
 
-    func rows(for mode: WordListMode) -> [WordRow] {
-        switch mode {
-        case .today:
-            return todayTopRows
-        case .week:
-            return weekTopRows
-        case .suggested:
-            return suggestedRows
+    static func matches(_ row: WordRow, filter: LibraryFilter) -> Bool {
+        switch filter {
+        case .all:
+            return true
         case .learning:
-            return words
-                .filter { $0.lifecycleStatus == "learning" || $0.lifecycleStatus == "reviewing" }
-                .sorted(by: WordRow.defaultSort)
+            return row.lifecycleStatus == "learning" || row.lifecycleStatus == "reviewing"
         case .saved:
-            return words.filter(\.saved).sorted(by: WordRow.defaultSort)
+            return row.saved
         case .known:
-            return words.filter { $0.lifecycleStatus == "known" }.sorted(by: WordRow.defaultSort)
+            return row.lifecycleStatus == "known" || row.lifecycleStatus == "mastered"
         case .ignored:
-            return words.filter { $0.lifecycleStatus == "ignored" }.sorted(by: WordRow.defaultSort)
+            return row.ignored || row.lifecycleStatus == "ignored"
+        }
+    }
+
+    func libraryCount(for filter: LibraryFilter) -> Int {
+        words.filter { Self.matches($0, filter: filter) }.count
+    }
+
+    func libraryRows(filter: LibraryFilter, search: String, sortByRecent: Bool) -> [WordRow] {
+        var rows = words.filter { Self.matches($0, filter: filter) }
+
+        let query = search.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if !query.isEmpty {
+            rows = rows.filter {
+                $0.surface.lowercased().contains(query) ||
+                $0.reading.lowercased().contains(query) ||
+                $0.meaning.lowercased().contains(query)
+            }
+        }
+
+        if sortByRecent {
+            rows.sort { lhs, rhs in
+                lhs.lastSeenAt == rhs.lastSeenAt ? WordRow.defaultSort(lhs, rhs) : lhs.lastSeenAt > rhs.lastSeenAt
+            }
+        }
+        return rows
+    }
+
+    func discoverRows(scope: DiscoverScope) -> [WordRow] {
+        switch scope {
+        case .today:
+            return todayTopRows.filter { Self.isSuggestionCandidate($0) }
+        case .week:
+            return weekTopRows.filter { Self.isSuggestionCandidate($0) }
+        case .allTime:
+            return words.filter { Self.isSuggestionCandidate($0) }
         }
     }
 
