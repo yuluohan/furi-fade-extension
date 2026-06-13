@@ -99,6 +99,9 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     private let statusDot = NSView()
     private let statusLabel = NSTextField(labelWithString: "Checking Safari extension status…")
     private let emptyStateLabel = NSTextField(wrappingLabelWithString: "")
+    private let wordScrollView = NSScrollView()
+    private let onboardingContainer = NSStackView()
+    private var extensionEnabled: Bool?
     private let versionLabel = NSTextField(labelWithString: "")
     private let storePathLabel = NSTextField(labelWithString: "")
     private let updatedLabel = NSTextField(labelWithString: "")
@@ -350,11 +353,10 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         wordTable.dataSource = self
         wordTable.delegate = self
 
-        let scroll = NSScrollView()
-        scroll.documentView = wordTable
-        scroll.hasVerticalScroller = true
-        scroll.drawsBackground = false
-        scroll.translatesAutoresizingMaskIntoConstraints = false
+        wordScrollView.documentView = wordTable
+        wordScrollView.hasVerticalScroller = true
+        wordScrollView.drawsBackground = false
+        wordScrollView.translatesAutoresizingMaskIntoConstraints = false
 
         emptyStateLabel.font = NSFont.systemFont(ofSize: 13)
         emptyStateLabel.textColor = .secondaryLabelColor
@@ -363,18 +365,28 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         emptyStateLabel.translatesAutoresizingMaskIntoConstraints = false
         emptyStateLabel.isHidden = true
 
+        onboardingContainer.orientation = .vertical
+        onboardingContainer.alignment = .leading
+        onboardingContainer.spacing = 16
+        onboardingContainer.translatesAutoresizingMaskIntoConstraints = false
+        onboardingContainer.isHidden = true
+
         let container = NSView()
-        container.addSubview(scroll)
+        container.addSubview(wordScrollView)
         container.addSubview(emptyStateLabel)
+        container.addSubview(onboardingContainer)
 
         NSLayoutConstraint.activate([
-            scroll.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-            scroll.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: container.topAnchor),
-            scroll.bottomAnchor.constraint(equalTo: container.bottomAnchor),
+            wordScrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            wordScrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            wordScrollView.topAnchor.constraint(equalTo: container.topAnchor),
+            wordScrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor),
             emptyStateLabel.centerXAnchor.constraint(equalTo: container.centerXAnchor),
             emptyStateLabel.centerYAnchor.constraint(equalTo: container.centerYAnchor),
             emptyStateLabel.widthAnchor.constraint(lessThanOrEqualToConstant: 420),
+            onboardingContainer.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            onboardingContainer.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            onboardingContainer.widthAnchor.constraint(lessThanOrEqualToConstant: 520),
             container.heightAnchor.constraint(greaterThanOrEqualToConstant: 200)
         ])
         return container
@@ -402,6 +414,12 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         row.addArrangedSubview(NSView())
         row.addArrangedSubview(updatedLabel)
         return row
+    }
+
+    private func makeTextButton(_ title: String, action: Selector) -> NSButton {
+        let button = NSButton(title: title, target: self, action: action)
+        button.bezelStyle = .rounded
+        return button
     }
 
     private func makeIconButton(symbol: String, tooltip: String, action: Selector) -> NSButton {
@@ -475,7 +493,130 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         emptyStateLabel.stringValue = snapshot.hasLoadedState
             ? L.t("No words in this list yet.")
             : L.t("No shared data yet. Browse Japanese pages with the Safari extension enabled, then click Refresh.")
-        emptyStateLabel.isHidden = !currentRows.isEmpty
+        updateContentVisibility()
+    }
+
+    // Show onboarding instead of the (empty) list until the extension is
+    // enabled and at least one word has been collected.
+    private var shouldShowOnboarding: Bool {
+        if snapshot.totalWordCount == 0 { return true }
+        return extensionEnabled == false
+    }
+
+    private func updateContentVisibility() {
+        let onboarding = shouldShowOnboarding
+        if onboarding { rebuildOnboarding() }
+        onboardingContainer.isHidden = !onboarding
+        wordScrollView.isHidden = onboarding
+        emptyStateLabel.isHidden = onboarding || !currentRows.isEmpty
+    }
+
+    private func rebuildOnboarding() {
+        onboardingContainer.arrangedSubviews.forEach {
+            onboardingContainer.removeArrangedSubview($0)
+            $0.removeFromSuperview()
+        }
+
+        let title = NSTextField(labelWithString: L.t("Let's get started"))
+        title.font = NSFont.boldSystemFont(ofSize: 20)
+
+        let intro = NSTextField(wrappingLabelWithString: L.t("Fading Furigana annotates Japanese as you browse in Safari, then helps you review here."))
+        intro.font = NSFont.systemFont(ofSize: 13)
+        intro.textColor = .secondaryLabelColor
+        intro.maximumNumberOfLines = 2
+        intro.preferredMaxLayoutWidth = 500
+
+        let enabled = extensionEnabled == true
+        let statusText = extensionEnabled == nil
+            ? nil
+            : (enabled ? L.t("Enabled") : L.t("Not enabled yet"))
+        let step1Button = makeTextButton(L.t("Open Safari Extension Settings…"), action: #selector(openSafariExtensionPreferences))
+        let step1 = makeOnboardingStep(
+            number: 1,
+            done: enabled,
+            title: L.t("Enable the Safari extension"),
+            subtitle: L.t("Turn on Fading Furigana in Safari Settings › Extensions, and allow it on the sites you read."),
+            statusText: statusText,
+            statusOk: enabled,
+            control: step1Button
+        )
+        let step2 = makeOnboardingStep(
+            number: 2,
+            done: false,
+            title: L.t("Browse Japanese web pages"),
+            subtitle: L.t("Readings appear above kanji and katakana. Tap a word to save, mark known, or ignore it."),
+            statusText: nil,
+            statusOk: false,
+            control: nil
+        )
+        let step3Button = makeTextButton(L.t("Refresh"), action: #selector(refreshButtonClicked(_:)))
+        let step3 = makeOnboardingStep(
+            number: 3,
+            done: false,
+            title: L.t("Come back to review"),
+            subtitle: L.t("Your words, stats, and review queue show up here. Click Refresh after browsing."),
+            statusText: nil,
+            statusOk: false,
+            control: step3Button
+        )
+
+        onboardingContainer.addArrangedSubview(title)
+        onboardingContainer.addArrangedSubview(intro)
+        onboardingContainer.addArrangedSubview(step1)
+        onboardingContainer.addArrangedSubview(step2)
+        onboardingContainer.addArrangedSubview(step3)
+    }
+
+    private func makeOnboardingStep(
+        number: Int,
+        done: Bool,
+        title: String,
+        subtitle: String,
+        statusText: String?,
+        statusOk: Bool,
+        control: NSView?
+    ) -> NSView {
+        let badge = NSTextField(labelWithString: done ? "✓" : "\(number)")
+        badge.alignment = .center
+        badge.font = NSFont.boldSystemFont(ofSize: 13)
+        badge.textColor = .white
+        badge.wantsLayer = true
+        badge.layer?.backgroundColor = (done ? NSColor.systemGreen : NSColor.systemBlue).cgColor
+        badge.layer?.cornerRadius = 12
+        NSLayoutConstraint.activate([
+            badge.widthAnchor.constraint(equalToConstant: 24),
+            badge.heightAnchor.constraint(equalToConstant: 24)
+        ])
+
+        let titleLabel = NSTextField(labelWithString: title)
+        titleLabel.font = NSFont.systemFont(ofSize: 14, weight: .semibold)
+
+        let subtitleLabel = NSTextField(wrappingLabelWithString: subtitle)
+        subtitleLabel.font = NSFont.systemFont(ofSize: 12)
+        subtitleLabel.textColor = .secondaryLabelColor
+        subtitleLabel.maximumNumberOfLines = 3
+        subtitleLabel.preferredMaxLayoutWidth = 460
+
+        let textStack = NSStackView(views: [titleLabel, subtitleLabel])
+        textStack.orientation = .vertical
+        textStack.alignment = .leading
+        textStack.spacing = 2
+
+        if let statusText {
+            let status = NSTextField(labelWithString: statusText)
+            status.font = NSFont.systemFont(ofSize: 11, weight: .medium)
+            status.textColor = statusOk ? .systemGreen : .systemOrange
+            textStack.addArrangedSubview(status)
+        }
+        if let control {
+            textStack.addArrangedSubview(control)
+        }
+
+        let row = NSStackView(views: [badge, textStack])
+        row.orientation = .horizontal
+        row.alignment = .top
+        row.spacing = 12
+        return row
     }
 
     // MARK: - Table view data source / delegate
@@ -677,11 +818,14 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
                     return
                 }
 
-                if state?.isEnabled == true {
+                let enabled = state?.isEnabled == true
+                self.extensionEnabled = enabled
+                if enabled {
                     self.setStatus(L.t("Safari extension enabled"), color: .systemGreen)
                 } else {
                     self.setStatus(L.t("Extension disabled — enable it in Safari Settings › Extensions"), color: .systemOrange)
                 }
+                self.updateContentVisibility()
             }
         }
     }
@@ -723,6 +867,14 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             loadDashboard()
         } catch {
             setStatus(L.f("Could not save word action: %@", error.localizedDescription), color: .systemRed)
+        }
+    }
+
+    @objc private func openSafariExtensionPreferences() {
+        SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { _ in
+            DispatchQueue.main.async {
+                NSApp.activate(ignoringOtherApps: true)
+            }
         }
     }
 

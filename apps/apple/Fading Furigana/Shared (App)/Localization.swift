@@ -58,6 +58,19 @@ enum L {
         "No words in this list yet.": "这个列表还没有单词。",
         "No shared data yet. Browse Japanese pages with the Safari extension enabled, then click Refresh.": "还没有共享数据。请在启用 Safari 扩展的情况下浏览日语页面，然后点击刷新。",
 
+        // Onboarding
+        "Let's get started": "开始使用",
+        "Fading Furigana annotates Japanese as you browse in Safari, then helps you review here.": "Fading Furigana 会在你用 Safari 浏览时为日语标注假名，再在这里帮你复习。",
+        "Enable the Safari extension": "启用 Safari 扩展",
+        "Turn on Fading Furigana in Safari Settings › Extensions, and allow it on the sites you read.": "在 Safari 设置 › 扩展中开启 Fading Furigana，并允许它在你阅读的网站上运行。",
+        "Enabled": "已启用",
+        "Not enabled yet": "尚未启用",
+        "Browse Japanese web pages": "浏览日语网页",
+        "Readings appear above kanji and katakana. Tap a word to save, mark known, or ignore it.": "假名读音会显示在汉字和片假名上方。点按单词可保存、标记已认识或忽略。",
+        "Come back to review": "回来复习",
+        "Your words, stats, and review queue show up here. Click Refresh after browsing.": "你的单词、统计和复习队列会显示在这里。浏览后点击刷新。",
+        "Refresh": "刷新",
+
         // Diagnostics footer
         "Storage: %@": "存储：%@",
         "Shared container": "共享容器",
