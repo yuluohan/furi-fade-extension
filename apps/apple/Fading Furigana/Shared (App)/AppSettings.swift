@@ -11,11 +11,13 @@
 #if os(macOS)
 import Cocoa
 import SafariServices
+import StoreKit
 
 final class AppSettingsViewController: NSViewController {
 
     private let store: AppStateStore
     private let onClose: () -> Void
+    private let purchaseService = BasicPurchaseService()
     private var settings: [String: Any]
     private var entitlementSummary: AppEntitlementSummary
 
@@ -30,7 +32,11 @@ final class AppSettingsViewController: NSViewController {
     private let retentionPopup = NSPopUpButton()
     private let languagePopup = NSPopUpButton()
     private let entitlementOverridePopup = NSPopUpButton()
+    private let basicPriceLabel = NSTextField(labelWithString: "")
+    private let purchaseBasicButton = NSButton(title: "", target: nil, action: nil)
+    private let restorePurchaseButton = NSButton(title: "", target: nil, action: nil)
     private let statusLabel = NSTextField(labelWithString: "")
+    private var transactionListener: Task<Void, Never>?
 
     // English titles double as localization keys (see Localization.swift).
     private let modeOptions: [(String, String)] = [
@@ -94,6 +100,35 @@ final class AppSettingsViewController: NSViewController {
         view = NSView(frame: NSRect(x: 0, y: 0, width: 560, height: 690))
         preferredContentSize = NSSize(width: 560, height: 690)
         buildUI()
+        refreshStoreProduct()
+        startTransactionListener()
+    }
+
+    deinit {
+        transactionListener?.cancel()
+    }
+
+    // Recover the panel if a purchase completes out-of-band (e.g. the purchase sheet was
+    // interrupted and the transaction arrives via Transaction.updates). The foreground
+    // purchase() call may still be suspended, so refresh from the verified transaction here.
+    private func startTransactionListener() {
+        transactionListener = Task { [weak self] in
+            for await update in Transaction.updates {
+                guard case .verified(let transaction) = update else { continue }
+                if transaction.productID == BasicPurchaseService.productId {
+                    await transaction.finish()
+                    self?.applyExternalBasicUnlock()
+                }
+            }
+        }
+    }
+
+    private func applyExternalBasicUnlock() {
+        guard entitlementSummary.basicStatus != "purchased" else { return }
+        try? store.markBasicPurchased(verificationStatus: "verified")
+        entitlementSummary = store.entitlementSummary()
+        buildUI()
+        showStatus(L.t("Basic unlocked"))
     }
 
     private func buildUI() {
@@ -114,6 +149,7 @@ final class AppSettingsViewController: NSViewController {
         configureRetentionPopup(selected: exposure["retentionDays"] as? Int ?? 90)
         configurePopup(languagePopup, options: languageOptions, selected: display["interfaceLanguage"] as? String ?? "en", localizeTitles: false)
         configurePopup(entitlementOverridePopup, options: entitlementOverrideOptions, selected: entitlementSummary.developmentOverride)
+        configurePurchaseControls()
 
         let title = NSTextField(labelWithString: L.t("Settings"))
         title.font = NSFont.boldSystemFont(ofSize: 18)
@@ -151,14 +187,23 @@ final class AppSettingsViewController: NSViewController {
             (L.t("Interface language:"), languagePopup),
             ("", makeLinkButton(L.t("Open Safari Extension Settings…"), action: #selector(openSafariPreferences)))
         ])))
-        root.addArrangedSubview(makeSection(L.t("Purchase"), grid: makeGrid([
-            (L.t("Current access:"), makeValueLabel(entitlementSummary.tierTitle)),
-            (L.t("Trial:"), makeValueLabel(entitlementSummary.trialDetail)),
+        var purchaseRows: [(String, NSView)] = [
+            (L.t("Current access:"), makeValueLabel(entitlementSummary.tierTitle))
+        ]
+        // The trial countdown only matters while the trial is the active tier; once Basic/Pro
+        // is unlocked (or the trial has lapsed) the access line above already says so.
+        if entitlementSummary.tier == "trial" {
+            purchaseRows.append((L.t("Trial:"), makeValueLabel(entitlementSummary.trialDetail)))
+        }
+        purchaseRows.append(contentsOf: [
             (L.t("Basic:"), makeValueLabel(entitlementSummary.basicStatusTitle)),
+            (L.t("Basic price:"), basicPriceLabel),
+            ("", makeButtonRow([purchaseBasicButton, restorePurchaseButton])),
             (L.t("Development state:"), entitlementOverridePopup),
             ("", makeCaption(L.t("Local vocabulary stays on this device even if purchase status changes."))),
             ("", makeCaption(L.t("Sync and cloud backup require Pro.")))
-        ])))
+        ])
+        root.addArrangedSubview(makeSection(L.t("Purchase"), grid: makeGrid(purchaseRows)))
         root.addArrangedSubview(makeFooter())
     }
 
@@ -231,6 +276,43 @@ final class AppSettingsViewController: NSViewController {
         button.bezelStyle = .rounded
         button.controlSize = .small
         return button
+    }
+
+    private func configurePurchaseControls() {
+        let priceText: String
+        switch purchaseService.loadState {
+        case .available:
+            priceText = purchaseService.displayPrice ?? L.t("Unavailable")
+        case .unavailable:
+            priceText = L.t("Unavailable")
+        case .loading:
+            priceText = L.t("Loading…")
+        }
+        basicPriceLabel.stringValue = priceText
+        basicPriceLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        basicPriceLabel.textColor = purchaseService.displayPrice == nil ? .secondaryLabelColor : .labelColor
+
+        let canPurchase = entitlementSummary.basicStatus != "purchased" && purchaseService.displayPrice != nil
+        purchaseBasicButton.title = entitlementSummary.basicStatus == "purchased" ? L.t("Basic Unlocked") : L.t("Unlock Basic")
+        purchaseBasicButton.bezelStyle = .rounded
+        purchaseBasicButton.controlSize = .small
+        purchaseBasicButton.target = self
+        purchaseBasicButton.action = #selector(purchaseBasicClicked)
+        purchaseBasicButton.isEnabled = canPurchase
+
+        restorePurchaseButton.title = L.t("Restore Purchase")
+        restorePurchaseButton.bezelStyle = .rounded
+        restorePurchaseButton.controlSize = .small
+        restorePurchaseButton.target = self
+        restorePurchaseButton.action = #selector(restorePurchaseClicked)
+    }
+
+    private func makeButtonRow(_ buttons: [NSButton]) -> NSView {
+        let row = NSStackView(views: buttons)
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 8
+        return row
     }
 
     private func makeValueLabel(_ title: String) -> NSTextField {
@@ -310,6 +392,56 @@ final class AppSettingsViewController: NSViewController {
         }
     }
 
+    @objc private func purchaseBasicClicked() {
+        setPurchaseControlsEnabled(false)
+        showStatus(L.t("Starting purchase…"))
+        Task {
+            do {
+                let result = try await purchaseService.purchaseBasic()
+                switch result {
+                case .purchased:
+                    try store.markBasicPurchased(verificationStatus: "verified")
+                    entitlementSummary = store.entitlementSummary()
+                    buildUI()
+                    showStatus(L.t("Basic unlocked"))
+                case .cancelled:
+                    showStatus(L.t("Purchase cancelled"))
+                case .pending:
+                    showStatus(L.t("Purchase pending"))
+                }
+            } catch {
+                showStatus(L.f("Purchase failed: %@", error.localizedDescription))
+            }
+            setPurchaseControlsEnabled(true)
+        }
+    }
+
+    @objc private func restorePurchaseClicked() {
+        setPurchaseControlsEnabled(false)
+        showStatus(L.t("Restoring purchase…"))
+        Task {
+            do {
+                try store.updateBasicVerificationStatus("pending_restore")
+                let restored = try await purchaseService.restoreBasic()
+                if restored {
+                    try store.markBasicPurchased(verificationStatus: "verified")
+                    entitlementSummary = store.entitlementSummary()
+                    buildUI()
+                    showStatus(L.t("Purchase restored"))
+                } else {
+                    try store.updateBasicVerificationStatus("not_checked")
+                    entitlementSummary = store.entitlementSummary()
+                    buildUI()
+                    showStatus(L.t("No Basic purchase found"))
+                }
+            } catch {
+                try? store.updateBasicVerificationStatus("failed_offline")
+                showStatus(L.f("Restore failed: %@", error.localizedDescription))
+            }
+            setPurchaseControlsEnabled(true)
+        }
+    }
+
     @objc private func doneClicked() {
         dismiss(self)
         onClose()
@@ -328,6 +460,24 @@ final class AppSettingsViewController: NSViewController {
         popup.selectedItem?.representedObject as? String ?? fallback
     }
 
+    private func refreshStoreProduct() {
+        Task {
+            do {
+                _ = try await purchaseService.loadBasicProduct()
+            } catch {
+                basicPriceLabel.stringValue = L.t("Unavailable")
+                showStatus(L.f("Could not load product: %@", error.localizedDescription))
+            }
+            configurePurchaseControls()
+        }
+    }
+
+    private func setPurchaseControlsEnabled(_ isEnabled: Bool) {
+        purchaseBasicButton.isEnabled = isEnabled && entitlementSummary.basicStatus != "purchased" && purchaseService.displayPrice != nil
+        restorePurchaseButton.isEnabled = isEnabled
+        entitlementOverridePopup.isEnabled = isEnabled
+    }
+
     private func dict(_ section: String) -> [String: Any] {
         settings[section] as? [String: Any] ?? [:]
     }
@@ -336,6 +486,107 @@ final class AppSettingsViewController: NSViewController {
         var sectionDict = settings[section] as? [String: Any] ?? [:]
         sectionDict[key] = value
         settings[section] = sectionDict
+    }
+}
+
+private enum BasicPurchaseResult {
+    case purchased
+    case cancelled
+    case pending
+}
+
+private enum BasicPurchaseError: LocalizedError {
+    case productUnavailable
+    case unverifiedTransaction
+
+    var errorDescription: String? {
+        switch self {
+        case .productUnavailable:
+            return L.t("Basic product is not available")
+        case .unverifiedTransaction:
+            return L.t("Purchase could not be verified")
+        }
+    }
+}
+
+private final class BasicPurchaseService {
+    static let productId = "com.banyuguru.fadingfurigana.basic.macos"
+
+    enum LoadState {
+        case loading
+        case available
+        case unavailable
+    }
+
+    private var product: Product?
+    private(set) var loadState: LoadState = .loading
+
+    var displayPrice: String? {
+        product?.displayPrice
+    }
+
+    func loadBasicProduct() async throws -> Product? {
+        do {
+            let products = try await Product.products(for: [Self.productId])
+            product = products.first
+            loadState = product == nil ? .unavailable : .available
+            return product
+        } catch {
+            loadState = .unavailable
+            throw error
+        }
+    }
+
+    func purchaseBasic() async throws -> BasicPurchaseResult {
+        let product = try await productOrLoad()
+        let result = try await product.purchase()
+
+        switch result {
+        case .success(let verification):
+            let transaction = try verifiedTransaction(from: verification)
+            await transaction.finish()
+            return .purchased
+        case .userCancelled:
+            return .cancelled
+        case .pending:
+            return .pending
+        @unknown default:
+            return .pending
+        }
+    }
+
+    func restoreBasic() async throws -> Bool {
+        try await AppStore.sync()
+        return await hasBasicEntitlement()
+    }
+
+    private func productOrLoad() async throws -> Product {
+        if let product {
+            return product
+        }
+        guard let product = try await loadBasicProduct() else {
+            throw BasicPurchaseError.productUnavailable
+        }
+        return product
+    }
+
+    private func hasBasicEntitlement() async -> Bool {
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result else { continue }
+            if transaction.productID == Self.productId {
+                return true
+            }
+        }
+        return false
+    }
+
+    private func verifiedTransaction(from result: VerificationResult<Transaction>) throws -> Transaction {
+        switch result {
+        case .verified(let transaction):
+            return transaction
+        case .unverified:
+            throw BasicPurchaseError.unverifiedTransaction
+        }
     }
 }
 #endif

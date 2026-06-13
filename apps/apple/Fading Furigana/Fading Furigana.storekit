@@ -1,0 +1,42 @@
+{
+  "appPolicies" : {
+    "eula" : "",
+    "policies" : [
+      {
+        "locale" : "en_US",
+        "policyText" : "",
+        "policyURL" : ""
+      }
+    ]
+  },
+  "identifier" : "F4D1NGFU",
+  "nonRenewingSubscriptions" : [],
+  "products" : [
+    {
+      "displayPrice" : "0.99",
+      "familyShareable" : false,
+      "internalID" : "FADBASIC01",
+      "localizations" : [
+        {
+          "description" : "Unlock Basic so you can keep using Fading Furigana on this device after the free trial ends.",
+          "displayName" : "Fading Furigana Basic",
+          "locale" : "en_US"
+        }
+      ],
+      "productID" : "com.banyuguru.fadingfurigana.basic.macos",
+      "referenceName" : "Fading Furigana Basic",
+      "type" : "NonConsumable"
+    }
+  ],
+  "settings" : {
+    "_failTransactionsEnabled" : false,
+    "_locale" : "en_US",
+    "_storeKitErrors" : [],
+    "_storefront" : "USA"
+  },
+  "subscriptionGroups" : [],
+  "version" : {
+    "major" : 3,
+    "minor" : 0
+  }
+}

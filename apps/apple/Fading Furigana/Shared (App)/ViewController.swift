@@ -32,6 +32,7 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
 #elseif os(macOS)
 import Cocoa
 import SafariServices
+import StoreKit
 
 let extensionBundleIdentifier = "com.banyuguru.fading-furigana.Extension"
 
@@ -159,6 +160,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     private var appStateAutoRefreshTimer: Timer?
     private var lastObservedStateSignature: String?
     private var pendingUndoState: [String: Any]?
+    private var transactionListener: Task<Void, Never>?
     private weak var splitView: NSSplitView?
     private weak var sidebarView: NSView?
 
@@ -200,10 +202,12 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         sidebarTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
         loadDashboard()
         startAppStateAutoRefresh()
+        startEntitlementSync()
     }
 
     deinit {
         appStateAutoRefreshTimer?.invalidate()
+        transactionListener?.cancel()
     }
 
     override func viewDidAppear() {
@@ -220,6 +224,44 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         super.viewDidLayout()
         sidebarTable.sizeLastColumnToFit()
         wordTable.sizeLastColumnToFit()
+    }
+
+    // MARK: - StoreKit entitlement sync
+
+    private static let basicProductId = "com.banyuguru.fadingfurigana.basic.macos"
+
+    /// Records StoreKit purchases into the local entitlement store and keeps listening for
+    /// transactions that complete outside a direct `purchase()` call — an interrupted purchase
+    /// sheet, Ask to Buy, or a purchase made on another device. Without this the transaction
+    /// arrives on `Transaction.updates`, is never recorded locally, and stays unfinished.
+    /// (StoreKit requires apps to iterate `Transaction.updates` at launch.)
+    private func startEntitlementSync() {
+        transactionListener = Task { [weak self] in
+            await self?.applyCurrentEntitlements()
+            for await update in Transaction.updates {
+                guard case .verified(let transaction) = update else { continue }
+                if transaction.productID == Self.basicProductId {
+                    self?.unlockBasicIfNeeded()
+                    await transaction.finish()
+                }
+            }
+        }
+    }
+
+    private func applyCurrentEntitlements() async {
+        for await result in Transaction.currentEntitlements {
+            guard case .verified(let transaction) = result else { continue }
+            if transaction.productID == Self.basicProductId {
+                unlockBasicIfNeeded()
+                await transaction.finish()
+            }
+        }
+    }
+
+    private func unlockBasicIfNeeded() {
+        guard store.entitlementSummary().basicStatus != "purchased" else { return }
+        try? store.markBasicPurchased(verificationStatus: "verified")
+        loadDashboard()
     }
 
     // MARK: - Layout
@@ -1705,6 +1747,44 @@ final class AppStateStore {
         entitlements = Self.normalizedEntitlements(entitlements, now: Date())
         raw["entitlements"] = entitlements
         touchMetadata(in: &raw)
+        try save(raw)
+    }
+
+    func markBasicPurchased(verificationStatus: String) throws {
+        var raw = loadRawState()
+        let now = Date()
+        let nowText = ISO8601DateFormatter().string(from: now)
+        var entitlements = Self.normalizedEntitlements(raw["entitlements"] as? [String: Any], now: now)
+        var basic = entitlements["basic"] as? [String: Any] ?? [:]
+
+        basic["status"] = "purchased"
+        basic["productId"] = "com.banyuguru.fadingfurigana.basic.macos"
+        if basic["purchasedAt"] == nil || basic["purchasedAt"] is NSNull {
+            basic["purchasedAt"] = nowText
+        }
+        basic["lastVerifiedAt"] = nowText
+        basic["verificationStatus"] = verificationStatus
+        entitlements["basic"] = basic
+        entitlements.removeValue(forKey: "developmentOverride")
+        entitlements = Self.normalizedEntitlements(entitlements, now: now)
+        raw["entitlements"] = entitlements
+        touchMetadata(in: &raw, now: now)
+        try save(raw)
+    }
+
+    func updateBasicVerificationStatus(_ status: String) throws {
+        var raw = loadRawState()
+        let now = Date()
+        var entitlements = Self.normalizedEntitlements(raw["entitlements"] as? [String: Any], now: now)
+        var basic = entitlements["basic"] as? [String: Any] ?? [:]
+        basic["verificationStatus"] = status
+        if status == "verified" || status == "failed_invalid" {
+            basic["lastVerifiedAt"] = ISO8601DateFormatter().string(from: now)
+        }
+        entitlements["basic"] = basic
+        entitlements = Self.normalizedEntitlements(entitlements, now: now)
+        raw["entitlements"] = entitlements
+        touchMetadata(in: &raw, now: now)
         try save(raw)
     }
 

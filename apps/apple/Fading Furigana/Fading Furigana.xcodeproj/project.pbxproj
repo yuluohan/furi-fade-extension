@@ -110,6 +110,7 @@
 		1DE786822FDA81C0001FDFFF /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		1DE786A22FDA81C0001FDFFF /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
 		1DE786A32FDA81C0001FDFFF /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = Resources/src; sourceTree = "<group>"; };
+		FAD0000A2FDA81C0001FDFFF /* Fading Furigana.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Fading Furigana.storekit"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -153,6 +154,7 @@
 				1DE786682FDA81C0001FDFFF /* macOS (App) */,
 				1DE786772FDA81C0001FDFFF /* iOS (Extension) */,
 				1DE786812FDA81C0001FDFFF /* macOS (Extension) */,
+				FAD0000A2FDA81C0001FDFFF /* Fading Furigana.storekit */,
 				1DE786562FDA81C0001FDFFF /* Products */,
 			);
 			sourceTree = "<group>";
