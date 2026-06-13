@@ -10,7 +10,7 @@
     "build:jmdict": "node packages/dictionary-data/scripts/buildJmdictCommonData.js",
     "build:safari:mac": "node scripts/buildSafariMac.js",
     "package:safari": "npm run generate:icons && node packages/extension/scripts/prepareSafariPackage.js",
-    "test": "node packages/extension/tests/stateRepositories.test.js && node packages/extension/tests/pageLanguage.test.js && node packages/extension/tests/chromeStorageAdapter.test.js && node packages/extension/tests/persistScheduler.test.js && node packages/extension/tests/wordRepositoryService.test.js && node packages/extension/tests/localDictionaryProvider.test.js && node packages/extension/tests/kuromojiTokenMapper.test.js && node packages/extension/tests/annotationDecision.test.js && node packages/extension/tests/annotationEngine.test.js"
+    "test": "node packages/extension/tests/stateRepositories.test.js && node packages/extension/tests/pageLanguage.test.js && node packages/extension/tests/chromeStorageAdapter.test.js && node packages/extension/tests/persistScheduler.test.js && node packages/extension/tests/wordRepositoryService.test.js && node packages/extension/tests/tooltip.test.js && node packages/extension/tests/localDictionaryProvider.test.js && node packages/extension/tests/kuromojiTokenMapper.test.js && node packages/extension/tests/annotationDecision.test.js && node packages/extension/tests/annotationEngine.test.js"
   },
   "dependencies": {
     "kuromoji": "^0.1.2"

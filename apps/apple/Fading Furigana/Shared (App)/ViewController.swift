@@ -161,6 +161,8 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     private var lastObservedStateSignature: String?
     private var pendingUndoState: [String: Any]?
     private var transactionListener: Task<Void, Never>?
+    private var hasPresentedBasicPaywallThisLaunch = false
+    private var isPresentingBasicPaywall = false
     private weak var splitView: NSSplitView?
     private weak var sidebarView: NSView?
 
@@ -218,6 +220,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             window.setContentSize(NSSize(width: 1000, height: 640))
             window.center()
         }
+        maybePresentExpiredTrialPaywall()
     }
 
     override func viewDidLayout() {
@@ -1317,7 +1320,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     private func presentWordDetail(_ row: WordRow) {
         let detail = WordDetailViewController(row: row) { [weak self] action, wordId in
             guard let self else { return }
-            try self.performWordAction(action, lexicalItemId: wordId)
+            self.performWordActionWithStatus(action, lexicalItemId: wordId)
         }
         presentAsSheet(detail)
     }
@@ -1371,6 +1374,11 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     }
 
     private func performWordActionWithStatus(_ action: WordAction, lexicalItemId: String) {
+        if action == .save && !store.entitlementSummary().basicUnlocked {
+            presentBasicPaywall(closingAttachedSheet: true)
+            return
+        }
+
         do {
             try performWordAction(action, lexicalItemId: lexicalItemId)
         } catch {
@@ -1428,6 +1436,36 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             self?.loadDashboard()
         }
         presentAsSheet(settings)
+    }
+
+    private func maybePresentExpiredTrialPaywall() {
+        guard !hasPresentedBasicPaywallThisLaunch else { return }
+        guard !store.entitlementSummary().basicUnlocked else { return }
+        guard view.window?.attachedSheet == nil else { return }
+
+        hasPresentedBasicPaywallThisLaunch = true
+        presentBasicPaywall()
+    }
+
+    private func presentBasicPaywall(closingAttachedSheet: Bool = false) {
+        guard !store.entitlementSummary().basicUnlocked else { return }
+        guard !isPresentingBasicPaywall else { return }
+
+        if let attachedSheet = view.window?.attachedSheet {
+            guard closingAttachedSheet else { return }
+            view.window?.endSheet(attachedSheet)
+            DispatchQueue.main.async { [weak self] in
+                self?.presentBasicPaywall()
+            }
+            return
+        }
+
+        isPresentingBasicPaywall = true
+        let paywall = BasicPaywallViewController(store: store) { [weak self] in
+            self?.isPresentingBasicPaywall = false
+            self?.loadDashboard()
+        }
+        presentAsSheet(paywall)
     }
 }
 

@@ -127,6 +127,48 @@ test("saves word with source occurrence and learning state", async () => {
   assert.equal(storageAdapter.savedStates.length >= 1, true);
 });
 
+test("blocks saving new words after trial expiry without Basic", async () => {
+  const initialState = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
+  initialState.entitlements.developmentOverride = "expired";
+  const storageAdapter = createMemoryStorageAdapter(initialState);
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+  await service.load();
+
+  await assert.rejects(
+    () => service.saveWord(createToken(), "内容を確認してください。"),
+    (error) => error?.code === "basic_access_locked"
+  );
+
+  assert.equal(service.getUserWordState("確認:かくにん"), null);
+  assert.equal(storageAdapter.savedStates.length, 0);
+});
+
+test("allows saving during trial and after Basic unlock", async () => {
+  const trialStorage = createMemoryStorageAdapter();
+  const pageContextProvider = () => ({
+    url: "https://example.com/news",
+    domain: "example.com",
+    pageTitle: "News"
+  });
+  const trialService = new WordRepositoryService(trialStorage, { pageContextProvider, persistDelayMs: 1 });
+  await trialService.load();
+  await trialService.saveWord(createToken(), "内容を確認してください。");
+  assert.equal(trialService.getUserWordState("確認:かくにん").lifecycleStatus, "learning");
+
+  const basicState = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
+  basicState.entitlements.basic.status = "purchased";
+  basicState.entitlements.basic.purchasedAt = "2026-06-08T01:00:00.000Z";
+  basicState.entitlements = window.FadingFuriganaState.normalizeEntitlements(
+    basicState.entitlements,
+    "2026-06-08T01:00:00.000Z"
+  );
+  const basicStorage = createMemoryStorageAdapter(basicState);
+  const basicService = new WordRepositoryService(basicStorage, { pageContextProvider, persistDelayMs: 1 });
+  await basicService.load();
+  await basicService.saveWord(createToken({ lexicalItemId: "勉強:べんきょう", surface: "勉強" }), "日本語を勉強する。");
+  assert.equal(basicService.getUserWordState("勉強:べんきょう").lifecycleStatus, "learning");
+});
+
 test("recordSeen stores no meanings and keeps saved-word meanings intact", async () => {
   const storageAdapter = createMemoryStorageAdapter();
   const service = new WordRepositoryService(storageAdapter, {
@@ -149,6 +191,36 @@ test("recordSeen stores no meanings and keeps saved-word meanings intact", async
   assert.deepEqual(service.state.lexicalItems["確認:かくにん"].meanings.zhHans, ["确认"]);
   const summary = Object.values(service.state.dailyExposureSummaries)[0];
   assert.equal(Object.values(summary.pages)[0].pageTitle, undefined);
+});
+
+test("persist preserves newer entitlement state from storage", async () => {
+  const initialState = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
+  const storageAdapter = createMemoryStorageAdapter(initialState);
+  const service = new WordRepositoryService(storageAdapter, {
+    pageContextProvider: () => ({
+      url: "https://example.com/news",
+      domain: "example.com",
+      pageTitle: "News"
+    }),
+    persistDelayMs: 1
+  });
+  await service.load();
+
+  const purchasedState = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
+  purchasedState.entitlements.basic.status = "purchased";
+  purchasedState.entitlements.basic.purchasedAt = "2026-06-08T01:00:00.000Z";
+  purchasedState.entitlements = window.FadingFuriganaState.normalizeEntitlements(
+    purchasedState.entitlements,
+    "2026-06-08T01:00:00.000Z"
+  );
+  storageAdapter.state = purchasedState;
+
+  await service.recordSeen(createToken());
+  await service.persist();
+
+  const persisted = storageAdapter.savedStates.at(-1);
+  assert.equal(persisted.entitlements.basic.status, "purchased");
+  assert.equal(persisted.entitlements.access.tier, "basic");
 });
 
 test("compactState drops expired exposure summaries", async () => {

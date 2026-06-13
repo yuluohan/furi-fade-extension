@@ -9,6 +9,27 @@
     return Object.values(meanings).find((values) => values?.length)?.join("; ") || "";
   }
 
+  const COPY = {
+    en: {
+      saveLocked: "Trial ended. Open the Mac app to unlock Basic and continue saving words.",
+      saveFailed: "Save failed. Please try again."
+    },
+    zhHans: {
+      saveLocked: "试用已结束。打开 Mac app 解锁 Basic 后可继续保存新词。",
+      saveFailed: "保存失败，请再试一次。"
+    }
+  };
+
+  function getInterfaceLanguage(repository) {
+    const language = repository.state?.settings?.display?.interfaceLanguage;
+    return language === "zhHans" ? "zhHans" : "en";
+  }
+
+  function t(repository, key) {
+    const language = getInterfaceLanguage(repository);
+    return COPY[language]?.[key] || COPY.en[key] || "";
+  }
+
   class Tooltip {
     constructor(repository, onStateChange = () => {}) {
       this.repository = repository;
@@ -35,6 +56,7 @@
         <div class="jr-tooltip__reading"></div>
         <div class="jr-tooltip__meaning"></div>
         <div class="jr-tooltip__sentence"></div>
+        <div class="jr-tooltip__status" hidden></div>
         <div class="jr-tooltip__actions">
           <button type="button" data-action="save">Save</button>
           <button type="button" data-action="forgot">Forgot</button>
@@ -49,10 +71,23 @@
       this.element.querySelector(".jr-tooltip__meaning").textContent = meaningText;
       this.element.querySelector(".jr-tooltip__sentence").textContent = sourceSentence || "";
 
-      this.element.querySelector("[data-action='save']").addEventListener("click", () => {
-        this.repository.saveWord(token, sourceSentence);
-        this.hide();
-        this.onStateChange(token);
+      this.element.querySelector("[data-action='save']").addEventListener("click", async () => {
+        const saveButton = this.element.querySelector("[data-action='save']");
+        saveButton.disabled = true;
+        try {
+          await this.repository.saveWord(token, sourceSentence);
+          this.hide();
+          this.onStateChange(token);
+        } catch (error) {
+          saveButton.disabled = false;
+          const isLocked =
+            window.FadingFuriganaWordRepository.isBasicAccessLockedError?.(error) ||
+            error?.code === "basic_access_locked";
+          this.showStatus(isLocked ? t(this.repository, "saveLocked") : t(this.repository, "saveFailed"));
+          if (!isLocked) {
+            console.warn("[Fading Furigana] Save failed:", error?.message || error);
+          }
+        }
       });
       this.element.querySelector("[data-action='ignore']").addEventListener("click", () => {
         this.repository.ignore(token);
@@ -85,10 +120,18 @@
     hide() {
       this.element.hidden = true;
     }
+
+    showStatus(message) {
+      const status = this.element.querySelector(".jr-tooltip__status");
+      if (!status) return;
+      status.textContent = message;
+      status.hidden = false;
+    }
   }
 
   window.FadingFuriganaTooltip = {
     Tooltip,
-    getMeaningText
+    getMeaningText,
+    getInterfaceLanguage
   };
 })();

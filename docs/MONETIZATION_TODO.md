@@ -46,13 +46,15 @@ Basic is the first sellable tier. It must feel useful after trial without needin
 
 - [x] Define exact Basic lock rules after the one-month trial.
 - [x] Add local entitlement schema: trial start date, trial expiry, Basic purchase state, platform id, last receipt check.
-- [ ] Add StoreKit purchase flow for macOS/iOS Basic one-time purchase.
-- [ ] Add purchase restore flow.
-- [ ] Add offline behavior: cached entitlement remains usable; failed receipt checks do not destroy local access.
-- [ ] Add paywall sheet shown after trial expiry.
+- [x] Add StoreKit purchase flow for macOS Basic one-time purchase.
+- [ ] Add StoreKit purchase flow for iOS Basic one-time purchase.
+- [x] Add purchase restore flow for macOS Basic.
+- [x] Add offline behavior: cached entitlement remains usable; failed receipt checks do not destroy local access.
+- [x] Add Mac app paywall sheet shown after trial expiry.
+- [x] Add Safari extension paywall gate for expired-trial Save.
 - [x] Add settings section showing trial/purchase status.
 - [x] Add app copy explaining that local data remains safe when trial expires.
-- [ ] Add app copy explaining Basic is single-platform/local, not cross-device sync.
+- [x] Add app copy explaining Basic is single-platform/local, not cross-device sync.
 - [ ] Add signed release build flow for a Basic beta candidate.
 - [ ] Add App Store review notes for Safari extension + local AppState behavior.
 - [ ] Add privacy policy page covering local storage, page URL settings, and no account requirement for Basic.
@@ -167,6 +169,11 @@ When trial is expired and Basic is not purchased:
 - Pro upsell should not replace the Basic paywall; Basic is the lowest-friction path.
 
 The lock should feel like "continue your local learning loop with Basic", not like data hostage-taking.
+
+Implementation status:
+
+- 2026-06-13 Phase A done: Mac app opens the Basic paywall after trial expiry, and all Mac app Save entry points are blocked behind Basic while existing data and review stay available.
+- 2026-06-13 Phase B done: Safari extension Save reloads the latest entitlement before writing, blocks expired-trial saves in `WordRepositoryService`, and keeps the tooltip open with a localized Basic unlock prompt.
 
 ## Paywall Design
 

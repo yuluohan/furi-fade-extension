@@ -46,9 +46,12 @@
         // objects can differ in key order or missing defaults without any
         // semantic change, and that must never trigger a refresh.
         const normalize = window.FadingFuriganaState.normalizeSettings;
-        const nextSettings = normalize(parseStoredState(change.newValue)?.settings || {});
+        const nextState = parseStoredState(change.newValue);
+        const nextSettings = normalize(nextState?.settings || {});
         const currentSettings = normalize(repository.settings || {});
-        if (JSON.stringify(nextSettings) === JSON.stringify(currentSettings)) return;
+        const nextAccess = JSON.stringify(nextState?.entitlements?.access || {});
+        const currentAccess = JSON.stringify(repository.state?.entitlements?.access || {});
+        if (JSON.stringify(nextSettings) === JSON.stringify(currentSettings) && nextAccess === currentAccess) return;
 
         if (settingsReloadInFlight) return;
         settingsReloadInFlight = true;

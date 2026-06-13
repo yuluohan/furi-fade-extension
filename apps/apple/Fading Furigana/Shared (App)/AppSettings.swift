@@ -489,13 +489,13 @@ final class AppSettingsViewController: NSViewController {
     }
 }
 
-private enum BasicPurchaseResult {
+enum BasicPurchaseResult {
     case purchased
     case cancelled
     case pending
 }
 
-private enum BasicPurchaseError: LocalizedError {
+enum BasicPurchaseError: LocalizedError {
     case productUnavailable
     case unverifiedTransaction
 
@@ -509,7 +509,7 @@ private enum BasicPurchaseError: LocalizedError {
     }
 }
 
-private final class BasicPurchaseService {
+final class BasicPurchaseService {
     static let productId = "com.banyuguru.fadingfurigana.basic.macos"
 
     enum LoadState {
@@ -587,6 +587,182 @@ private final class BasicPurchaseService {
         case .unverified:
             throw BasicPurchaseError.unverifiedTransaction
         }
+    }
+}
+
+final class BasicPaywallViewController: NSViewController {
+    private let store: AppStateStore
+    private let onClose: () -> Void
+    private let purchaseService = BasicPurchaseService()
+
+    private let priceLabel = NSTextField(labelWithString: "")
+    private let statusLabel = NSTextField(labelWithString: "")
+    private let unlockButton = NSButton(title: "", target: nil, action: nil)
+    private let restoreButton = NSButton(title: "", target: nil, action: nil)
+    private let notNowButton = NSButton(title: "", target: nil, action: nil)
+
+    init(store: AppStateStore, onClose: @escaping () -> Void) {
+        self.store = store
+        self.onClose = onClose
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) is not supported")
+    }
+
+    override func loadView() {
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 460, height: 360))
+        preferredContentSize = NSSize(width: 460, height: 360)
+        buildUI()
+        refreshStoreProduct()
+    }
+
+    private func buildUI() {
+        view.subviews.forEach { $0.removeFromSuperview() }
+
+        let title = NSTextField(labelWithString: L.t("Continue learning locally"))
+        title.font = NSFont.boldSystemFont(ofSize: 22)
+        title.alignment = .center
+
+        let mainCopy = makeBodyLabel(L.t("Your words stay on this Mac. Basic unlocks the local Safari extension and Mac learning app after the trial."))
+        let safetyCopy = makeBodyLabel(L.t("Your saved words are not deleted when the trial ends."))
+        let boundaryCopy = makeBodyLabel(L.t("Basic is for this platform. Cross-device sync and advanced intelligence are part of Pro."))
+
+        priceLabel.stringValue = purchaseService.displayPrice.map { L.f("Basic: %@", $0) } ?? L.t("Loading…")
+        priceLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        priceLabel.textColor = .secondaryLabelColor
+        priceLabel.alignment = .center
+
+        unlockButton.title = L.t("Unlock Basic")
+        unlockButton.bezelStyle = .rounded
+        unlockButton.target = self
+        unlockButton.action = #selector(unlockBasicClicked)
+        unlockButton.isEnabled = purchaseService.displayPrice != nil
+
+        restoreButton.title = L.t("Restore Purchase")
+        restoreButton.bezelStyle = .rounded
+        restoreButton.target = self
+        restoreButton.action = #selector(restorePurchaseClicked)
+
+        notNowButton.title = L.t("Not now")
+        notNowButton.bezelStyle = .rounded
+        notNowButton.target = self
+        notNowButton.action = #selector(notNowClicked)
+
+        statusLabel.font = NSFont.systemFont(ofSize: 11)
+        statusLabel.textColor = .secondaryLabelColor
+        statusLabel.alignment = .center
+
+        let actionRow = NSStackView(views: [unlockButton, restoreButton, notNowButton])
+        actionRow.orientation = .horizontal
+        actionRow.alignment = .centerY
+        actionRow.distribution = .fillEqually
+        actionRow.spacing = 8
+
+        let stack = NSStackView(views: [title, mainCopy, safetyCopy, boundaryCopy, priceLabel, actionRow, statusLabel])
+        stack.orientation = .vertical
+        stack.alignment = .centerX
+        stack.spacing = 14
+        stack.edgeInsets = NSEdgeInsets(top: 26, left: 30, bottom: 22, right: 30)
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        view.addSubview(stack)
+
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            stack.topAnchor.constraint(equalTo: view.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: view.bottomAnchor),
+            actionRow.widthAnchor.constraint(equalToConstant: 360)
+        ])
+    }
+
+    private func makeBodyLabel(_ text: String) -> NSTextField {
+        let label = NSTextField(wrappingLabelWithString: text)
+        label.font = NSFont.systemFont(ofSize: 13)
+        label.textColor = .labelColor
+        label.alignment = .center
+        label.maximumNumberOfLines = 3
+        label.preferredMaxLayoutWidth = 380
+        return label
+    }
+
+    private func refreshStoreProduct() {
+        Task {
+            do {
+                _ = try await purchaseService.loadBasicProduct()
+                priceLabel.stringValue = purchaseService.displayPrice.map { L.f("Basic: %@", $0) } ?? L.t("Unavailable")
+            } catch {
+                priceLabel.stringValue = L.t("Unavailable")
+                showStatus(L.f("Could not load product: %@", error.localizedDescription))
+            }
+            unlockButton.isEnabled = purchaseService.displayPrice != nil
+        }
+    }
+
+    @objc private func unlockBasicClicked() {
+        setControlsEnabled(false)
+        showStatus(L.t("Starting purchase…"))
+        Task {
+            do {
+                let result = try await purchaseService.purchaseBasic()
+                switch result {
+                case .purchased:
+                    try store.markBasicPurchased(verificationStatus: "verified")
+                    closeAndRefresh()
+                case .cancelled:
+                    showStatus(L.t("Purchase cancelled"))
+                case .pending:
+                    showStatus(L.t("Purchase pending"))
+                }
+            } catch {
+                showStatus(L.f("Purchase failed: %@", error.localizedDescription))
+            }
+            setControlsEnabled(true)
+        }
+    }
+
+    @objc private func restorePurchaseClicked() {
+        setControlsEnabled(false)
+        showStatus(L.t("Restoring purchase…"))
+        Task {
+            do {
+                try store.updateBasicVerificationStatus("pending_restore")
+                let restored = try await purchaseService.restoreBasic()
+                if restored {
+                    try store.markBasicPurchased(verificationStatus: "verified")
+                    closeAndRefresh()
+                } else {
+                    try store.updateBasicVerificationStatus("not_checked")
+                    showStatus(L.t("No Basic purchase found"))
+                }
+            } catch {
+                try? store.updateBasicVerificationStatus("failed_offline")
+                showStatus(L.f("Restore failed: %@", error.localizedDescription))
+            }
+            setControlsEnabled(true)
+        }
+    }
+
+    @objc private func notNowClicked() {
+        dismiss(self)
+        onClose()
+    }
+
+    private func closeAndRefresh() {
+        dismiss(self)
+        onClose()
+    }
+
+    private func setControlsEnabled(_ isEnabled: Bool) {
+        unlockButton.isEnabled = isEnabled && purchaseService.displayPrice != nil
+        restoreButton.isEnabled = isEnabled
+        notNowButton.isEnabled = isEnabled
+    }
+
+    private func showStatus(_ text: String) {
+        statusLabel.stringValue = text
     }
 }
 #endif

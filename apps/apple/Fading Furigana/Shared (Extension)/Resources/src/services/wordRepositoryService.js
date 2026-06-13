@@ -5,6 +5,14 @@
     return window.FadingFuriganaState.createId(...parts);
   }
 
+  class BasicAccessLockedError extends Error {
+    constructor(message = "Basic access is required to save new words.") {
+      super(message);
+      this.name = "BasicAccessLockedError";
+      this.code = "basic_access_locked";
+    }
+  }
+
   class WordRepositoryService {
     constructor(storageAdapter, { pageContextProvider = createBrowserPageContext, persistDelayMs = 250 } = {}) {
       this.storageAdapter = storageAdapter;
@@ -31,10 +39,14 @@
 
     async persistImmediately() {
       this.compactState();
-      // The popup owns settings; a content tab persisting exposure data must
-      // not write its possibly stale in-memory settings back over them.
+      // The popup/settings app owns settings and entitlement changes; a
+      // content tab persisting exposure data must not write stale copies back.
       const stored = await this.storageAdapter.loadState();
-      const nextState = stored?.settings ? { ...this.state, settings: stored.settings } : this.state;
+      const nextState = {
+        ...this.state,
+        settings: stored?.settings || this.state.settings,
+        entitlements: stored?.entitlements || this.state.entitlements
+      };
 
       try {
         await this.storageAdapter.saveState(nextState);
@@ -106,6 +118,8 @@
     }
 
     async saveWord(token, sourceSentence) {
+      await this.assertBasicUnlockedForSave();
+
       const now = new Date().toISOString();
       const item = this.upsertLexicalItem(token, now);
       const occurrenceId = createId("occurrence", item.id, sourceSentence, now);
@@ -121,6 +135,16 @@
       };
 
       await this.persist();
+    }
+
+    async assertBasicUnlockedForSave() {
+      const stored = await this.storageAdapter.loadState();
+      if (stored?.entitlements) {
+        this.state.entitlements = stored.entitlements;
+      }
+      if (this.state.entitlements?.access?.basicUnlocked === false) {
+        throw new BasicAccessLockedError();
+      }
     }
 
     markKnown(token) {
@@ -230,6 +254,8 @@
 
   window.FadingFuriganaWordRepository = {
     WordRepositoryService,
+    BasicAccessLockedError,
+    isBasicAccessLockedError: (error) => error?.code === "basic_access_locked",
     createPrivacyAwarePageContext
   };
 })();
