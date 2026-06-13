@@ -101,6 +101,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     private let emptyStateLabel = NSTextField(wrappingLabelWithString: "")
     private let versionLabel = NSTextField(labelWithString: "")
     private let storePathLabel = NSTextField(labelWithString: "")
+    private let updatedLabel = NSTextField(labelWithString: "")
     private let reviewButton = NSButton(title: "Start Review", target: nil, action: nil)
 
     private let totalWordsValue = NSTextField(labelWithString: "0")
@@ -388,13 +389,18 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         storePathLabel.lineBreakMode = .byTruncatingMiddle
         storePathLabel.maximumNumberOfLines = 1
 
+        updatedLabel.font = NSFont.systemFont(ofSize: 10)
+        updatedLabel.textColor = .tertiaryLabelColor
+        updatedLabel.maximumNumberOfLines = 1
+
         let row = NSStackView()
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 12
         row.addArrangedSubview(versionLabel)
-        row.addArrangedSubview(NSView())
         row.addArrangedSubview(storePathLabel)
+        row.addArrangedSubview(NSView())
+        row.addArrangedSubview(updatedLabel)
         return row
     }
 
@@ -419,12 +425,24 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
 
     // MARK: - Data
 
+    private func relativeTimeText(_ iso: String?) -> String {
+        guard let date = ReviewScheduler.parseISODate(iso) else { return L.t("never") }
+        let seconds = Int(Date().timeIntervalSince(date))
+        if seconds < 60 { return L.t("just now") }
+        if seconds < 3600 { return L.f("%d min ago", seconds / 60) }
+        if seconds < 86_400 { return L.f("%d h ago", seconds / 3600) }
+        return L.f("%d d ago", seconds / 86_400)
+    }
+
     private func loadDashboard() {
         snapshot = store.loadSnapshot()
         L.update(fromSettings: snapshot.raw["settings"] as? [String: Any] ?? [:])
         versionLabel.stringValue = VersionInfo.displayText()
-        storePathLabel.stringValue = store.displayPath
+        let storageMode = store.isUsingAppGroup ? L.t("Shared container") : L.t("Local fallback")
+        storePathLabel.stringValue = L.f("Storage: %@", storageMode)
         storePathLabel.toolTip = store.displayPath
+        let updatedAt = (snapshot.raw["metadata"] as? [String: Any])?["updatedAt"] as? String
+        updatedLabel.stringValue = L.f("Updated %@", relativeTimeText(updatedAt))
         renderSnapshot()
         // Re-localized here too: the status text is set asynchronously, so a
         // language change (settings sheet close -> loadDashboard) must re-issue it.
@@ -745,6 +763,12 @@ private enum VersionInfo {
 final class AppStateStore {
     private static let appGroupIdentifier = "group.com.banyuguru.fading-furigana"
     private let fileManager = FileManager.default
+
+    // True when the shared App Group container is reachable; false means the
+    // app fell back to its own Application Support copy (not shared with Safari).
+    var isUsingAppGroup: Bool {
+        fileManager.containerURL(forSecurityApplicationGroupIdentifier: Self.appGroupIdentifier) != nil
+    }
 
     var displayPath: String {
         stateFileURL.path

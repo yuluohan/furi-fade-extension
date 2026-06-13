@@ -40,6 +40,10 @@
       if (!this.storageArea) return;
       await callStorage(this.storageArea, "remove", STORAGE_KEY);
     }
+
+    getStorageStatus() {
+      return { transport: "local", lastSuccessAt: null, lastError: null };
+    }
   }
 
   function createBestAvailableStorageAdapter() {

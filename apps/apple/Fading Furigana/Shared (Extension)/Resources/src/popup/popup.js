@@ -17,7 +17,9 @@
     weekStats: document.querySelector("#week-stats"),
     statusText: document.querySelector("#status-text"),
     buildVersion: document.querySelector("#build-version"),
-    footerVersion: document.querySelector("#footer-version")
+    footerVersion: document.querySelector("#footer-version"),
+    storageMode: document.querySelector("#storage-mode"),
+    lastUpdated: document.querySelector("#last-updated")
   };
 
   const MESSAGES = {
@@ -62,7 +64,18 @@
       loadFailed: "Load failed",
       saveFailed: "Save failed",
       resetFailed: "Reset failed",
-      refreshFailed: "Refresh failed"
+      refreshFailed: "Refresh failed",
+      storageStatus: "Storage status",
+      storage: "Storage",
+      lastUpdated: "Last updated",
+      storageNative: "Native ✓",
+      storageFallback: "Local fallback ⚠",
+      storageLocal: "Local",
+      never: "never",
+      justNow: "just now",
+      minutesAgo: "min ago",
+      hoursAgo: "h ago",
+      daysAgo: "d ago"
     },
     zhHans: {
       displaySettings: "显示设置",
@@ -105,7 +118,18 @@
       loadFailed: "加载失败",
       saveFailed: "保存失败",
       resetFailed: "重置失败",
-      refreshFailed: "刷新失败"
+      refreshFailed: "刷新失败",
+      storageStatus: "存储状态",
+      storage: "存储",
+      lastUpdated: "最后更新",
+      storageNative: "原生存储 ✓",
+      storageFallback: "本地回退 ⚠",
+      storageLocal: "本地存储",
+      never: "从未",
+      justNow: "刚刚",
+      minutesAgo: "分钟前",
+      hoursAgo: "小时前",
+      daysAgo: "天前"
     }
   };
 
@@ -131,7 +155,37 @@
     controls.urlPrivacy.value = exposureTracking.saveUrls;
     renderI18n();
     renderStats();
+    renderDiagnostics();
     setStatus("ready");
+  }
+
+  function renderDiagnostics() {
+    const status = storageAdapter.getStorageStatus?.() || { transport: "unknown" };
+    controls.storageMode.textContent = storageModeText(status.transport);
+    controls.storageMode.classList.toggle("diagnostics__value--warn", status.transport === "fallback");
+    controls.lastUpdated.textContent = formatRelativeTime(state?.metadata?.updatedAt);
+  }
+
+  function storageModeText(transport) {
+    switch (transport) {
+      case "native": return t("storageNative");
+      case "fallback": return t("storageFallback");
+      case "local": return t("storageLocal");
+      default: return "—";
+    }
+  }
+
+  function formatRelativeTime(iso) {
+    if (!iso) return t("never");
+    const diffMs = Date.now() - new Date(iso).getTime();
+    if (Number.isNaN(diffMs) || diffMs < 0) return t("justNow");
+    const sec = Math.floor(diffMs / 1000);
+    if (sec < 60) return t("justNow");
+    const min = Math.floor(sec / 60);
+    if (min < 60) return `${min} ${t("minutesAgo")}`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return `${hr} ${t("hoursAgo")}`;
+    return `${Math.floor(hr / 24)} ${t("daysAgo")}`;
   }
 
   function readSettingsFromControls() {

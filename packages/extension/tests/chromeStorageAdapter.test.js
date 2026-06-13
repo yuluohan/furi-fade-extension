@@ -222,6 +222,59 @@ test("Safari native storage uses background relay when direct native messaging i
   assert.equal(messages[0].payload.action, "loadState");
 });
 
+test("Safari native adapter reports native transport after a successful request", async () => {
+  setNavigatorVendor("Apple Computer, Inc.");
+  delete global.chrome;
+  global.browser = {
+    runtime: {
+      sendNativeMessage(message, callback) {
+        callback({
+          type: "FADING_FURIGANA_STORAGE_RESPONSE",
+          requestId: message.requestId,
+          ok: true,
+          payload: message.action === "loadState"
+            ? { state: window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z") }
+            : {}
+        });
+      }
+    }
+  };
+
+  const adapter = new SafariNativeStorageAdapter({ fallbackAdapter: null });
+  assert.equal(adapter.getStorageStatus().transport, "unknown");
+
+  await adapter.loadState();
+  const status = adapter.getStorageStatus();
+  assert.equal(status.transport, "native");
+  assert.ok(status.lastSuccessAt);
+  assert.equal(status.lastError, null);
+});
+
+test("Safari native adapter reports fallback transport when native fails", async () => {
+  setNavigatorVendor("Apple Computer, Inc.");
+  delete global.chrome;
+  global.browser = {
+    runtime: {
+      sendNativeMessage(message, callback) {
+        callback({
+          type: "FADING_FURIGANA_STORAGE_RESPONSE",
+          requestId: message.requestId,
+          ok: false,
+          error: "native store unavailable"
+        });
+      }
+    }
+  };
+
+  const fallback = new window.FadingFuriganaStorage.LocalStorageAdapter(createMemoryStorage());
+  const adapter = new SafariNativeStorageAdapter({ fallbackAdapter: fallback });
+
+  await adapter.loadState();
+  const status = adapter.getStorageStatus();
+  assert.equal(status.transport, "fallback");
+  assert.ok(status.lastError);
+});
+
 test("factory falls back to LocalStorageAdapter outside extension context", () => {
   setNavigatorVendor("Google Inc.");
   delete global.browser;

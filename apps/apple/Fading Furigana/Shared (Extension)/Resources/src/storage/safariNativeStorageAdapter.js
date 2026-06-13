@@ -9,6 +9,25 @@
     constructor({ runtime = getRuntime(), fallbackAdapter = null } = {}) {
       this.runtime = runtime;
       this.fallbackAdapter = fallbackAdapter;
+      // Diagnostics surfaced in the popup: did the last read/write reach the
+      // native store, or did it fall back to local storage?
+      this.storageStatus = { transport: "unknown", lastSuccessAt: null, lastError: null };
+    }
+
+    // Snapshot of the most recent storage transport for the popup status panel.
+    getStorageStatus() {
+      return { ...this.storageStatus };
+    }
+
+    markNativeSuccess() {
+      this.storageStatus.transport = "native";
+      this.storageStatus.lastSuccessAt = window.FadingFuriganaState.createTimestamp();
+      this.storageStatus.lastError = null;
+    }
+
+    markFallback(error) {
+      this.storageStatus.transport = "fallback";
+      this.storageStatus.lastError = error?.message || String(error);
     }
 
     async loadState() {
@@ -25,6 +44,7 @@
         return state;
       } catch (error) {
         warnNativeFailure("loadState", error);
+        this.markFallback(error);
         return this.fallbackAdapter
           ? this.fallbackAdapter.loadState()
           : window.FadingFuriganaState.createDefaultAppState();
@@ -44,6 +64,7 @@
         await this.send("saveState", { state: nextState });
       } catch (error) {
         warnNativeFailure("saveState", error);
+        this.markFallback(error);
         if (!this.fallbackAdapter) throw error;
         await this.fallbackAdapter.saveState(nextState);
       }
@@ -54,6 +75,7 @@
         await this.send("clearState");
       } catch (error) {
         warnNativeFailure("clearState", error);
+        this.markFallback(error);
         if (!this.fallbackAdapter) throw error;
         await this.fallbackAdapter.clearState();
       }
@@ -77,6 +99,7 @@
       if (!response.ok) {
         throw new Error(response.error || "Safari native storage request failed.");
       }
+      this.markNativeSuccess();
       return response;
     }
   }

@@ -33,6 +33,10 @@
     async clearState() {
       this.storage.removeItem(STORAGE_KEY);
     }
+
+    getStorageStatus() {
+      return { transport: "local", lastSuccessAt: null, lastError: null };
+    }
   }
 
   window.FadingFuriganaStorage = {

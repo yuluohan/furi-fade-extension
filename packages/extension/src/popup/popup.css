@@ -212,6 +212,28 @@ select {
   color: #98a2b3;
 }
 
+.diagnostics {
+  gap: 5px;
+}
+
+.diagnostics__row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 8px;
+  color: #667085;
+  font-size: 11px;
+}
+
+.diagnostics__value {
+  color: #344054;
+  font-weight: 650;
+}
+
+.diagnostics__value--warn {
+  color: #b54708;
+}
+
 button {
   height: 32px;
   border: 1px solid #c7ced8;

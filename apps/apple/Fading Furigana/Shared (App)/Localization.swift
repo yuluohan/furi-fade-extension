@@ -57,6 +57,17 @@ enum L {
         "Could not save word action: %@": "无法保存单词操作：%@",
         "No words in this list yet.": "这个列表还没有单词。",
         "No shared data yet. Browse Japanese pages with the Safari extension enabled, then click Refresh.": "还没有共享数据。请在启用 Safari 扩展的情况下浏览日语页面，然后点击刷新。",
+
+        // Diagnostics footer
+        "Storage: %@": "存储：%@",
+        "Shared container": "共享容器",
+        "Local fallback": "本机回退",
+        "Updated %@": "更新于 %@",
+        "never": "从未",
+        "just now": "刚刚",
+        "%d min ago": "%d 分钟前",
+        "%d h ago": "%d 小时前",
+        "%d d ago": "%d 天前",
         "not installed": "未安装",
 
         // Status badges
