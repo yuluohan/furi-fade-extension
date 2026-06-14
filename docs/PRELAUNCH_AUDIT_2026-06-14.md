@@ -53,7 +53,7 @@ This affects both:
 
 - The Safari extension uses `<all_urls>` because it annotates Japanese text on arbitrary pages selected by the user. The App Review notes should explicitly explain this.
 - Page URL saving is user-configurable. The privacy policy and review notes should explain when URLs are retained and that local learning data stays on the Mac for Basic.
-- There is no `PrivacyInfo.xcprivacy` file in the Apple project yet. Confirm whether the chosen App Store/TestFlight path requires one for this target and dependencies.
+- The macOS app and Safari extension now include `PrivacyInfo.xcprivacy` resources. Both declare no tracking and no collected data types. The macOS app declares file timestamp access for local AppState storage diagnostics; the extension declares no required-reason API access.
 - No final public privacy policy or terms page exists in the repo yet; draft copy now exists in `docs/PRIVACY_POLICY_DRAFT.md`.
 
 ## Manual Beta Smoke Tests Still Required

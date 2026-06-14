@@ -48,7 +48,7 @@ The core user loop is present:
 - [ ] Paywall explains Basic vs Pro without implying export/import migration.
 - [ ] Price points are confirmed in each storefront before release.
 - [ ] App review notes explain Safari extension, local AppState, and no account requirement for Basic.
-- [ ] Privacy policy and terms cover trial, one-time purchase, subscription, local data, and paid sync boundary.
+- [ ] Privacy policy, terms, and App Store privacy answers cover trial, one-time purchase, subscription, local data, privacy manifests, and paid sync boundary.
 
 ## Should Pass Before Public Launch
 

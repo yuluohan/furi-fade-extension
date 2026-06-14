@@ -39,6 +39,8 @@
 		1DE786A52FDA81C0001FDFFF /* src in Resources */ = {isa = PBXBuildFile; fileRef = 1DE786A32FDA81C0001FDFFF /* src */; };
 		1DE786A62FDA81C0001FDFFF /* manifest.json in Resources */ = {isa = PBXBuildFile; fileRef = 1DE786A22FDA81C0001FDFFF /* manifest.json */; };
 		1DE786A72FDA81C0001FDFFF /* src in Resources */ = {isa = PBXBuildFile; fileRef = 1DE786A32FDA81C0001FDFFF /* src */; };
+		FAD0000B2FDA81C0001FDFFF /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FAD0000D2FDA81C0001FDFFF /* PrivacyInfo.xcprivacy */; };
+		FAD0000C2FDA81C0001FDFFF /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = FAD0000E2FDA81C0001FDFFF /* PrivacyInfo.xcprivacy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -111,6 +113,8 @@
 		1DE786A22FDA81C0001FDFFF /* manifest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = manifest.json; path = Resources/manifest.json; sourceTree = "<group>"; };
 		1DE786A32FDA81C0001FDFFF /* src */ = {isa = PBXFileReference; lastKnownFileType = folder; name = src; path = Resources/src; sourceTree = "<group>"; };
 		FAD0000A2FDA81C0001FDFFF /* Fading Furigana.storekit */ = {isa = PBXFileReference; lastKnownFileType = text; path = "Fading Furigana.storekit"; sourceTree = "<group>"; };
+		FAD0000D2FDA81C0001FDFFF /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		FAD0000E2FDA81C0001FDFFF /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; lastKnownFileType = text.xml; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -221,6 +225,7 @@
 				1DE786692FDA81C0001FDFFF /* AppDelegate.swift */,
 				1DE7866B2FDA81C0001FDFFF /* Main.storyboard */,
 				1DE7866E2FDA81C0001FDFFF /* Info.plist */,
+				FAD0000D2FDA81C0001FDFFF /* PrivacyInfo.xcprivacy */,
 			);
 			path = "macOS (App)";
 			sourceTree = "<group>";
@@ -237,6 +242,7 @@
 			isa = PBXGroup;
 			children = (
 				1DE786822FDA81C0001FDFFF /* Info.plist */,
+				FAD0000E2FDA81C0001FDFFF /* PrivacyInfo.xcprivacy */,
 			);
 			path = "macOS (Extension)";
 			sourceTree = "<group>";
@@ -405,6 +411,7 @@
 				1DE7868A2FDA81C0001FDFFF /* Script.js in Resources */,
 				1DE7868E2FDA81C0001FDFFF /* Assets.xcassets in Resources */,
 				1DE786842FDA81C0001FDFFF /* Main.html in Resources */,
+				FAD0000B2FDA81C0001FDFFF /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -423,6 +430,7 @@
 			files = (
 				1DE786A42FDA81C0001FDFFF /* manifest.json in Resources */,
 				1DE786A52FDA81C0001FDFFF /* src in Resources */,
+				FAD0000C2FDA81C0001FDFFF /* PrivacyInfo.xcprivacy in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
