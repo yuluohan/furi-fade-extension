@@ -171,7 +171,8 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     private let sidebarTable = NSTableView()
     private let wordTable = NSTableView()
     private let wordScrollView = NSScrollView()
-    private let navigationToggleButton = NSButton()
+    private let sidebarToggleButton = NSButton()
+    private let sidebarRevealButton = NSButton()
 
     private let sectionTitleLabel = NSTextField(labelWithString: "")
     private let statusDot = NSView()
@@ -331,15 +332,38 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         scroll.drawsBackground = false
         scroll.translatesAutoresizingMaskIntoConstraints = false
 
+        configureIconButton(
+            sidebarToggleButton,
+            symbol: "sidebar.left",
+            tooltip: "Collapse navigation",
+            action: #selector(toggleNavigationClicked)
+        )
+
+        let title = NSTextField(labelWithString: "Fading Furigana")
+        title.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        title.textColor = .secondaryLabelColor
+        title.lineBreakMode = .byTruncatingTail
+
+        let header = NSStackView(views: [title, NSView(), sidebarToggleButton])
+        header.orientation = .horizontal
+        header.alignment = .centerY
+        header.spacing = 8
+        header.edgeInsets = NSEdgeInsets(top: 12, left: 14, bottom: 6, right: 10)
+        header.translatesAutoresizingMaskIntoConstraints = false
+
         let effect = NSVisualEffectView()
         effect.material = .sidebar
         effect.blendingMode = .behindWindow
+        effect.addSubview(header)
         effect.addSubview(scroll)
 
         NSLayoutConstraint.activate([
+            header.leadingAnchor.constraint(equalTo: effect.leadingAnchor),
+            header.trailingAnchor.constraint(equalTo: effect.trailingAnchor),
+            header.topAnchor.constraint(equalTo: effect.topAnchor),
             scroll.leadingAnchor.constraint(equalTo: effect.leadingAnchor),
             scroll.trailingAnchor.constraint(equalTo: effect.trailingAnchor),
-            scroll.topAnchor.constraint(equalTo: effect.topAnchor, constant: 10),
+            scroll.topAnchor.constraint(equalTo: header.bottomAnchor),
             scroll.bottomAnchor.constraint(equalTo: effect.bottomAnchor)
         ])
         return effect
@@ -398,11 +422,12 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         sectionTitleLabel.lineBreakMode = .byTruncatingTail
 
         configureIconButton(
-            navigationToggleButton,
+            sidebarRevealButton,
             symbol: "sidebar.leading",
-            tooltip: "Collapse navigation",
+            tooltip: "Expand navigation",
             action: #selector(toggleNavigationClicked)
         )
+        sidebarRevealButton.isHidden = true
 
         statusDot.wantsLayer = true
         statusDot.layer?.cornerRadius = 4
@@ -448,7 +473,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 12
-        row.addArrangedSubview(navigationToggleButton)
+        row.addArrangedSubview(sidebarRevealButton)
         row.addArrangedSubview(titleStack)
         let spacer = NSView()
         spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
@@ -1015,14 +1040,15 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
             button.toolTip = L.t(key)
         }
         undoButton.title = L.t("Undo")
-        updateNavigationToggleButton()
+        updateNavigationToggleButtons()
     }
 
-    private func updateNavigationToggleButton() {
-        let symbol = isNavigationCollapsed ? "sidebar.leading" : "sidebar.left"
-        let tooltip = isNavigationCollapsed ? "Expand navigation" : "Collapse navigation"
-        navigationToggleButton.image = NSImage(systemSymbolName: symbol, accessibilityDescription: tooltip)
-        navigationToggleButton.toolTip = L.t(tooltip)
+    private func updateNavigationToggleButtons() {
+        sidebarRevealButton.isHidden = !isNavigationCollapsed
+        sidebarRevealButton.image = NSImage(systemSymbolName: "sidebar.leading", accessibilityDescription: "Expand navigation")
+        sidebarRevealButton.toolTip = L.t("Expand navigation")
+        sidebarToggleButton.image = NSImage(systemSymbolName: "sidebar.left", accessibilityDescription: "Collapse navigation")
+        sidebarToggleButton.toolTip = L.t("Collapse navigation")
     }
 
     // MARK: - Data
@@ -1493,7 +1519,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         isNavigationCollapsed.toggle()
         sidebarView?.isHidden = isNavigationCollapsed
         splitView?.adjustSubviews()
-        updateNavigationToggleButton()
+        updateNavigationToggleButtons()
     }
 
     @objc private func startReviewClicked(_ sender: NSButton) {
