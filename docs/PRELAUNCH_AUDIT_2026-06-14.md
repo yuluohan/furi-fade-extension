@@ -4,9 +4,30 @@ This audit captures the automated checks run before preparing the first signed m
 
 ## Result
 
-Status: code is ready for a signed beta candidate, but this machine cannot produce a signed build yet.
+Status: code is ready for a signed beta candidate. The signing blocker recorded
+earlier is RESOLVED for development builds.
 
-Blocking item:
+### Update 2026-06-14 (later): signed development build works
+
+A signed install build succeeded via `npm run build:safari:mac`:
+
+- The machine has macOS provisioning profiles for `com.banyuguru.fading-furigana`
+  and `…​.Extension` under team `Y3DTR7LH9K`.
+- The profiles embed `Apple Development: xuzhuoqun1999@gmail.com (OU=Y3DTR7LH9K)`,
+  whose private key IS in the login keychain, so automatic signing succeeds.
+- Verified: exactly one Safari extension entry
+  (`com.banyuguru.fading-furigana.Extension(0.1.0)`), app version `0.1.0` / build
+  `1`, signature `TeamIdentifier=Y3DTR7LH9K`, App Group container present.
+- Caveat 1: these are **development** profiles and they **expire 2026-06-18**.
+- Caveat 2: public distribution (notarized DMG or TestFlight/App Store) still
+  needs an **Apple Distribution** certificate + distribution provisioning
+  profile, which are NOT on this machine. That is the real remaining signing gap
+  for going public — local signed dev/beta validation is unblocked.
+
+The earlier "Mac Development cert not found" failure was specific to a legacy
+`Mac Development` cert type; the current `Apple Development` cert covers macOS.
+
+### Original blocking item (now superseded for dev builds)
 
 - Install or regenerate the Apple signing certificate/private key for development team `Y3DTR7LH9K`, then run a signed Release build.
 

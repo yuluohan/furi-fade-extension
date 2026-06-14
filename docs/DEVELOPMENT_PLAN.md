@@ -15,8 +15,8 @@ blocked
 
 ```text
 Current branch: dev
-Current phase: companion app learning loop
-Next recommended task: T053 MVP beta release hardening (signed build, paid-flow smoke tests, release copy)
+Current phase: MVP beta release hardening (T053)
+Next recommended task: T053 — signed dev build + single-entry registration DONE (2026-06-14); remaining = Safari interactive smoke tests, IAP sandbox walkthrough, finalize public URLs/contact, third-party attribution (docs/THIRD_PARTY_NOTICES.md), and an Apple Distribution cert for public release
 ```
 
 ## Tasks

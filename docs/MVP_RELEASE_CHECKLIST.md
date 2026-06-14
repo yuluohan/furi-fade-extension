@@ -52,6 +52,9 @@ The core user loop is present:
 
 ## Should Pass Before Public Launch
 
+- [ ] Apple Distribution certificate + distribution provisioning profile obtained (local machine only has Apple Development signing for team `Y3DTR7LH9K`; dev profiles expire 2026-06-18).
+- [ ] Third-party attribution surfaced in-app and/or on the website: JMdict/EDICT (EDRDG, CC BY-SA 4.0), kuromoji (Apache-2.0), IPADIC (NAIST). Confirm the JMdict ShareAlike obligation. See `docs/THIRD_PARTY_NOTICES.md`.
+- [ ] Public support URL, marketing/product URL, privacy policy URL, and contact email finalized and inserted into `docs/APP_STORE_METADATA_DRAFT.md`, `docs/PRIVACY_POLICY_DRAFT.md`, `docs/TERMS_DRAFT.md`.
 - [ ] Notarized or App Store/TestFlight distribution path chosen.
 - [ ] Crash/log collection policy chosen.
 - [ ] Local data-loss recovery flow that does not create a cross-device import/export path.

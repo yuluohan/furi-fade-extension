@@ -25,6 +25,12 @@ MVP scope:
 Keywords:
 Japanese, furigana, kanji, vocabulary, Safari extension, language learning, reading, JLPT, SRS
 
+Acknowledgements / third-party data:
+This app uses JMdict/EDICT dictionary data (© EDRDG, CC BY-SA 4.0), the
+kuromoji morphological analyzer (Apache-2.0), and IPADIC (NAIST). See
+`docs/THIRD_PARTY_NOTICES.md`. These attributions must be surfaced in-app
+and/or on the website before public distribution.
+
 Support URL:
 TODO: public support URL.
 
