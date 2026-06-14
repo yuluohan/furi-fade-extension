@@ -105,6 +105,7 @@ private final class NativeAppStateStore {
         var nextState = state
         var metadata = nextState["metadata"] as? [String: Any] ?? [:]
         metadata["updatedAt"] = Self.timestamp()
+        metadata["deviceId"] = metadata["deviceId"] as? String ?? Self.makeDeviceId()
         nextState["metadata"] = metadata
 
         let url = stateFileURL
@@ -163,6 +164,7 @@ private final class NativeAppStateStore {
             "dailyExposureSummaries": [:],
             "reviewLogs": [:],
             "metadata": [
+                "deviceId": makeDeviceId(),
                 "createdAt": now,
                 "updatedAt": now,
                 "lastOpenedAt": now
@@ -188,5 +190,9 @@ private final class NativeAppStateStore {
 
     static func timestamp() -> String {
         ISO8601DateFormatter().string(from: Date())
+    }
+
+    static func makeDeviceId() -> String {
+        "dev_\(UUID().uuidString.lowercased())"
     }
 }

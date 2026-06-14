@@ -2147,6 +2147,7 @@ final class AppStateStore {
 
     func apply(action: WordAction, lexicalItemId: String) throws {
         var raw = loadRawState()
+        let deviceId = ensureDeviceId(in: &raw)
         var states = raw["userLexicalStates"] as? [String: Any] ?? [:]
         var userState = states[lexicalItemId] as? [String: Any] ?? createDefaultUserState(lexicalItemId: lexicalItemId)
         var userIntent = userState["userIntent"] as? [String: Any] ?? [:]
@@ -2208,6 +2209,10 @@ final class AppStateStore {
         userState["learning"] = learning
         userState["interaction"] = interaction
         userState["intelligence"] = intelligence
+        userState["id"] = userState["id"] as? String ?? lexicalItemId
+        userState["updatedAt"] = now
+        let existingDeviceId = userState["deviceId"] as? String
+        userState["deviceId"] = (existingDeviceId == nil || existingDeviceId == "dev_unknown") ? deviceId : existingDeviceId
         states[lexicalItemId] = userState
         raw["userLexicalStates"] = states
 
@@ -2238,6 +2243,7 @@ final class AppStateStore {
 
     func applyReview(_ result: ReviewResult, lexicalItemId: String) throws {
         var raw = loadRawState()
+        let deviceId = ensureDeviceId(in: &raw)
         var states = raw["userLexicalStates"] as? [String: Any] ?? [:]
         var userState = states[lexicalItemId] as? [String: Any] ?? createDefaultUserState(lexicalItemId: lexicalItemId)
         var learning = userState["learning"] as? [String: Any] ?? [:]
@@ -2274,6 +2280,10 @@ final class AppStateStore {
         intelligence["reasonCodes"] = reasonCodes
         userState["learning"] = learning
         userState["intelligence"] = intelligence
+        userState["id"] = userState["id"] as? String ?? lexicalItemId
+        userState["updatedAt"] = nowText
+        let existingDeviceId = userState["deviceId"] as? String
+        userState["deviceId"] = (existingDeviceId == nil || existingDeviceId == "dev_unknown") ? deviceId : existingDeviceId
         states[lexicalItemId] = userState
         raw["userLexicalStates"] = states
 
@@ -2289,7 +2299,9 @@ final class AppStateStore {
             "stageAfter": outcome.reviewStage,
             "intervalDays": outcome.intervalDays,
             "nextReviewAt": nextReviewText,
-            "source": "macos_app"
+            "source": "macos_app",
+            "updatedAt": nowText,
+            "deviceId": deviceId
         ]
         raw["reviewLogs"] = reviewLogs
 
@@ -2326,9 +2338,19 @@ final class AppStateStore {
     private func touchMetadata(in raw: inout [String: Any], now: Date = Date()) {
         let nowText = ISO8601DateFormatter().string(from: now)
         var metadata = raw["metadata"] as? [String: Any] ?? [:]
+        metadata["deviceId"] = metadata["deviceId"] as? String ?? Self.makeDeviceId()
         metadata["updatedAt"] = nowText
         metadata["lastOpenedAt"] = nowText
         raw["metadata"] = metadata
+    }
+
+    @discardableResult
+    private func ensureDeviceId(in raw: inout [String: Any]) -> String {
+        var metadata = raw["metadata"] as? [String: Any] ?? [:]
+        let deviceId = metadata["deviceId"] as? String ?? Self.makeDeviceId()
+        metadata["deviceId"] = deviceId
+        raw["metadata"] = metadata
+        return deviceId
     }
 
     private static func stateFileURL(fileManager: FileManager = .default) -> URL {
@@ -2359,6 +2381,7 @@ final class AppStateStore {
             "dailyExposureSummaries": [:],
             "reviewLogs": [:],
             "metadata": [
+                "deviceId": Self.makeDeviceId(),
                 "createdAt": now,
                 "updatedAt": now,
                 "lastOpenedAt": now
@@ -2369,6 +2392,7 @@ final class AppStateStore {
     private func createDefaultUserState(lexicalItemId: String) -> [String: Any] {
         let now = ISO8601DateFormatter().string(from: Date())
         return [
+            "id": lexicalItemId,
             "lexicalItemId": lexicalItemId,
             "lifecycleStatus": "new",
             "knowledgeConfidence": 0,
@@ -2404,8 +2428,14 @@ final class AppStateStore {
                 "confidenceKnown": 0,
                 "confidenceNeedsHelp": 1,
                 "reasonCodes": []
-            ]
+            ],
+            "updatedAt": now,
+            "deviceId": "dev_unknown"
         ]
+    }
+
+    private static func makeDeviceId() -> String {
+        "dev_\(UUID().uuidString.lowercased())"
     }
 
     private func appendUnique(_ value: String, to values: inout [String]) {

@@ -1,8 +1,8 @@
 # core-schema
 
-The platform-neutral sync data contract (T043, pending). This package is the single source of truth that keeps the JS (extensions), Swift (Apple apps), and later Kotlin (Android) sync implementations honest.
+The platform-neutral sync data contract. This package is the single source of truth that keeps the JS (extensions), Swift (Apple apps), and later Kotlin (Android) sync implementations honest.
 
-Will contain:
+Contains:
 
 - `schema/` — versioned JSON Schema for the sync payload: `AppState` domains plus sync metadata (`deviceId`, per-record `updatedAt`, `opSeq`, tombstones).
 - `merge-rules.md` — normative merge semantics per domain (additive exposure deltas, append-only review logs, LWW per record elsewhere). See `docs/SYNC_AND_CLIENTS_DESIGN.md` §3.

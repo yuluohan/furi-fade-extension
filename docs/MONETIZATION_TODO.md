@@ -231,8 +231,9 @@ Pro should not be required for the Basic MVP launch. Build after Basic purchase 
 - [ ] Add subscription entitlement model.
 - [ ] Add server-side entitlement verification.
 - [ ] Add Cloudflare sync API.
-- [ ] Add sync schema golden vectors.
-- [ ] Add per-record `updatedAt`, `deviceId`, and op-emitting mutation points.
+- [x] Add sync schema golden vectors.
+- [x] Add per-record `updatedAt`, `deviceId`, and mutation metadata points.
+- [ ] Add persisted outbound op log and sync push/pull mutation wrappers.
 - [ ] Add device list.
 - [ ] Add sync conflict handling and merge tests.
 - [ ] Add cloud backup/restore for subscribed accounts.

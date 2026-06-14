@@ -1,0 +1,107 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fadingfurigana.local/schema/app-state-v1.schema.json",
+  "title": "Fading Furigana AppState v1",
+  "type": "object",
+  "required": [
+    "schemaVersion",
+    "metadata",
+    "settings",
+    "entitlements",
+    "lexicalItems",
+    "userLexicalStates",
+    "sourceOccurrences",
+    "dailyExposureSummaries",
+    "reviewLogs"
+  ],
+  "properties": {
+    "schemaVersion": {
+      "const": 1
+    },
+    "metadata": {
+      "type": "object",
+      "required": ["deviceId", "createdAt", "updatedAt", "lastOpenedAt"],
+      "properties": {
+        "deviceId": {
+          "type": "string",
+          "pattern": "^dev_.+"
+        },
+        "createdAt": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "lastOpenedAt": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "userProfile": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "settings": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "entitlements": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "lexicalItems": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "userLexicalStates": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "sourceOccurrences": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "dailyExposureSummaries": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/record"
+      }
+    },
+    "reviewLogs": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "record": {
+      "type": "object",
+      "required": ["id", "updatedAt", "deviceId"],
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "deviceId": {
+          "type": "string",
+          "pattern": "^dev_.+"
+        },
+        "deletedAt": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

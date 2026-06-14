@@ -5,6 +5,10 @@
     return typeof stateOrProvider === "function" ? stateOrProvider() : stateOrProvider;
   }
 
+  function stateDeviceId(state) {
+    return state.metadata?.deviceId || "dev_unknown";
+  }
+
   class LexicalItemRepository {
     constructor(stateOrProvider) {
       this.stateOrProvider = stateOrProvider;
@@ -61,6 +65,8 @@
       state.exposure.seenCount += 1;
       state.exposure.firstSeenAt ||= now;
       state.exposure.lastSeenAt = now;
+      state.updatedAt = now;
+      state.deviceId ||= stateDeviceId(this.state);
       return state;
     }
 
@@ -73,6 +79,8 @@
       state.interaction.savedCount += 1;
       state.interaction.lastActionAt = now;
       state.learning.reviewStage = "learning";
+      state.updatedAt = now;
+      state.deviceId ||= stateDeviceId(this.state);
       return state;
     }
 
@@ -99,6 +107,8 @@
         state.interaction.ignoredCount += 1;
       }
 
+      state.updatedAt = now;
+      state.deviceId ||= stateDeviceId(this.state);
       return state;
     }
 
@@ -118,6 +128,8 @@
       state.intelligence.confidenceKnown = 0;
       state.intelligence.confidenceNeedsHelp = 1;
       state.intelligence.reasonCodes = [...new Set([...(state.intelligence.reasonCodes || []), "user_forgot"])];
+      state.updatedAt = now;
+      state.deviceId ||= stateDeviceId(this.state);
       return state;
     }
 
@@ -129,6 +141,8 @@
       state.intelligence.reasonCodes = [
         ...new Set([...(state.intelligence.reasonCodes || []), pinned ? "user_pinned_annotation" : "user_unpinned_annotation"])
       ];
+      state.updatedAt = now;
+      state.deviceId ||= stateDeviceId(this.state);
       return state;
     }
   }
@@ -165,7 +179,9 @@
           surfaceForms: {},
           pages: {},
           firstSeenAt: seenAt,
-          lastSeenAt: seenAt
+          lastSeenAt: seenAt,
+          updatedAt: seenAt,
+          deviceId: stateDeviceId(this.state)
         };
       }
 
@@ -173,6 +189,8 @@
       summary.totalSeenCount += 1;
       summary.firstSeenAt ||= seenAt;
       summary.lastSeenAt = seenAt;
+      summary.updatedAt = seenAt;
+      summary.deviceId ||= stateDeviceId(this.state);
 
       if (
         summary.surfaceForms[input.surface] !== undefined ||

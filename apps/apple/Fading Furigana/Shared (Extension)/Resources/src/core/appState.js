@@ -54,6 +54,12 @@
     return new Date().toISOString();
   }
 
+  function createDeviceId() {
+    const randomUUID = window.crypto?.randomUUID?.bind(window.crypto);
+    if (randomUUID) return `dev_${randomUUID()}`;
+    return `dev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
+  }
+
   function createId(...parts) {
     return parts
       .join(":")
@@ -212,6 +218,7 @@
       dailyExposureSummaries: {},
       reviewLogs: {},
       metadata: {
+        deviceId: createDeviceId(),
         createdAt: now,
         updatedAt: now,
         lastOpenedAt: now
@@ -228,6 +235,7 @@
     const display = settings.display || {};
 
     return {
+      ...settings,
       display: {
         ...clone(DEFAULT_APP_SETTINGS.display),
         ...display,
@@ -378,6 +386,7 @@
 
   function createDefaultUserLexicalState(lexicalItemId, now = createTimestamp()) {
     return {
+      id: lexicalItemId,
       lexicalItemId,
       lifecycleStatus: "new",
       knowledgeConfidence: 0,
@@ -418,7 +427,8 @@
         confidenceKnown: 0,
         confidenceNeedsHelp: 1,
         reasonCodes: []
-      }
+      },
+      updatedAt: now
     };
   }
 
@@ -473,7 +483,9 @@
         url: sentence.url,
         domain: getDomain(sentence.url),
         pageTitle: sentence.pageTitle,
-        createdAt: sentence.createdAt || now
+        createdAt: sentence.createdAt || now,
+        updatedAt: sentence.updatedAt || sentence.createdAt || now,
+        deviceId: sentence.deviceId || state.metadata.deviceId
       };
     }
 
@@ -481,6 +493,101 @@
     state.metadata.updatedAt = now;
     state.metadata.lastOpenedAt = now;
     return state;
+  }
+
+  function normalizeRecordDomains(state, now = createTimestamp()) {
+    const deviceId = normalizeDeviceId(state.metadata?.deviceId) || createDeviceId();
+    const metadata = {
+      ...state.metadata,
+      deviceId,
+      createdAt: state.metadata?.createdAt || now,
+      updatedAt: state.metadata?.updatedAt || now,
+      lastOpenedAt: now
+    };
+
+    const lexicalItems = {};
+    for (const [id, value] of Object.entries(state.lexicalItems || {})) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      lexicalItems[id] = {
+        ...value,
+        id: value.id || id,
+        createdAt: value.createdAt || value.updatedAt || metadata.createdAt,
+        updatedAt: value.updatedAt || value.createdAt || metadata.updatedAt,
+        deviceId: value.deviceId || deviceId
+      };
+    }
+
+    const userLexicalStates = {};
+    for (const [id, value] of Object.entries(state.userLexicalStates || {})) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      const defaults = createDefaultUserLexicalState(value.lexicalItemId || id, value.updatedAt || metadata.updatedAt);
+      userLexicalStates[id] = {
+        ...defaults,
+        ...value,
+        id: value.id || id,
+        lexicalItemId: value.lexicalItemId || id,
+        userIntent: { ...defaults.userIntent, ...(value.userIntent || {}) },
+        exposure: { ...defaults.exposure, ...(value.exposure || {}) },
+        interaction: { ...defaults.interaction, ...(value.interaction || {}) },
+        learning: { ...defaults.learning, ...(value.learning || {}) },
+        intelligence: { ...defaults.intelligence, ...(value.intelligence || {}) },
+        updatedAt:
+          value.updatedAt ||
+          value.interaction?.lastActionAt ||
+          value.learning?.lastReviewedAt ||
+          value.exposure?.lastSeenAt ||
+          metadata.updatedAt,
+        deviceId: value.deviceId || deviceId
+      };
+    }
+
+    const sourceOccurrences = {};
+    for (const [id, value] of Object.entries(state.sourceOccurrences || {})) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      sourceOccurrences[id] = {
+        ...value,
+        id: value.id || id,
+        createdAt: value.createdAt || value.updatedAt || metadata.updatedAt,
+        updatedAt: value.updatedAt || value.createdAt || metadata.updatedAt,
+        deviceId: value.deviceId || deviceId
+      };
+    }
+
+    const dailyExposureSummaries = {};
+    for (const [id, value] of Object.entries(state.dailyExposureSummaries || {})) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      dailyExposureSummaries[id] = {
+        ...value,
+        id: value.id || id,
+        updatedAt: value.updatedAt || value.lastSeenAt || metadata.updatedAt,
+        deviceId: value.deviceId || deviceId
+      };
+    }
+
+    const reviewLogs = {};
+    for (const [id, value] of Object.entries(state.reviewLogs || {})) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      reviewLogs[id] = {
+        ...value,
+        id: value.id || id,
+        updatedAt: value.updatedAt || value.reviewedAt || metadata.updatedAt,
+        deviceId: value.deviceId || deviceId
+      };
+    }
+
+    return {
+      ...state,
+      metadata,
+      lexicalItems,
+      userLexicalStates,
+      sourceOccurrences,
+      dailyExposureSummaries,
+      reviewLogs
+    };
+  }
+
+  function normalizeDeviceId(deviceId) {
+    return typeof deviceId === "string" && deviceId.trim() ? deviceId.trim() : null;
   }
 
   function mapLegacyStatus(status) {
@@ -512,7 +619,7 @@
     if (!parsed || typeof parsed !== "object") return createDefaultAppState(now);
     if (parsed.schemaVersion !== SCHEMA_VERSION) return migrateLegacyState(parsed, now);
 
-    return {
+    return normalizeRecordDomains({
       ...createDefaultAppState(now),
       ...parsed,
       userProfile: {
@@ -527,7 +634,7 @@
         updatedAt: parsed.metadata?.updatedAt || now,
         lastOpenedAt: now
       }
-    };
+    }, now);
   }
 
   window.FadingFuriganaState = {
@@ -540,6 +647,7 @@
     createDefaultAppState,
     createDefaultEntitlements,
     createDefaultUserLexicalState,
+    createDeviceId,
     createId,
     createLexicalItemFromToken,
     createTimestamp,

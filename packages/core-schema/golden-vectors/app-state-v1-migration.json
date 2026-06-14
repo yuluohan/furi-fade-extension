@@ -1,0 +1,85 @@
+{
+  "name": "app-state-v1 migration fills sync metadata while preserving unknown fields",
+  "input": {
+    "schemaVersion": 1,
+    "metadata": {
+      "createdAt": "2026-06-01T00:00:00.000Z",
+      "updatedAt": "2026-06-02T00:00:00.000Z",
+      "lastOpenedAt": "2026-06-02T00:00:00.000Z",
+      "unknownMeta": "kept"
+    },
+    "settings": {
+      "annotation": {
+        "mode": "adaptive"
+      },
+      "unknownSettings": {
+        "kept": true
+      }
+    },
+    "entitlements": {
+      "platform": "apple-macos"
+    },
+    "lexicalItems": {
+      "確認:かくにん": {
+        "id": "確認:かくにん",
+        "surface": "確認",
+        "lemma": "確認",
+        "readingKana": "かくにん",
+        "createdAt": "2026-06-01T01:00:00.000Z",
+        "customLexicalField": "kept"
+      }
+    },
+    "userLexicalStates": {
+      "確認:かくにん": {
+        "lexicalItemId": "確認:かくにん",
+        "lifecycleStatus": "learning",
+        "interaction": {
+          "lastActionAt": "2026-06-01T02:00:00.000Z"
+        },
+        "customUserField": "kept"
+      }
+    },
+    "sourceOccurrences": {
+      "occurrence:確認:かくにん:1": {
+        "id": "occurrence:確認:かくにん:1",
+        "lexicalItemId": "確認:かくにん",
+        "sentence": "内容を確認してください。",
+        "createdAt": "2026-06-01T03:00:00.000Z"
+      }
+    },
+    "dailyExposureSummaries": {
+      "daily-exposure:2026-06-01:確認:かくにん": {
+        "id": "daily-exposure:2026-06-01:確認:かくにん",
+        "date": "2026-06-01",
+        "lexicalItemId": "確認:かくにん",
+        "totalSeenCount": 2,
+        "lastSeenAt": "2026-06-01T04:00:00.000Z"
+      }
+    },
+    "reviewLogs": {
+      "rl_existing": {
+        "id": "rl_existing",
+        "lexicalItemId": "確認:かくにん",
+        "reviewedAt": "2026-06-01T05:00:00.000Z",
+        "result": "got_it"
+      }
+    }
+  },
+  "expect": {
+    "schemaVersion": 1,
+    "metadataDeviceIdPrefix": "dev_",
+    "preservedUnknownPaths": [
+      "metadata.unknownMeta",
+      "settings.unknownSettings.kept",
+      "lexicalItems.確認:かくにん.customLexicalField",
+      "userLexicalStates.確認:かくにん.customUserField"
+    ],
+    "recordUpdatedAt": {
+      "lexicalItems.確認:かくにん": "2026-06-01T01:00:00.000Z",
+      "userLexicalStates.確認:かくにん": "2026-06-01T02:00:00.000Z",
+      "sourceOccurrences.occurrence:確認:かくにん:1": "2026-06-01T03:00:00.000Z",
+      "dailyExposureSummaries.daily-exposure:2026-06-01:確認:かくにん": "2026-06-01T04:00:00.000Z",
+      "reviewLogs.rl_existing": "2026-06-01T05:00:00.000Z"
+    }
+  }
+}

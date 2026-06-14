@@ -131,7 +131,9 @@
         surface: token.surface,
         sentence: sourceSentence,
         ...this.getPageContext(),
-        createdAt: now
+        createdAt: now,
+        updatedAt: now,
+        deviceId: this.state.metadata?.deviceId || "dev_unknown"
       };
 
       await this.persist();
