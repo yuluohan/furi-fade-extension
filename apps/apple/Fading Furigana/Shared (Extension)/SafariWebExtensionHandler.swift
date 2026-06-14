@@ -152,6 +152,7 @@ private final class NativeAppStateStore {
                     "saveUrls": "domain_only",
                     "retentionDays": 90
                 ],
+                "siteOverrides": [:],
                 "dictionary": [
                     "mode": "sample"
                 ]

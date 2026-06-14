@@ -23,6 +23,7 @@
       saveUrls: "domain_only",
       retentionDays: 90
     },
+    siteOverrides: {},
     dictionary: {
       mode: "sample"
     }
@@ -214,6 +215,7 @@
     const legacyMode = settings.annotationMode;
     const annotation = settings.annotation || {};
     const exposureTracking = settings.exposureTracking || {};
+    const siteOverrides = settings.siteOverrides || {};
     const dictionary = settings.dictionary || {};
     const display = settings.display || {};
 
@@ -241,6 +243,7 @@
         ...clone(DEFAULT_APP_SETTINGS.exposureTracking),
         ...exposureTracking
       },
+      siteOverrides: normalizeSiteOverrides(siteOverrides),
       dictionary: {
         ...clone(DEFAULT_APP_SETTINGS.dictionary),
         ...dictionary
@@ -264,6 +267,28 @@
   function normalizeConstrainedLayoutMode(mode) {
     if (mode === "ruby" || mode === "compact") return mode;
     return DEFAULT_APP_SETTINGS.annotation.constrainedLayoutMode;
+  }
+
+  function normalizeSiteOverrides(overrides = {}) {
+    const normalized = {};
+    if (!overrides || typeof overrides !== "object" || Array.isArray(overrides)) return normalized;
+
+    for (const [host, value] of Object.entries(overrides)) {
+      const normalizedHost = normalizeHostname(host);
+      if (!normalizedHost || !value || typeof value !== "object" || Array.isArray(value)) continue;
+      normalized[normalizedHost] = {
+        annotationEnabled: value.annotationEnabled !== false,
+        updatedAt: typeof value.updatedAt === "string" ? value.updatedAt : undefined
+      };
+    }
+    return normalized;
+  }
+
+  function normalizeHostname(hostname) {
+    return String(hostname || "")
+      .trim()
+      .toLowerCase()
+      .replace(/\.$/u, "");
   }
 
   function mapLegacyAnnotationMode(mode) {
@@ -489,6 +514,8 @@
     getLocalDateKey,
     migrateAppState,
     normalizeEntitlements,
+    normalizeHostname,
+    normalizeSiteOverrides,
     normalizeSettings
   };
 })();

@@ -36,6 +36,10 @@ final class AppSettingsViewController: NSViewController {
     private let purchaseBasicButton = NSButton(title: "", target: nil, action: nil)
     private let restorePurchaseButton = NSButton(title: "", target: nil, action: nil)
     private let statusLabel = NSTextField(labelWithString: "")
+    private let safariExtensionStatusLabel = NSTextField(labelWithString: "")
+    private let sharedSafariDataLabel = NSTextField(labelWithString: "")
+    private let chromeExtensionStatusLabel = NSTextField(labelWithString: "")
+    private let iosSafariStatusLabel = NSTextField(labelWithString: "")
     private var transactionListener: Task<Void, Never>?
 
     // English titles double as localization keys (see Localization.swift).
@@ -97,8 +101,8 @@ final class AppSettingsViewController: NSViewController {
     }
 
     override func loadView() {
-        view = NSView(frame: NSRect(x: 0, y: 0, width: 560, height: 690))
-        preferredContentSize = NSSize(width: 560, height: 690)
+        view = NSView(frame: NSRect(x: 0, y: 0, width: 600, height: 760))
+        preferredContentSize = NSSize(width: 600, height: 760)
         buildUI()
         refreshStoreProduct()
         startTransactionListener()
@@ -150,6 +154,7 @@ final class AppSettingsViewController: NSViewController {
         configurePopup(languagePopup, options: languageOptions, selected: display["interfaceLanguage"] as? String ?? "en", localizeTitles: false)
         configurePopup(entitlementOverridePopup, options: entitlementOverrideOptions, selected: entitlementSummary.developmentOverride)
         configurePurchaseControls()
+        configureExtensionStatusLabels()
 
         let title = NSTextField(labelWithString: L.t("Settings"))
         title.font = NSFont.boldSystemFont(ofSize: 18)
@@ -170,21 +175,27 @@ final class AppSettingsViewController: NSViewController {
         ])
 
         root.addArrangedSubview(title)
-        root.addArrangedSubview(makeSection(L.t("Annotation"), grid: makeGrid([
+        root.addArrangedSubview(makeSection(L.t("Learning Experience"), grid: makeGrid([
             ("", annotationEnabled),
             (L.t("Mode:"), modePopup),
             (L.t("Hide words at or below:"), levelPopup),
-            (L.t("Display style:"), displayStylePopup),
-            ("", smartContextCheckbox),
             ("", hideKnownCheckbox)
         ])))
-        root.addArrangedSubview(makeSection(L.t("Exposure Tracking"), grid: makeGrid([
+        root.addArrangedSubview(makeSection(L.t("Appearance"), grid: makeGrid([
+            (L.t("Display style:"), displayStylePopup),
+            ("", smartContextCheckbox),
+            (L.t("Interface language:"), languagePopup)
+        ])))
+        root.addArrangedSubview(makeSection(L.t("Data and Privacy"), grid: makeGrid([
             ("", exposureEnabled),
             (L.t("Save page URLs:"), urlPrivacyPopup),
             (L.t("Keep statistics for:"), retentionPopup)
         ])))
-        root.addArrangedSubview(makeSection(L.t("Extension"), grid: makeGrid([
-            (L.t("Interface language:"), languagePopup),
+        root.addArrangedSubview(makeSection(L.t("Extensions"), grid: makeGrid([
+            (L.t("Safari:"), safariExtensionStatusLabel),
+            (L.t("Data:"), sharedSafariDataLabel),
+            (L.t("Chrome:"), chromeExtensionStatusLabel),
+            (L.t("iOS Safari:"), iosSafariStatusLabel),
             ("", makeLinkButton(L.t("Open Safari Extension Settings…"), action: #selector(openSafariPreferences)))
         ])))
         var purchaseRows: [(String, NSView)] = [
@@ -203,8 +214,9 @@ final class AppSettingsViewController: NSViewController {
             ("", makeCaption(L.t("Local vocabulary stays on this device even if purchase status changes."))),
             ("", makeCaption(L.t("Sync and cloud backup require Pro.")))
         ])
-        root.addArrangedSubview(makeSection(L.t("Purchase"), grid: makeGrid(purchaseRows)))
+        root.addArrangedSubview(makeSection(L.t("Purchase and Sync"), grid: makeGrid(purchaseRows)))
         root.addArrangedSubview(makeFooter())
+        refreshSafariExtensionStatus()
     }
 
     // MARK: - UI helpers
@@ -307,6 +319,28 @@ final class AppSettingsViewController: NSViewController {
         restorePurchaseButton.action = #selector(restorePurchaseClicked)
     }
 
+    private func configureExtensionStatusLabels() {
+        safariExtensionStatusLabel.stringValue = L.t("Checking Safari extension status…")
+        safariExtensionStatusLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+        safariExtensionStatusLabel.textColor = .secondaryLabelColor
+
+        sharedSafariDataLabel.stringValue = L.t("Safari extension and Mac app share this Mac's local data.")
+        sharedSafariDataLabel.font = NSFont.systemFont(ofSize: 12)
+        sharedSafariDataLabel.textColor = .secondaryLabelColor
+        sharedSafariDataLabel.maximumNumberOfLines = 2
+        sharedSafariDataLabel.preferredMaxLayoutWidth = 330
+
+        chromeExtensionStatusLabel.stringValue = L.t("Chrome keeps separate local data until Pro sync is enabled.")
+        chromeExtensionStatusLabel.font = NSFont.systemFont(ofSize: 12)
+        chromeExtensionStatusLabel.textColor = .secondaryLabelColor
+        chromeExtensionStatusLabel.maximumNumberOfLines = 2
+        chromeExtensionStatusLabel.preferredMaxLayoutWidth = 330
+
+        iosSafariStatusLabel.stringValue = L.t("Planned for the iOS app.")
+        iosSafariStatusLabel.font = NSFont.systemFont(ofSize: 12)
+        iosSafariStatusLabel.textColor = .secondaryLabelColor
+    }
+
     private func makeButtonRow(_ buttons: [NSButton]) -> NSView {
         let row = NSStackView(views: buttons)
         row.orientation = .horizontal
@@ -388,6 +422,26 @@ final class AppSettingsViewController: NSViewController {
         SFSafariApplication.showPreferencesForExtension(withIdentifier: extensionBundleIdentifier) { _ in
             DispatchQueue.main.async {
                 NSApp.activate(ignoringOtherApps: true)
+            }
+        }
+    }
+
+    private func refreshSafariExtensionStatus() {
+        SFSafariExtensionManager.getStateOfSafariExtension(withIdentifier: extensionBundleIdentifier) { [weak self] state, error in
+            DispatchQueue.main.async {
+                guard let self else { return }
+                if let error {
+                    self.safariExtensionStatusLabel.stringValue = L.f("Unable to read Safari extension status: %@", error.localizedDescription)
+                    self.safariExtensionStatusLabel.textColor = .systemOrange
+                    return
+                }
+                if state?.isEnabled == true {
+                    self.safariExtensionStatusLabel.stringValue = L.t("Connected and enabled")
+                    self.safariExtensionStatusLabel.textColor = .systemGreen
+                } else {
+                    self.safariExtensionStatusLabel.stringValue = L.t("Installed but disabled")
+                    self.safariExtensionStatusLabel.textColor = .systemOrange
+                }
             }
         }
     }

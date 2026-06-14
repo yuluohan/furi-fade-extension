@@ -13,62 +13,44 @@
           <h1>Fading Furigana</h1>
           <p id="build-version">v0.1.0</p>
         </div>
-        <p id="status-text">Ready</p>
+        <strong id="status-text">Ready</strong>
       </header>
 
-      <section class="panel panel--compact" aria-label="Display settings" data-i18n-aria="displaySettings">
-        <label class="field">
-          <span data-i18n="interfaceLanguage">Language</span>
-          <select id="interface-language">
-            <option value="zhHans">中文</option>
-            <option value="en">English</option>
-          </select>
-        </label>
+      <section class="panel status-panel" aria-label="Current page" data-i18n-aria="currentPage">
+        <div class="status-panel__row">
+          <span>
+            <small data-i18n="currentSite">Current site</small>
+            <strong id="site-host">—</strong>
+          </span>
+          <button id="site-toggle" type="button" data-i18n="pauseSite">Pause site</button>
+        </div>
+        <p id="page-status" class="status-panel__text">—</p>
+        <p id="access-text" class="status-panel__text status-panel__text--muted">—</p>
       </section>
 
-      <section class="panel" aria-label="Annotation settings" data-i18n-aria="annotationSettings">
-        <div class="switch-grid">
-          <label class="switch-row">
-            <span>
-              <strong data-i18n="annotations">Annotations</strong>
-              <small data-i18n="annotationsHint">Show reading hints on Japanese words</small>
-            </span>
-            <input id="annotation-enabled" type="checkbox" />
-          </label>
-
-          <label class="switch-row">
-            <span>
-              <strong data-i18n="hideKnownWords">Hide known words</strong>
-              <small data-i18n="hideKnownWordsHint">Fade out words already mastered</small>
-            </span>
-            <input id="hide-known-items" type="checkbox" />
-          </label>
-
-          <label class="switch-row">
-            <span>
-              <strong data-i18n="smartContextDisplay">Smart compact areas</strong>
-              <small data-i18n="smartContextDisplayHint">Use tap hints in titles, navigation, and search results</small>
-            </span>
-            <input id="smart-context-display" type="checkbox" />
-          </label>
-        </div>
+      <section class="panel quick-panel" aria-label="Quick annotation controls" data-i18n-aria="quickControls">
+        <label class="switch-row switch-row--primary">
+          <span>
+            <strong data-i18n="annotations">Annotations</strong>
+            <small data-i18n="annotationsHint">Control this browser's annotation behavior</small>
+          </span>
+          <input id="annotation-enabled" type="checkbox" />
+        </label>
 
         <div class="settings-grid">
           <label class="field">
-            <span data-i18n="mode">Mode</span>
-            <select id="annotation-mode">
-              <option value="adaptive" data-i18n="modeAdaptive">Adaptive</option>
-              <option value="all_items" data-i18n="modeAllItems">All items</option>
-              <option value="unknown_items_only" data-i18n="modeUnknownOnly">Unknown only</option>
-              <option value="saved_items_only" data-i18n="modeSavedOnly">Saved only</option>
-              <option value="off" data-i18n="modeOff">Off</option>
+            <span data-i18n="displayStyle">Display</span>
+            <select id="display-style">
+              <option value="tap_only" data-i18n="displayAuto">Auto</option>
+              <option value="ruby" data-i18n="displayRuby">Ruby</option>
+              <option value="compact" data-i18n="displayCompact">Tap hints</option>
             </select>
           </label>
 
           <label class="field">
-            <span data-i18n="knownLevel">Known up to</span>
+            <span data-i18n="knownLevel">Level</span>
             <select id="user-level">
-              <option value="none" data-i18n="levelNone">None</option>
+              <option value="none" data-i18n="levelAll">All</option>
               <option value="n5">N5</option>
               <option value="n4">N4</option>
               <option value="n3">N3</option>
@@ -76,53 +58,74 @@
               <option value="n1">N1</option>
             </select>
           </label>
-
-          <label class="field">
-            <span data-i18n="displayStyle">Display style</span>
-            <select id="display-style">
-              <option value="tap_only" data-i18n="displayAuto">Auto</option>
-              <option value="ruby" data-i18n="displayRuby">Ruby</option>
-              <option value="compact" data-i18n="displayCompact">Tap hints</option>
-            </select>
-          </label>
         </div>
+
+        <details class="advanced">
+          <summary data-i18n="moreControls">More controls</summary>
+          <div class="advanced__content">
+            <label class="field">
+              <span data-i18n="mode">Focus</span>
+              <select id="annotation-mode">
+                <option value="adaptive" data-i18n="modeAdaptive">Adaptive</option>
+                <option value="all_items" data-i18n="modeAllItems">All items</option>
+                <option value="unknown_items_only" data-i18n="modeUnknownOnly">Unknown only</option>
+                <option value="saved_items_only" data-i18n="modeSavedOnly">Saved only</option>
+                <option value="off" data-i18n="modeOff">Off</option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span data-i18n="interfaceLanguage">Language</span>
+              <select id="interface-language">
+                <option value="zhHans">中文</option>
+                <option value="en">English</option>
+              </select>
+            </label>
+
+            <label class="switch-row">
+              <span>
+                <strong data-i18n="smartContextDisplay">Smart compact areas</strong>
+                <small data-i18n="smartContextDisplayHint">Use tap hints in titles, links, and search results</small>
+              </span>
+              <input id="smart-context-display" type="checkbox" />
+            </label>
+
+            <label class="switch-row">
+              <span>
+                <strong data-i18n="hideKnownWords">Hide known words</strong>
+                <small data-i18n="hideKnownWordsHint">Fade out words already mastered</small>
+              </span>
+              <input id="hide-known-items" type="checkbox" />
+            </label>
+
+            <label class="switch-row">
+              <span>
+                <strong data-i18n="dailyWordStats">Daily word stats</strong>
+                <small data-i18n="dailyWordStatsHint">Count words seen each day</small>
+              </span>
+              <input id="exposure-enabled" type="checkbox" />
+            </label>
+
+            <label class="field">
+              <span data-i18n="urlPrivacy">URL privacy</span>
+              <select id="url-privacy">
+                <option value="domain_only" data-i18n="urlDomainOnly">Domain only</option>
+                <option value="full" data-i18n="urlFull">Full URL</option>
+                <option value="none" data-i18n="urlNone">No URL</option>
+              </select>
+            </label>
+          </div>
+        </details>
       </section>
 
-      <section class="panel" aria-label="Exposure tracking settings" data-i18n-aria="exposureSettings">
-        <div class="switch-grid">
-          <label class="switch-row">
-            <span>
-              <strong data-i18n="dailyWordStats">Daily word stats</strong>
-              <small data-i18n="dailyWordStatsHint">Count words seen each day</small>
-            </span>
-            <input id="exposure-enabled" type="checkbox" />
-          </label>
-
-          <label class="field">
-            <span data-i18n="urlPrivacy">URL privacy</span>
-            <select id="url-privacy">
-              <option value="domain_only" data-i18n="urlDomainOnly">Domain only</option>
-              <option value="full" data-i18n="urlFull">Full URL</option>
-              <option value="none" data-i18n="urlNone">No URL</option>
-            </select>
-          </label>
+      <section class="summary-grid" aria-label="Today" data-i18n-aria="todaySummary">
+        <div class="summary-tile">
+          <span data-i18n="seenToday">Seen today</span>
+          <strong id="seen-today-count">0</strong>
         </div>
-      </section>
-
-      <section class="panel stats-panel" aria-label="Vocabulary frequency" data-i18n-aria="vocabularyFrequency">
-        <div class="stats-panel__header">
-          <strong data-i18n="wordFrequency">Word frequency</strong>
-          <button id="refresh-stats" type="button" aria-label="Refresh stats" data-i18n="refresh" data-i18n-aria="refreshStats">Refresh</button>
-        </div>
-        <div class="stats-grid">
-          <div>
-            <h2 data-i18n="today">Today</h2>
-            <ol id="today-stats" class="word-list"></ol>
-          </div>
-          <div>
-            <h2 data-i18n="sevenDays">7 days</h2>
-            <ol id="week-stats" class="word-list"></ol>
-          </div>
+        <div class="summary-tile">
+          <span data-i18n="savedWords">Saved words</span>
+          <strong id="saved-count">0</strong>
         </div>
       </section>
 
@@ -132,7 +135,7 @@
           <strong id="storage-mode" class="diagnostics__value">—</strong>
         </div>
         <div class="diagnostics__row">
-          <span data-i18n="lastUpdated">Last updated</span>
+          <span data-i18n="lastUpdated">Updated</span>
           <strong id="last-updated" class="diagnostics__value">—</strong>
         </div>
       </section>
@@ -140,8 +143,8 @@
       <footer class="popup__footer">
         <span id="footer-version">v0.1.0</span>
         <div class="popup__actions">
-          <button id="reset-settings" type="button" data-i18n="reset">Reset</button>
-          <button id="save-settings" type="button" data-i18n="save">Save</button>
+          <button id="open-full-settings" type="button" data-i18n="fullSettings">Full settings</button>
+          <button id="refresh-stats" type="button" data-i18n="refresh">Refresh</button>
         </div>
       </footer>
     </main>

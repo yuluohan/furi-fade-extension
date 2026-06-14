@@ -331,6 +331,7 @@
       // triggers refresh(), which re-collects everything.
       const annotation = this.repository.settings?.annotation;
       if (!annotation?.enabled || annotation.mode === "off") return;
+      if (isSiteAnnotationPaused(this.repository.settings)) return;
 
       // Let a still-loading page settle first, otherwise the site's own
       // re-renders strip and re-trigger annotations in a visible flicker.
@@ -503,6 +504,7 @@
     onClick(event) {
       const ruby = event.target.closest?.(".jr-ruby");
       if (!ruby) return;
+      if (ruby.closest?.("a[href]") && !event.altKey) return;
 
       event.preventDefault();
       event.stopPropagation();
@@ -601,6 +603,14 @@
     return match ? Number(match[1]) : 0;
   }
 
+  function isSiteAnnotationPaused(settings = {}, hostname = window.location?.hostname) {
+    const normalizedHost = window.FadingFuriganaState?.normalizeHostname
+      ? window.FadingFuriganaState.normalizeHostname(hostname)
+      : String(hostname || "").trim().toLowerCase().replace(/\.$/u, "");
+    if (!normalizedHost) return false;
+    return settings.siteOverrides?.[normalizedHost]?.annotationEnabled === false;
+  }
+
   function parseJsonDataset(value, fallback) {
     if (!value) return fallback;
     try {
@@ -613,6 +623,7 @@
   window.FadingFuriganaAnnotationEngine = {
     AnnotationEngine,
     extractSentence,
+    isSiteAnnotationPaused,
     shouldUseTapOnlyInSmartContext,
     shouldUseTapOnlyInLayout,
     shouldSkipTextNode

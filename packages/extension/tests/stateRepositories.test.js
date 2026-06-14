@@ -59,6 +59,7 @@ test("creates AppState v1 defaults", () => {
   assert.equal(state.settings.annotation.constrainedLayoutMode, "tap_only");
   assert.equal(state.settings.annotation.useSmartContextDisplay, true);
   assert.equal(state.settings.exposureTracking.saveUrls, "domain_only");
+  assert.deepEqual(state.settings.siteOverrides, {});
   assert.equal(state.entitlements.platform, "browser-extension");
   assert.equal(state.entitlements.access.tier, "trial");
   assert.equal(state.entitlements.access.basicUnlocked, true);
@@ -173,6 +174,26 @@ test("normalizes annotation level settings", () => {
   assert.equal(fallback.annotation.userLevel, "none");
   assert.equal(fallback.annotation.constrainedLayoutMode, "tap_only");
 });
+
+test("normalizes site override settings", () => {
+  const settings = window.FadingFuriganaState.normalizeSettings({
+    siteOverrides: {
+      "Example.COM.": {
+        annotationEnabled: false,
+        updatedAt: "2026-06-13T00:00:00.000Z"
+      },
+      "bad.example": "paused"
+    }
+  });
+
+  assert.deepEqual(settings.siteOverrides, {
+    "example.com": {
+      annotationEnabled: false,
+      updatedAt: "2026-06-13T00:00:00.000Z"
+    }
+  });
+});
+
 
 test("migrates legacy localStorage state", () => {
   const legacyState = {

@@ -72,6 +72,10 @@ These are not all required for the first external beta, but they define the prod
 - [ ] Local-only recovery UI for AppState corruption or accidental reset.
 - [ ] Actionable recovery buttons when App Group storage, native bridge, or Safari extension state is unhealthy.
 - [ ] Richer word detail history: recent pages/sentences, learning timeline, and why the word was suggested.
+- [ ] Annotation appearance customization: choose colors by learning state first, then optionally by difficulty or part of speech.
+- [x] Extension popup information architecture: make it a current-page/current-site control panel instead of a miniature full settings app.
+- [x] App settings information architecture: make it the full learning, purchase, data, sync, and platform-management settings center.
+- [x] Connected extension/platform status: clearly explain Safari shared local data, Chrome local-only data, and Pro sync unification.
 - [ ] Accessibility pass: larger text mode, contrast check, VoiceOver labels, and reduced visual fatigue.
 
 ## Not Blocking This MVP

@@ -53,8 +53,14 @@ global.MutationObserver = class {
 loadBrowserScript("src/core/annotationDecision.js");
 loadBrowserScript("src/content/annotationEngine.js");
 
-const { AnnotationEngine, extractSentence, shouldSkipTextNode, shouldUseTapOnlyInLayout, shouldUseTapOnlyInSmartContext } =
-  window.FadingFuriganaAnnotationEngine;
+const {
+  AnnotationEngine,
+  extractSentence,
+  isSiteAnnotationPaused,
+  shouldSkipTextNode,
+  shouldUseTapOnlyInLayout,
+  shouldUseTapOnlyInSmartContext
+} = window.FadingFuriganaAnnotationEngine;
 
 class FakeTextNode {
   constructor(nodeValue) {
@@ -118,6 +124,14 @@ class FakeElement {
   }
 
   closest(selector) {
+    if (selector === "a[href]") {
+      let element = this;
+      while (element) {
+        if (element.tagName === "A" && element.attributes.href) return element;
+        element = element.parentElement;
+      }
+      return null;
+    }
     if (selector !== ".jr-ruby") return null;
     let element = this;
     while (element) {
@@ -209,7 +223,7 @@ function serializeNode(node) {
   return `<${node.tagName.toLowerCase()} class="${node.className}">${node.children.map(serializeNode).join("")}</${node.tagName.toLowerCase()}>`;
 }
 
-function createEngine({ root, tokens, settings = {} }) {
+function createEngine({ root, tokens, settings = {}, tooltip = { show() {} } }) {
   global.Node = { TEXT_NODE: 3, ELEMENT_NODE: 1 };
   global.NodeFilter = { SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 };
   global.MutationObserver = class {
@@ -227,7 +241,8 @@ function createEngine({ root, tokens, settings = {} }) {
         mode: "adaptive",
         hideKnownItems: true,
         ...settings.annotation
-      }
+      },
+      siteOverrides: settings.siteOverrides || {}
     },
     getUserWordState() {
       return null;
@@ -244,7 +259,7 @@ function createEngine({ root, tokens, settings = {} }) {
   };
 
   return {
-    engine: new AnnotationEngine({ analyzer, repository, tooltip: { show() {} } }),
+    engine: new AnnotationEngine({ analyzer, repository, tooltip }),
     seenTokens
   };
 }
@@ -367,6 +382,30 @@ test("skips annotation when the page is not eligible", async () => {
   assert.deepEqual(seenTokens, []);
 });
 
+test("skips annotation when the current site is paused", async () => {
+  global.location = { hostname: "example.com" };
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+  const { engine, seenTokens } = createEngine({
+    root,
+    tokens: [createToken()],
+    settings: {
+      siteOverrides: {
+        "example.com": {
+          annotationEnabled: false
+        }
+      }
+    }
+  });
+
+  await engine.annotateRoot(root);
+
+  assert.equal(isSiteAnnotationPaused(engine.repository.settings, "example.com"), true);
+  assert.equal(collectByClass(root, "jr-ruby").length, 0);
+  assert.deepEqual(seenTokens, []);
+});
+
+
 test("uses loanword original form as ruby text", async () => {
   const root = new FakeElement("div");
   root.appendChild(new FakeTextNode("サーバーの状態を確認してください。"));
@@ -443,6 +482,65 @@ test("uses tap-only annotation in smart page chrome contexts", async () => {
   assert.equal(shouldUseTapOnlyInSmartContext(heading, "重要な確認", { useSmartContextDisplay: true }), true);
   assert.equal(annotation.tagName, "SPAN");
   assert.equal(annotation.className, "jr-ruby jr-ruby--tap-only");
+});
+
+test("keeps link clicks working while allowing Option-click tooltips", async () => {
+  const root = new FakeElement("div");
+  const link = new FakeElement("a");
+  link.setAttribute("href", "https://example.com/article");
+  link.appendChild(new FakeTextNode("確認ページ"));
+  root.appendChild(link);
+
+  let tooltipShown = false;
+  const { engine } = createEngine({
+    root,
+    tokens: [createToken({ start: 0, end: 2 })],
+    tooltip: {
+      show() {
+        tooltipShown = true;
+      }
+    }
+  });
+
+  await engine.annotateRoot(root);
+  const annotation = collectByClass(root, "jr-ruby")[0];
+  const normalClick = {
+    target: annotation,
+    altKey: false,
+    defaultPrevented: false,
+    propagationStopped: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    stopPropagation() {
+      this.propagationStopped = true;
+    }
+  };
+
+  engine.onClick(normalClick);
+
+  assert.equal(tooltipShown, false);
+  assert.equal(normalClick.defaultPrevented, false);
+  assert.equal(normalClick.propagationStopped, false);
+
+  const optionClick = {
+    target: annotation,
+    altKey: true,
+    defaultPrevented: false,
+    propagationStopped: false,
+    preventDefault() {
+      this.defaultPrevented = true;
+    },
+    stopPropagation() {
+      this.propagationStopped = true;
+    }
+  };
+
+  engine.onClick(optionClick);
+
+  assert.equal(tooltipShown, true);
+  assert.equal(optionClick.defaultPrevented, true);
+  assert.equal(optionClick.propagationStopped, true);
 });
 
 test("keeps normal paragraph ruby while smart context display is enabled", async () => {
