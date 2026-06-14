@@ -26,13 +26,13 @@ Keywords:
 Japanese, furigana, kanji, vocabulary, Safari extension, language learning, reading, JLPT, SRS
 
 Support URL:
-TODO
+TODO: public support URL.
 
 Marketing URL:
-TODO
+TODO: public product URL.
 
 Privacy Policy URL:
-TODO
+TODO: public privacy policy URL.
 
 ## App Review Notes
 
@@ -43,6 +43,8 @@ For the MVP, Basic does not require an account. Purchase testing uses StoreKit/A
 The app includes `PrivacyInfo.xcprivacy` manifests. The macOS app declares no tracking, no collected data types, and file timestamp access for local AppState storage diagnostics. The Safari extension declares no tracking, no collected data types, and no required-reason API access.
 
 Page URL retention is configurable. Depending on user settings, the app may retain no page URL, domain-only source information, or full URL source information in local storage.
+
+Public policy/support URLs are not final yet and must be added before external distribution.
 
 ## Beta Review Information
 

@@ -2,7 +2,7 @@
 
 Last updated: 2026-06-14
 
-This is draft product copy for the Fading Furigana MVP. Review before publishing.
+This is draft product copy for the Fading Furigana MVP. Review before publishing and replace the contact/support placeholders.
 
 ## Overview
 
@@ -27,6 +27,12 @@ The Safari extension reads webpage text so it can find Japanese words and add fu
 
 When you save or review a word, Fading Furigana may store page context such as the page title, sentence, and URL. URL saving is controlled by the app's privacy settings. If URL saving is disabled, saved word context should not retain the page URL.
 
+URL retention options:
+
+- Off: do not retain page URLs for saved context.
+- Domain only: retain the site domain without the full page URL.
+- Full URL: retain the full page URL for saved context.
+
 ## Local Storage And Same-Device Sharing
 
 On macOS, the Safari extension and Mac app share local learning data through Apple's App Group storage for:
@@ -50,6 +56,18 @@ Cross-device sync and cloud backup are not part of the Basic MVP. If a future Pr
 ## Data Sharing
 
 For the Basic MVP, Fading Furigana does not sell personal data and does not use learning data for advertising.
+
+For the Basic MVP, Fading Furigana does not upload your learning history, saved words, page context, or review history to a Fading Furigana server.
+
+Apple may process purchase and diagnostic information according to Apple's own terms and privacy policies when you use App Store purchases, TestFlight, or system-level diagnostics.
+
+## Privacy Manifest Summary
+
+The macOS app and Safari extension include Apple privacy manifests.
+
+- Tracking: no.
+- Collected data types declared by this app: none.
+- Required-reason API access: the macOS app declares file timestamp access for local AppState storage diagnostics. The Safari extension declares no required-reason API access.
 
 ## User Controls
 

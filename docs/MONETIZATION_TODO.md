@@ -56,9 +56,9 @@ Basic is the first sellable tier. It must feel useful after trial without needin
 - [x] Add app copy explaining that local data remains safe when trial expires.
 - [x] Add app copy explaining Basic is single-platform/local, not cross-device sync.
 - [ ] Add signed release build flow for a Basic beta candidate.
-- [ ] Add App Store review notes for Safari extension + local AppState behavior.
-- [ ] Add privacy policy page covering local storage, page URL settings, and no account requirement for Basic.
-- [ ] Add Terms / purchase copy for one-time Basic unlock.
+- [x] Add App Store review notes for Safari extension + local AppState behavior.
+- [x] Add privacy policy page covering local storage, page URL settings, and no account requirement for Basic.
+- [x] Add Terms / purchase copy for one-time Basic unlock.
 - [ ] Manually test: fresh install -> trial starts.
 - [ ] Manually test: trial expired -> Basic paywall appears.
 - [ ] Manually test: purchase unlocks Basic.

@@ -35,8 +35,8 @@ The core user loop is present:
 - [ ] Language smoke test: switch interface language between English and Chinese, app and popup reflect it.
 - [ ] Storage diagnostics smoke test: popup and Mac app both report native/shared storage, not fallback.
 - [ ] Real-page annotation smoke tests: Wikipedia, news article, Google results, long page, dynamic page.
-- [ ] Privacy copy exists for local storage, page URL retention settings, and future paid sync boundary.
-- [ ] Local recovery guidance exists for beta testers before reset/reinstall; do not offer portable export/import.
+- [x] Privacy copy exists for local storage, page URL retention settings, and future paid sync boundary.
+- [x] Local recovery guidance exists for beta testers before reset/reinstall; do not offer portable export/import.
 
 ## Must Pass Before Paid Basic Launch
 
@@ -48,7 +48,7 @@ The core user loop is present:
 - [ ] Paywall explains Basic vs Pro without implying export/import migration.
 - [ ] Price points are confirmed in each storefront before release.
 - [ ] App review notes explain Safari extension, local AppState, and no account requirement for Basic.
-- [ ] Privacy policy, terms, and App Store privacy answers cover trial, one-time purchase, subscription, local data, privacy manifests, and paid sync boundary.
+- [x] Privacy policy, terms, and App Store privacy answers cover trial, one-time purchase, subscription, local data, privacy manifests, and paid sync boundary.
 
 ## Should Pass Before Public Launch
 
