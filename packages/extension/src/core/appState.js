@@ -16,7 +16,15 @@
       showMeaningsInTooltip: true,
       userLevel: "none",
       constrainedLayoutMode: "tap_only",
-      useSmartContextDisplay: true
+      useSmartContextDisplay: true,
+      statusColors: {
+        new: "#D98C00",
+        learning: "#2F7DFF",
+        lapsed: "#D64545",
+        saved: "#7A5AF8",
+        known: "#2FA36B",
+        ignored: "#8A8A8A"
+      }
     },
     exposureTracking: {
       enabled: true,
@@ -237,7 +245,8 @@
         useSmartContextDisplay:
           annotation.useSmartContextDisplay ?? DEFAULT_APP_SETTINGS.annotation.useSmartContextDisplay,
         hideKnownItems:
-          annotation.hideKnownItems ?? settings.hideMasteredWords ?? DEFAULT_APP_SETTINGS.annotation.hideKnownItems
+          annotation.hideKnownItems ?? settings.hideMasteredWords ?? DEFAULT_APP_SETTINGS.annotation.hideKnownItems,
+        statusColors: normalizeStatusColors(annotation.statusColors)
       },
       exposureTracking: {
         ...clone(DEFAULT_APP_SETTINGS.exposureTracking),
@@ -267,6 +276,29 @@
   function normalizeConstrainedLayoutMode(mode) {
     if (mode === "ruby" || mode === "compact") return mode;
     return DEFAULT_APP_SETTINGS.annotation.constrainedLayoutMode;
+  }
+
+  function normalizeStatusColors(colors = {}) {
+    const defaults = DEFAULT_APP_SETTINGS.annotation.statusColors;
+    const normalized = { ...defaults };
+    if (!colors || typeof colors !== "object" || Array.isArray(colors)) return normalized;
+
+    for (const key of Object.keys(defaults)) {
+      const color = normalizeHexColor(colors[key]);
+      if (color) normalized[key] = color;
+    }
+    return normalized;
+  }
+
+  function normalizeHexColor(color) {
+    if (typeof color !== "string") return null;
+    const trimmed = color.trim();
+    const shortMatch = /^#?([0-9a-f]{3})$/iu.exec(trimmed);
+    if (shortMatch) {
+      return `#${shortMatch[1].split("").map((character) => character + character).join("").toUpperCase()}`;
+    }
+    const longMatch = /^#?([0-9a-f]{6})$/iu.exec(trimmed);
+    return longMatch ? `#${longMatch[1].toUpperCase()}` : null;
   }
 
   function normalizeSiteOverrides(overrides = {}) {

@@ -11,6 +11,8 @@ This checklist defines the bar for a small external MVP beta. The current produc
 
 Status: not ready for public launch, ready to prepare a signed MVP beta.
 
+Latest automated audit: `docs/PRELAUNCH_AUDIT_2026-06-14.md`.
+
 The core user loop is present:
 
 1. Browse Japanese pages in Safari.

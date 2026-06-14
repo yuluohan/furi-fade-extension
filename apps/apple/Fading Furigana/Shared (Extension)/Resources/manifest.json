@@ -1,6 +1,6 @@
 {
   "manifest_version": 3,
-  "name": "Fading Furigana Prototype",
+  "name": "Fading Furigana",
   "version": "0.1.0",
   "description": "Annotates unknown Japanese kanji words with furigana and lets users save or hide words.",
   "icons": {

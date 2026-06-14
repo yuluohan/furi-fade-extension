@@ -56,6 +56,7 @@ loadBrowserScript("src/content/annotationEngine.js");
 const {
   AnnotationEngine,
   extractSentence,
+  getAnnotationStatus,
   isSiteAnnotationPaused,
   shouldSkipTextNode,
   shouldUseTapOnlyInLayout,
@@ -87,6 +88,20 @@ class FakeElement {
     this.dataset = {};
     this.attributes = {};
     this.className = "";
+    this.classList = {
+      add: (...classNames) => {
+        const existing = new Set(this.className.split(/\s+/u).filter(Boolean));
+        for (const className of classNames) existing.add(className);
+        this.className = [...existing].join(" ");
+      }
+    };
+    this.style = {
+      values: {},
+      setProperty: (name, value) => {
+        this.style.values[name] = value;
+      },
+      getPropertyValue: (name) => this.style.values[name] || ""
+    };
     this.hidden = false;
     this.isContentEditable = false;
     this.computedStyle = null;
@@ -223,7 +238,7 @@ function serializeNode(node) {
   return `<${node.tagName.toLowerCase()} class="${node.className}">${node.children.map(serializeNode).join("")}</${node.tagName.toLowerCase()}>`;
 }
 
-function createEngine({ root, tokens, settings = {}, tooltip = { show() {} } }) {
+function createEngine({ root, tokens, settings = {}, tooltip = { show() {} }, userState = null } = {}) {
   global.Node = { TEXT_NODE: 3, ELEMENT_NODE: 1 };
   global.NodeFilter = { SHOW_TEXT: 4, FILTER_ACCEPT: 1, FILTER_REJECT: 2 };
   global.MutationObserver = class {
@@ -245,7 +260,7 @@ function createEngine({ root, tokens, settings = {}, tooltip = { show() {} } }) 
       siteOverrides: settings.siteOverrides || {}
     },
     getUserWordState() {
-      return null;
+      return userState;
     },
     recordSeen(token) {
       seenTokens.push(token.surface);
@@ -366,7 +381,7 @@ test("annotates text nodes with ruby output and records exposure", async () => {
   assert.deepEqual(seenTokens, ["確認"]);
   assert.equal(
     serializeNode(root),
-    '<div class="">メールの内容を<ruby class="jr-ruby">確認<rt class="">かくにん</rt></ruby>してください。</div>'
+    '<div class="">メールの内容を<ruby class="jr-ruby jr-ruby--status-new">確認<rt class="">かくにん</rt></ruby>してください。</div>'
   );
 });
 
@@ -438,6 +453,55 @@ test("uses loanword original form as ruby text", async () => {
   assert.equal(ruby.children[1].textContent, "server");
 });
 
+test("applies custom annotation color for saved word status", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("メールの内容を確認してください。"));
+  const { engine } = createEngine({
+    root,
+    tokens: [createToken()],
+    settings: {
+      annotation: {
+        statusColors: {
+          saved: "#123ABC"
+        }
+      }
+    },
+    userState: {
+      lifecycleStatus: "learning",
+      userIntent: {
+        saved: true
+      },
+      learning: {
+        reviewStage: "learning"
+      }
+    }
+  });
+
+  await engine.annotateRoot(root);
+
+  const ruby = collectByClass(root, "jr-ruby")[0];
+  assert.equal(getAnnotationStatus(engine.repository.getUserWordState()), "saved");
+  assert.equal(ruby.dataset.wordStatus, "saved");
+  assert.equal(ruby.className, "jr-ruby jr-ruby--status-saved");
+  assert.equal(ruby.style.getPropertyValue("--jr-accent-color"), "#123ABC");
+  assert.equal(ruby.style.getPropertyValue("--jr-accent-rgb"), "18, 58, 188");
+});
+
+test("prioritizes lapsed status over saved status", () => {
+  assert.equal(
+    getAnnotationStatus({
+      lifecycleStatus: "learning",
+      userIntent: {
+        saved: true
+      },
+      learning: {
+        reviewStage: "lapsed"
+      }
+    }),
+    "lapsed"
+  );
+});
+
 test("uses tap-only annotation inside constrained layout", async () => {
   const root = new FakeElement("div");
   const paragraph = new FakeElement("p");
@@ -459,7 +523,7 @@ test("uses tap-only annotation inside constrained layout", async () => {
   const annotation = collectByClass(root, "jr-ruby")[0];
   assert.equal(shouldUseTapOnlyInLayout(paragraph, { constrainedLayoutMode: "tap_only" }), true);
   assert.equal(annotation.tagName, "SPAN");
-  assert.equal(annotation.className, "jr-ruby jr-ruby--tap-only");
+  assert.equal(annotation.className, "jr-ruby jr-ruby--tap-only jr-ruby--status-new");
   assert.equal(annotation.textContent, "確認");
   assert.equal(annotation.children.some((child) => child.tagName === "RT"), false);
   assert.deepEqual(seenTokens, ["確認"]);
@@ -481,7 +545,7 @@ test("uses tap-only annotation in smart page chrome contexts", async () => {
   const annotation = collectByClass(root, "jr-ruby")[0];
   assert.equal(shouldUseTapOnlyInSmartContext(heading, "重要な確認", { useSmartContextDisplay: true }), true);
   assert.equal(annotation.tagName, "SPAN");
-  assert.equal(annotation.className, "jr-ruby jr-ruby--tap-only");
+  assert.equal(annotation.className, "jr-ruby jr-ruby--tap-only jr-ruby--status-new");
 });
 
 test("keeps link clicks working while allowing Option-click tooltips", async () => {
@@ -610,7 +674,7 @@ test("uses tap-only annotation globally in compact display mode", async () => {
   const annotation = collectByClass(root, "jr-ruby")[0];
   assert.equal(shouldUseTapOnlyInLayout(paragraph, { constrainedLayoutMode: "compact" }), true);
   assert.equal(annotation.tagName, "SPAN");
-  assert.equal(annotation.className, "jr-ruby jr-ruby--tap-only");
+  assert.equal(annotation.className, "jr-ruby jr-ruby--tap-only jr-ruby--status-new");
   assert.equal(annotation.children.some((child) => child.tagName === "RT"), false);
 });
 
@@ -846,17 +910,36 @@ test("refreshWord removes only that word's annotations without re-analyzing", as
 test("refreshWord keeps annotations that should stay visible", async () => {
   const root = new FakeElement("div");
   root.appendChild(new FakeTextNode("確認します。"));
-  const { engine } = createEngine({ root, tokens: [createToken({ start: 0, end: 2 })] });
+  const { engine } = createEngine({
+    root,
+    tokens: [createToken({ start: 0, end: 2 })],
+    settings: {
+      annotation: {
+        statusColors: {
+          saved: "#445566"
+        }
+      }
+    }
+  });
 
   await engine.annotateRoot(root);
+  const annotation = collectByClass(root, "jr-ruby")[0];
+  assert.equal(annotation.dataset.wordStatus, "new");
+
   engine.repository.getUserWordState = () => ({
     lifecycleStatus: "learning",
     knowledgeConfidence: 0.4,
-    userIntent: { saved: true }
+    userIntent: { saved: true },
+    learning: {
+      reviewStage: "learning"
+    }
   });
   engine.refreshWord("word:確認:かくにん");
 
   assert.equal(collectByClass(root, "jr-ruby").length, 1);
+  assert.equal(annotation.dataset.wordStatus, "saved");
+  assert.equal(annotation.className, "jr-ruby jr-ruby--status-saved");
+  assert.equal(annotation.style.getPropertyValue("--jr-accent-color"), "#445566");
 });
 
 test("uses async batch analyzers when available", async () => {

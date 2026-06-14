@@ -163,6 +163,8 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     private var transactionListener: Task<Void, Never>?
     private var hasPresentedBasicPaywallThisLaunch = false
     private var isPresentingBasicPaywall = false
+    private var didConfigureWindow = false
+    private var settingsWindowController: AppSettingsWindowController?
     private weak var splitView: NSSplitView?
     private weak var sidebarView: NSView?
 
@@ -215,12 +217,25 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     override func viewDidAppear() {
         super.viewDidAppear()
         guard let window = view.window else { return }
-        window.minSize = NSSize(width: 880, height: 540)
-        if window.frame.width < 900 {
+        configureWindowIfNeeded(window)
+        maybePresentExpiredTrialPaywall()
+    }
+
+    private func configureWindowIfNeeded(_ window: NSWindow) {
+        guard !didConfigureWindow else { return }
+        didConfigureWindow = true
+
+        window.styleMask.insert([.resizable, .miniaturizable])
+        window.collectionBehavior.remove(.fullScreenNone)
+        window.collectionBehavior.insert(.fullScreenPrimary)
+        window.minSize = NSSize(width: 760, height: 480)
+
+        let autosaveName = "FadingFuriganaMainWindow"
+        if !window.setFrameUsingName(autosaveName) {
             window.setContentSize(NSSize(width: 1000, height: 640))
             window.center()
         }
-        maybePresentExpiredTrialPaywall()
+        window.setFrameAutosaveName(autosaveName)
     }
 
     override func viewDidLayout() {
@@ -421,7 +436,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         let settingsButton = makeIconButton(
             symbol: "gearshape",
             tooltip: "App settings",
-            action: #selector(openAppSettings)
+            action: #selector(openSettings(_:))
         )
 
         let buttons = NSStackView(views: [refreshButton, settingsButton])
@@ -435,7 +450,10 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         row.spacing = 12
         row.addArrangedSubview(navigationToggleButton)
         row.addArrangedSubview(titleStack)
-        row.addArrangedSubview(NSView())
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+        spacer.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        row.addArrangedSubview(spacer)
         row.addArrangedSubview(buttons)
         return row
     }
@@ -487,13 +505,15 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
 
         let hero = makeHeroCard()
         let metrics = makeTodayMetricsRow()
+        let activity = makeLearningActivitySection()
         let suggested = makeSuggestedSection()
 
         todayStack.addArrangedSubview(hero)
         todayStack.addArrangedSubview(metrics)
+        todayStack.addArrangedSubview(activity)
         todayStack.addArrangedSubview(suggested)
 
-        for child in [hero, metrics, suggested] {
+        for child in [hero, metrics, activity, suggested] {
             NSLayoutConstraint.activate([
                 child.leadingAnchor.constraint(equalTo: todayStack.leadingAnchor),
                 child.trailingAnchor.constraint(equalTo: todayStack.trailingAnchor)
@@ -605,6 +625,175 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         stack.layer?.backgroundColor = NSColor.controlBackgroundColor.cgColor
         stack.layer?.cornerRadius = 8
         return stack
+    }
+
+    private func makeLearningActivitySection() -> NSView {
+        let section = NSStackView()
+        section.orientation = .vertical
+        section.alignment = .leading
+        section.spacing = 8
+
+        let total = snapshot.activityDays.reduce(0) { $0 + $1.activityCount }
+        let title = NSTextField(labelWithString: L.f("%d learning activities in the last year", total))
+        title.font = NSFont.systemFont(ofSize: 13, weight: .semibold)
+        title.textColor = .secondaryLabelColor
+
+        let grid = makeActivityHeatmap(days: snapshot.activityDays)
+
+        let legend = makeActivityLegend()
+        let legendRow = NSStackView(views: [NSView(), legend])
+        legendRow.orientation = .horizontal
+        legendRow.alignment = .centerY
+
+        section.addArrangedSubview(title)
+        section.addArrangedSubview(grid)
+        section.addArrangedSubview(legendRow)
+
+        for child in [grid, legendRow] {
+            NSLayoutConstraint.activate([
+                child.leadingAnchor.constraint(equalTo: section.leadingAnchor),
+                child.trailingAnchor.constraint(equalTo: section.trailingAnchor)
+            ])
+        }
+        return section
+    }
+
+    private func makeActivityHeatmap(days: [LearningActivityDay]) -> NSView {
+        let container = NSView()
+        let cellSize: CGFloat = 10
+        let cellGap: CGFloat = 3
+        let labelWidth: CGFloat = 34
+        let monthLabelHeight: CGFloat = 18
+        let columns = max(1, Int(ceil(Double(days.count) / 7.0)))
+
+        let gridLayer = FlippedStackContainer()
+        gridLayer.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(gridLayer)
+
+        NSLayoutConstraint.activate([
+            gridLayer.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: labelWidth),
+            gridLayer.topAnchor.constraint(equalTo: container.topAnchor, constant: monthLabelHeight),
+            gridLayer.widthAnchor.constraint(equalToConstant: CGFloat(columns) * cellSize + CGFloat(columns - 1) * cellGap),
+            gridLayer.heightAnchor.constraint(equalToConstant: 7 * cellSize + 6 * cellGap),
+            container.widthAnchor.constraint(greaterThanOrEqualTo: gridLayer.widthAnchor, constant: labelWidth),
+            container.heightAnchor.constraint(equalToConstant: monthLabelHeight + 7 * cellSize + 6 * cellGap)
+        ])
+
+        for (index, day) in days.enumerated() {
+            let column = index / 7
+            let row = index % 7
+            let cell = NSView(frame: NSRect(
+                x: CGFloat(column) * (cellSize + cellGap),
+                y: CGFloat(row) * (cellSize + cellGap),
+                width: cellSize,
+                height: cellSize
+            ))
+            cell.wantsLayer = true
+            cell.layer?.cornerRadius = 2
+            cell.layer?.backgroundColor = activityColor(level: activityLevel(for: day.activityCount)).cgColor
+            cell.toolTip = activityTooltip(for: day)
+            gridLayer.addSubview(cell)
+        }
+
+        let calendar = Calendar.current
+        var lastMonth = -1
+        for (index, day) in days.enumerated() where index % 7 == 0 {
+            let month = calendar.component(.month, from: day.date)
+            guard month != lastMonth else { continue }
+            lastMonth = month
+
+            let label = NSTextField(labelWithString: Self.activityMonthFormatter.string(from: day.date))
+            label.font = NSFont.systemFont(ofSize: 10)
+            label.textColor = .secondaryLabelColor
+            label.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(label)
+            NSLayoutConstraint.activate([
+                label.leadingAnchor.constraint(equalTo: gridLayer.leadingAnchor, constant: CGFloat(index / 7) * (cellSize + cellGap)),
+                label.topAnchor.constraint(equalTo: container.topAnchor)
+            ])
+        }
+
+        for (title, row) in [(L.t("Mon"), 1), (L.t("Wed"), 3), (L.t("Fri"), 5)] {
+            let label = NSTextField(labelWithString: title)
+            label.font = NSFont.systemFont(ofSize: 10)
+            label.textColor = .secondaryLabelColor
+            label.alignment = .right
+            label.translatesAutoresizingMaskIntoConstraints = false
+            container.addSubview(label)
+            NSLayoutConstraint.activate([
+                label.trailingAnchor.constraint(equalTo: gridLayer.leadingAnchor, constant: -8),
+                label.centerYAnchor.constraint(equalTo: gridLayer.topAnchor, constant: CGFloat(row) * (cellSize + cellGap) + cellSize / 2)
+            ])
+        }
+        return container
+    }
+
+    private func makeActivityLegend() -> NSView {
+        let views: [NSView] = [
+            NSTextField(labelWithString: L.t("Less")),
+            makeLegendCell(level: 0),
+            makeLegendCell(level: 1),
+            makeLegendCell(level: 2),
+            makeLegendCell(level: 3),
+            makeLegendCell(level: 4),
+            NSTextField(labelWithString: L.t("More"))
+        ]
+        let row = NSStackView(views: views)
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 5
+        for case let label as NSTextField in views {
+            label.font = NSFont.systemFont(ofSize: 11)
+            label.textColor = .secondaryLabelColor
+        }
+        return row
+    }
+
+    private func makeLegendCell(level: Int) -> NSView {
+        let cell = NSView()
+        cell.wantsLayer = true
+        cell.layer?.cornerRadius = 2
+        cell.layer?.backgroundColor = activityColor(level: level).cgColor
+        cell.translatesAutoresizingMaskIntoConstraints = false
+        NSLayoutConstraint.activate([
+            cell.widthAnchor.constraint(equalToConstant: 10),
+            cell.heightAnchor.constraint(equalToConstant: 10)
+        ])
+        return cell
+    }
+
+    private func activityLevel(for count: Int) -> Int {
+        switch count {
+        case 0: return 0
+        case 1: return 1
+        case 2...4: return 2
+        case 5...8: return 3
+        default: return 4
+        }
+    }
+
+    private func activityColor(level: Int) -> NSColor {
+        switch level {
+        case 1: return NSColor.systemGreen.withAlphaComponent(0.35)
+        case 2: return NSColor.systemGreen.withAlphaComponent(0.55)
+        case 3: return NSColor.systemGreen.withAlphaComponent(0.78)
+        case 4: return NSColor.systemGreen
+        default: return NSColor.separatorColor.withAlphaComponent(0.35)
+        }
+    }
+
+    private func activityTooltip(for day: LearningActivityDay) -> String {
+        let date = Self.activityTooltipDateFormatter.string(from: day.date)
+        if day.activityCount == 0 {
+            return L.f("No learning activity on %@", date)
+        }
+        return L.f(
+            "%d activities on %@ (%d words seen, %d reviews)",
+            day.activityCount,
+            date,
+            day.seenWordCount,
+            day.reviewCount
+        )
     }
 
     private func makeSuggestedSection() -> NSView {
@@ -847,10 +1036,26 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         return L.f("%d d ago", seconds / 86_400)
     }
 
+    private static let activityMonthFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.setLocalizedDateFormatFromTemplate("MMM")
+        return formatter
+    }()
+
+    private static let activityTooltipDateFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = .current
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter
+    }()
+
     private func loadDashboard() {
         snapshot = store.loadSnapshot()
         lastObservedStateSignature = store.stateSignature()
         L.update(fromSettings: snapshot.raw["settings"] as? [String: Any] ?? [:])
+        AppDelegate.rebuildMainMenu()
         versionLabel.stringValue = VersionInfo.displayText()
         let storageMode = store.isUsingAppGroup ? L.t("Shared container") : L.t("Local fallback")
         storePathLabel.stringValue = L.f("Storage: %@", storageMode)
@@ -1431,11 +1636,18 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         }
     }
 
-    @objc private func openAppSettings() {
-        let settings = AppSettingsViewController(store: store) { [weak self] in
-            self?.loadDashboard()
+    @objc func openSettings(_ sender: Any?) {
+        if let settingsWindowController {
+            settingsWindowController.showSettingsWindow(relativeTo: view.window)
+            return
         }
-        presentAsSheet(settings)
+
+        let controller = AppSettingsWindowController(store: store) { [weak self] in
+            self?.loadDashboard()
+            self?.settingsWindowController = nil
+        }
+        settingsWindowController = controller
+        controller.showSettingsWindow(relativeTo: view.window)
     }
 
     private func maybePresentExpiredTrialPaywall() {
@@ -1578,6 +1790,7 @@ final class WordDetailViewController: NSViewController {
     private func makeFactsSection() -> NSView {
         let grid = NSGridView(views: [
             makeFactRow(L.t("Meaning"), row.meaning.isEmpty ? L.t("No meaning saved yet") : row.meaning),
+            makeFactRow(L.t("Difficulty"), row.difficultyText.map { L.f("%@ (estimated)", $0) } ?? L.t("Unknown")),
             makeFactRow(L.t("Status"), statusText),
             makeFactRow(L.t("Seen"), L.f("%d times", row.seenCount)),
             makeFactRow(L.t("Next review"), row.nextReviewAt ?? L.t("never"))
@@ -1721,6 +1934,71 @@ final class AppStateStore {
     var displayPath: String {
         stateFileURL.path
     }
+
+    var stateFileLocation: URL {
+        stateFileURL
+    }
+
+    // Human-facing storage health for the Settings recovery surface. Distinguishes
+    // "no file yet" from "file exists but won't parse" (corruption), which loadRawState
+    // collapses into the same empty-state fallback.
+    struct StorageHealth {
+        let isShared: Bool
+        let fileExists: Bool
+        let isReadable: Bool
+        let lastModified: Date?
+        let byteSize: Int
+        let wordCount: Int
+    }
+
+    func storageHealth() -> StorageHealth {
+        let path = stateFileURL.path
+        let exists = fileManager.fileExists(atPath: path)
+        let attributes = try? fileManager.attributesOfItem(atPath: path)
+
+        var isReadable = false
+        var wordCount = 0
+        if exists,
+           let data = try? Data(contentsOf: stateFileURL),
+           let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
+            isReadable = true
+            wordCount = (raw["lexicalItems"] as? [String: Any])?.count ?? 0
+        }
+
+        return StorageHealth(
+            isShared: isUsingAppGroup,
+            fileExists: exists,
+            isReadable: isReadable,
+            lastModified: attributes?[.modificationDate] as? Date,
+            byteSize: (attributes?[.size] as? NSNumber)?.intValue ?? 0,
+            wordCount: wordCount
+        )
+    }
+
+    // Move the current (possibly corrupt) file aside to a timestamped backup, then write
+    // a fresh default state. The user never silently loses data — the old file is kept.
+    @discardableResult
+    func resetLocalState() throws -> URL? {
+        let url = stateFileURL
+        var backupURL: URL?
+        if fileManager.fileExists(atPath: url.path) {
+            let stamp = Self.backupTimestampFormatter.string(from: Date())
+            let candidate = url.deletingLastPathComponent()
+                .appendingPathComponent("app-state-v1.backup-\(stamp).json")
+            try? fileManager.removeItem(at: candidate)
+            try fileManager.copyItem(at: url, to: candidate)
+            backupURL = candidate
+        }
+        try save(createEmptyState())
+        return backupURL
+    }
+
+    private static let backupTimestampFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyyMMdd-HHmmss"
+        return formatter
+    }()
 
     func stateSignature() -> String? {
         guard
@@ -2230,6 +2508,7 @@ struct AppStateSnapshot {
     let todayTopRows: [WordRow]
     let weekTopRows: [WordRow]
     let suggestedRows: [WordRow]
+    let activityDays: [LearningActivityDay]
     let todaySeenCount: Int
     let reviewedTodayCount: Int
 
@@ -2240,6 +2519,7 @@ struct AppStateSnapshot {
         let lexicalItems = raw["lexicalItems"] as? [String: Any] ?? [:]
         let userStates = raw["userLexicalStates"] as? [String: Any] ?? [:]
         let summaries = raw["dailyExposureSummaries"] as? [String: Any] ?? [:]
+        let reviewLogs = raw["reviewLogs"] as? [String: Any] ?? [:]
         let examples = Self.latestExamples(from: raw["sourceOccurrences"] as? [String: Any] ?? [:])
         let todayKey = Self.localDateKey(Date())
         let weekStart = Calendar.current.date(byAdding: .day, value: -6, to: Date()).map(Self.localDateKey) ?? todayKey
@@ -2260,11 +2540,12 @@ struct AppStateSnapshot {
         let weekCounts = Self.counts(from: summaries, startDate: weekStart, endDate: todayKey)
 
         self.todaySeenCount = todayCounts.values.reduce(0, +)
-        self.reviewedTodayCount = Self.reviewedToday(from: raw["reviewLogs"] as? [String: Any] ?? [:])
+        self.reviewedTodayCount = Self.reviewedToday(from: reviewLogs)
         self.words = rowsById.values.sorted(by: WordRow.defaultSort)
         self.todayTopRows = Self.rows(from: todayCounts, rowsById: rowsById)
         self.weekTopRows = Self.rows(from: weekCounts, rowsById: rowsById)
         self.suggestedRows = Self.suggestedRows(weekTopRows: weekTopRows, allWords: words)
+        self.activityDays = Self.activityDays(from: summaries, reviewLogs: reviewLogs)
     }
 
     // A word the user keeps running into but has not started learning,
@@ -2409,6 +2690,49 @@ struct AppStateSnapshot {
         return totals
     }
 
+    private static func activityDays(from summaries: [String: Any], reviewLogs: [String: Any]) -> [LearningActivityDay] {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let endWeekday = calendar.component(.weekday, from: today)
+        let trailingDays = 7 - endWeekday
+        let gridEnd = calendar.date(byAdding: .day, value: trailingDays, to: today) ?? today
+        let gridStart = calendar.date(byAdding: .day, value: -370, to: gridEnd) ?? today
+
+        var seenWordsByDate: [String: Set<String>] = [:]
+        for summaryValue in summaries.values {
+            let summary = summaryValue as? [String: Any] ?? [:]
+            guard
+                let date = summary["date"] as? String,
+                let lexicalItemId = summary["lexicalItemId"] as? String
+            else {
+                continue
+            }
+            seenWordsByDate[date, default: []].insert(lexicalItemId)
+        }
+
+        var reviewCountsByDate: [String: Int] = [:]
+        for value in reviewLogs.values {
+            let log = value as? [String: Any] ?? [:]
+            guard let reviewedAt = ReviewScheduler.parseISODate(log["reviewedAt"] as? String) else { continue }
+            reviewCountsByDate[localDateKey(reviewedAt), default: 0] += 1
+        }
+
+        var days: [LearningActivityDay] = []
+        var cursor = gridStart
+        while cursor <= gridEnd {
+            let key = localDateKey(cursor)
+            days.append(LearningActivityDay(
+                date: cursor,
+                dateKey: key,
+                seenWordCount: seenWordsByDate[key]?.count ?? 0,
+                reviewCount: reviewCountsByDate[key] ?? 0
+            ))
+            guard let next = calendar.date(byAdding: .day, value: 1, to: cursor) else { break }
+            cursor = next
+        }
+        return days
+    }
+
     nonisolated private static func localDateKey(_ date: Date) -> String {
         let formatter = DateFormatter()
         formatter.calendar = Calendar(identifier: .gregorian)
@@ -2416,6 +2740,17 @@ struct AppStateSnapshot {
         formatter.timeZone = .current
         formatter.dateFormat = "yyyy-MM-dd"
         return formatter.string(from: date)
+    }
+}
+
+struct LearningActivityDay {
+    let date: Date
+    let dateKey: String
+    let seenWordCount: Int
+    let reviewCount: Int
+
+    var activityCount: Int {
+        seenWordCount + reviewCount
     }
 }
 
@@ -2430,6 +2765,7 @@ struct WordRow {
     let surface: String
     let reading: String
     let meaning: String
+    let difficultyText: String?
     let lifecycleStatus: String
     let saved: Bool
     let ignored: Bool
@@ -2450,6 +2786,7 @@ struct WordRow {
         self.surface = item["surface"] as? String ?? id.components(separatedBy: ":").first ?? id
         self.reading = item["readingKana"] as? String ?? item["baseReadingKana"] as? String ?? ""
         self.meaning = Self.meaningText(from: item["meanings"] as? [String: Any] ?? [:])
+        self.difficultyText = Self.difficultyText(from: item["difficulty"] as? [String: Any] ?? [:])
         self.lifecycleStatus = userState["lifecycleStatus"] as? String ?? "new"
         self.saved = userIntent["saved"] as? Bool ?? false
         self.ignored = userIntent["ignored"] as? Bool ?? false
@@ -2502,6 +2839,11 @@ struct WordRow {
             }
         }
         return ""
+    }
+
+    nonisolated private static func difficultyText(from difficulty: [String: Any]) -> String? {
+        guard let jlpt = difficulty["jlptLevel"] as? String, !jlpt.isEmpty else { return nil }
+        return "JLPT \(jlpt.uppercased())"
     }
 }
 #endif

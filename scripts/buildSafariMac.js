@@ -1,6 +1,7 @@
 const os = require("node:os");
 const fs = require("node:fs");
 const path = require("node:path");
+const crypto = require("node:crypto");
 const { spawnSync } = require("node:child_process");
 
 const rootDir = path.resolve(__dirname, "..");
@@ -28,6 +29,8 @@ const lsregister =
 const developmentTeam = process.env.FURI_DEVELOPMENT_TEAM || readProjectDevelopmentTeam();
 const developmentTeamSource = process.env.FURI_DEVELOPMENT_TEAM ? "FURI_DEVELOPMENT_TEAM" : "Xcode project";
 const compileOnly = process.env.FURI_SAFARI_COMPILE_ONLY === "1";
+const restartSafari = process.env.FURI_RESTART_SAFARI === "1";
+const openSafariUrl = process.env.FURI_OPEN_SAFARI_URL || "";
 
 run("npm", ["run", "package:safari"]);
 cleanupGeneratedDuplicateProjectDirs();
@@ -104,10 +107,25 @@ if (!verifyBuiltAppSignature()) {
   process.exit(1);
 }
 
+quitSafariIfRequested();
 installApp();
+verifyInstalledExtensionResources();
 registerSafariExtension();
+reopenSafariIfRequested();
 
-console.log("\nDone. In Safari: quit and reopen, then enable the extension in Settings > Extensions.");
+if (restartSafari) {
+  console.log("\nDone. Safari was restarted so newly opened pages should load the latest extension code.");
+} else if (isSafariRunning()) {
+  console.warn(
+    "\nInstalled extension resources are up to date, but Safari is still running. " +
+      "Existing tabs may keep old content scripts. Quit and reopen Safari, or run with:\n\n" +
+      "  FURI_RESTART_SAFARI=1 FURI_DEVELOPMENT_TEAM=" +
+      (developmentTeam || "YOURTEAMID") +
+      " npm run build:safari:mac\n"
+  );
+} else {
+  console.log("\nDone. Open Safari, then enable the extension in Settings > Extensions if needed.");
+}
 
 function run(command, args, options = {}) {
   console.log(`\n$ ${command} ${args.map(formatArg).join(" ")}`);
@@ -202,6 +220,66 @@ function registerSafariExtension() {
 
   run("pluginkit", ["-a", installedExtensionPath]);
   run("open", [installedAppPath]);
+}
+
+function verifyInstalledExtensionResources() {
+  const resourceChecks = [
+    "manifest.json",
+    "src/content/annotationEngine.js",
+    "src/content/tooltip.js",
+    "src/services/wordRepositoryService.js",
+    "src/styles/annotation.css"
+  ];
+
+  for (const relativePath of resourceChecks) {
+    const packagedPath = path.join(extensionDir, relativePath);
+    const installedPath = path.join(installedExtensionPath, "Contents", "Resources", relativePath);
+    if (!fs.existsSync(packagedPath) || !fs.existsSync(installedPath)) {
+      console.error(`\nInstalled extension resource is missing: ${relativePath}`);
+      process.exit(1);
+    }
+
+    const packagedHash = sha256(packagedPath);
+    const installedHash = sha256(installedPath);
+    if (packagedHash !== installedHash) {
+      console.error(
+        `\nInstalled extension resource is stale: ${relativePath}\n` +
+          `  packaged:  ${packagedHash}\n` +
+          `  installed: ${installedHash}`
+      );
+      process.exit(1);
+    }
+  }
+
+  console.log("\nVerified installed Safari extension resources match the latest package.");
+}
+
+function sha256(filePath) {
+  return crypto.createHash("sha256").update(fs.readFileSync(filePath)).digest("hex");
+}
+
+function quitSafariIfRequested() {
+  if (!restartSafari || !isSafariRunning()) return;
+  run("osascript", ["-e", 'tell application "Safari" to quit'], { allowFailure: true });
+  run("sleep", ["2"], { allowFailure: true });
+}
+
+function reopenSafariIfRequested() {
+  if (!restartSafari) return;
+  if (openSafariUrl) {
+    run("open", ["-a", "Safari", openSafariUrl], { allowFailure: true });
+  } else {
+    run("open", ["-a", "Safari"], { allowFailure: true });
+  }
+}
+
+function isSafariRunning() {
+  const result = spawnSync("osascript", ["-e", 'application "Safari" is running'], {
+    cwd: rootDir,
+    env: process.env,
+    encoding: "utf8"
+  });
+  return result.status === 0 && result.stdout.trim() === "true";
 }
 
 function cleanupRegisteredAppCopies() {

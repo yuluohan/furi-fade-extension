@@ -1,12 +1,14 @@
 .jr-ruby {
-  background: rgba(255, 232, 138, 0.35);
+  --jr-accent-color: #d98c00;
+  --jr-accent-rgb: 217, 140, 0;
+  background: rgba(var(--jr-accent-rgb), 0.18);
   border-radius: 3px;
   cursor: pointer;
   text-decoration: none;
 }
 
 .jr-ruby rt {
-  color: #9a4b00;
+  color: var(--jr-accent-color);
   font-size: 0.58em;
   font-weight: 600;
   line-height: 1;
@@ -14,7 +16,7 @@
 
 .jr-ruby--tap-only {
   border-radius: 2px;
-  text-decoration: underline dotted rgba(154, 75, 0, 0.8);
+  text-decoration: underline dotted var(--jr-accent-color);
   text-underline-offset: 0.16em;
 }
 

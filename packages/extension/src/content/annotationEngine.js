@@ -181,7 +181,10 @@
           userState,
           this.repository.settings
         );
-        if (stillAnnotated) continue;
+        if (stillAnnotated) {
+          applyAnnotationStatus(ruby, userState, this.repository.settings);
+          continue;
+        }
 
         const textNode = document.createTextNode(ruby.dataset.originalText || ruby.textContent || "");
         // Already analyzed once; keep the mutation pass from re-tokenizing it.
@@ -473,10 +476,13 @@
         shouldUseTapOnlyInSmartContext(parentElement, textContext, annotationSettings) ||
         shouldUseTapOnlyInLayout(parentElement, annotationSettings);
       const element = forceTapOnly ? document.createElement("span") : document.createElement("ruby");
+      const userState = this.repository.getUserWordState(token.lexicalItemId);
       element.className = forceTapOnly ? "jr-ruby jr-ruby--tap-only" : "jr-ruby";
+      const status = applyAnnotationStatus(element, userState, this.repository.settings);
       element.setAttribute(ANNOTATED_ATTR, "true");
       element.dataset.wordId = token.lexicalItemId;
       element.dataset.lexicalItemId = token.lexicalItemId;
+      element.dataset.wordStatus = status;
       element.dataset.surface = token.surface;
       element.dataset.lemma = token.lemma || token.baseForm || token.surface;
       element.dataset.baseForm = token.baseForm || token.lemma || token.surface;
@@ -531,6 +537,51 @@
       isKanjiWord: true,
       isKatakanaWord: false
     };
+  }
+
+  function getAnnotationStatus(userState) {
+    if (!userState) return "new";
+    if (userState.userIntent?.ignored || userState.lifecycleStatus === "ignored") return "ignored";
+    if (userState.lifecycleStatus === "known" || userState.lifecycleStatus === "mastered") return "known";
+    if (userState.learning?.reviewStage === "lapsed") return "lapsed";
+    if (userState.userIntent?.saved) return "saved";
+    if (userState.lifecycleStatus === "learning") return "learning";
+    return "new";
+  }
+
+  function applyAnnotationStatus(element, userState, settings = {}) {
+    const status = getAnnotationStatus(userState);
+    element.className = element.className
+      .split(/\s+/u)
+      .filter((className) => className && !className.startsWith("jr-ruby--status-"))
+      .join(" ");
+    element.classList.add(`jr-ruby--status-${status}`);
+    element.dataset.wordStatus = status;
+    applyStatusColor(element, status, settings.annotation?.statusColors);
+    return status;
+  }
+
+  function applyStatusColor(element, status, colors = {}) {
+    const color = normalizeHexColor(colors?.[status]);
+    if (!color) return;
+    element.style.setProperty("--jr-accent-color", color);
+    element.style.setProperty("--jr-accent-rgb", hexToRgb(color).join(", "));
+  }
+
+  function normalizeHexColor(color) {
+    if (typeof color !== "string") return null;
+    const trimmed = color.trim();
+    const shortMatch = /^#?([0-9a-f]{3})$/iu.exec(trimmed);
+    if (shortMatch) {
+      return `#${shortMatch[1].split("").map((character) => character + character).join("").toUpperCase()}`;
+    }
+    const longMatch = /^#?([0-9a-f]{6})$/iu.exec(trimmed);
+    return longMatch ? `#${longMatch[1].toUpperCase()}` : null;
+  }
+
+  function hexToRgb(color) {
+    const hex = color.replace("#", "");
+    return [0, 2, 4].map((offset) => parseInt(hex.slice(offset, offset + 2), 16));
   }
 
   function shouldUseTapOnlyInLayout(parentElement, annotation = {}) {
@@ -622,7 +673,10 @@
 
   window.FadingFuriganaAnnotationEngine = {
     AnnotationEngine,
+    applyAnnotationStatus,
+    applyStatusColor,
     extractSentence,
+    getAnnotationStatus,
     isSiteAnnotationPaused,
     shouldUseTapOnlyInSmartContext,
     shouldUseTapOnlyInLayout,

@@ -58,6 +58,7 @@ test("creates AppState v1 defaults", () => {
   assert.equal(state.settings.annotation.userLevel, "none");
   assert.equal(state.settings.annotation.constrainedLayoutMode, "tap_only");
   assert.equal(state.settings.annotation.useSmartContextDisplay, true);
+  assert.equal(state.settings.annotation.statusColors.saved, "#7A5AF8");
   assert.equal(state.settings.exposureTracking.saveUrls, "domain_only");
   assert.deepEqual(state.settings.siteOverrides, {});
   assert.equal(state.entitlements.platform, "browser-extension");
@@ -173,6 +174,23 @@ test("normalizes annotation level settings", () => {
   assert.equal(compact.annotation.constrainedLayoutMode, "compact");
   assert.equal(fallback.annotation.userLevel, "none");
   assert.equal(fallback.annotation.constrainedLayoutMode, "tap_only");
+});
+
+test("normalizes annotation status colors", () => {
+  const settings = window.FadingFuriganaState.normalizeSettings({
+    annotation: {
+      statusColors: {
+        new: "abc",
+        saved: "#123abc",
+        known: "not-a-color"
+      }
+    }
+  });
+
+  assert.equal(settings.annotation.statusColors.new, "#AABBCC");
+  assert.equal(settings.annotation.statusColors.saved, "#123ABC");
+  assert.equal(settings.annotation.statusColors.known, "#2FA36B");
+  assert.equal(settings.annotation.statusColors.ignored, "#8A8A8A");
 });
 
 test("normalizes site override settings", () => {
