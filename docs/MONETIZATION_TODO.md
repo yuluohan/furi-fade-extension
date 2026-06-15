@@ -218,6 +218,11 @@ Settings should show:
 - A previously verified Basic purchase remains usable offline.
 - A failed network or StoreKit verification must not downgrade access immediately.
 - Invalid/refunded purchases can downgrade Basic only after a successful verification says so.
+  - [ ] **Not implemented (confirmed 2026-06-15).** `ViewController.applyCurrentEntitlements` /
+        `Transaction.updates` only handle `.verified` to *unlock*; there is no
+        `revocationDate`/refund handling, and once `basic.status = purchased` is written to
+        local AppState there is no downgrade path. Effect: a refunded user keeps Basic.
+        Add revocation handling before charging real money.
 - Restore Purchase should set `verificationStatus` to `pending_restore` while running.
 - If restore fails offline, keep current access and show a retryable error.
 - Purchase/restore code should write entitlement state atomically so the extension never sees a half-written entitlement.

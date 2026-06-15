@@ -147,6 +147,22 @@ For each page:
 
 Use StoreKit sandbox/configured development testing.
 
+> Before testing trial state, you MUST clear any leftover StoreKit Testing
+> purchase, or fresh installs wrongly resolve to `basic`. The macOS scheme has a
+> `StoreKitConfigurationFileReference` to `Fading Furigana.storekit`, so a prior
+> Xcode StoreKit-testing purchase persists on the machine and
+> `Transaction.currentEntitlements` keeps returning it. Two steps, both required:
+>
+> 1. Xcode → run the macOS scheme → Debug → StoreKit → Manage Transactions →
+>    delete the Basic transaction (or Delete All Transactions).
+> 2. Quit the app, delete `app-state-v1.json` in the app group container (the
+>    persisted `basic.status` has no local downgrade path), then relaunch.
+>
+> Verified 2026-06-15: after both steps a fresh launch resolves to
+> `access.tier = trial`, `basic.status = not_purchased`. This is dev-machine
+> residue only; real App Store users have no such transaction and start in trial.
+> For UI-only checks you can instead use Settings → Development state → Force Trial.
+
 - [ ] Fresh install starts trial.
 - [ ] Trial expired state leaves existing local data visible.
 - [ ] Expired trial blocks new Safari saves with a localized Basic unlock message.
