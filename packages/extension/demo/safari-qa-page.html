@@ -1,0 +1,180 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fading Furigana Safari QA Fixture</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+      }
+
+      body {
+        max-width: 880px;
+        margin: 44px auto;
+        padding: 0 20px 64px;
+        color: #222;
+        background: #fff;
+        font-family: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Yu Gothic", sans-serif;
+        line-height: 1.85;
+      }
+
+      h1,
+      h2 {
+        line-height: 1.25;
+      }
+
+      h2 {
+        margin-top: 34px;
+        padding-top: 20px;
+        border-top: 1px solid #d8dee4;
+      }
+
+      code,
+      pre {
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .sample {
+        border-left: 4px solid #d8dee4;
+        padding: 12px 0 12px 16px;
+        font-size: 22px;
+      }
+
+      .compact-card {
+        max-width: 360px;
+        max-height: 84px;
+        overflow: hidden;
+        border: 1px solid #d8dee4;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      .chrome-like-nav {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        overflow: hidden;
+        white-space: nowrap;
+        border: 1px solid #d8dee4;
+        border-radius: 8px;
+        padding: 10px;
+      }
+
+      .chrome-like-nav a,
+      .chrome-like-nav button {
+        border: 1px solid #d8dee4;
+        border-radius: 6px;
+        padding: 6px 10px;
+        color: inherit;
+        background: transparent;
+        text-decoration: none;
+      }
+
+      .qa-controls {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        margin: 16px 0;
+      }
+
+      button {
+        min-height: 34px;
+      }
+
+      .mutations {
+        min-height: 64px;
+        border: 1px dashed #8c959f;
+        border-radius: 8px;
+        padding: 12px;
+      }
+
+      @media (prefers-color-scheme: dark) {
+        body {
+          color: #e6edf3;
+          background: #0d1117;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Fading Furigana Safari QA Fixture</h1>
+    <p>
+      Serve this page over localhost and let the installed Safari extension inject normally. Do not add the
+      extension source scripts to this page; it is meant to behave like a real website.
+    </p>
+
+    <h2>Baseline Annotation</h2>
+    <p class="sample">
+      メールの内容を確認してください。申請には時間がかかります。社会への影響と現在の状態も確認します。
+    </p>
+    <p class="sample">寿司を食べる前に手を洗います。日本語の文章を勉強します。</p>
+
+    <h2>Save Responsiveness Target</h2>
+    <p class="sample">
+      保存候補として確認をクリックし、Save を押した直後にカードが消えて色が変わることを確認します。
+    </p>
+
+    <h2>Page-Provided Reading Evidence</h2>
+    <p class="sample">
+      石質隕石（せきしついんせき）は岩石質の隕石です。ここでは誤った「いししつ」表示が出ないことを確認します。
+    </p>
+    <p class="sample">
+      石質隕石（これはめずらしい）という説明文では、無関係な括弧内かなを読みとして信じないことを確認します。
+    </p>
+
+    <h2>Links And Page Chrome</h2>
+    <p>
+      Normal click on this link should still navigate:
+      <a href="https://example.com/?fading-furigana-link-test=1">確認ページへ行く</a>.
+      Option-click should open the tooltip.
+    </p>
+    <nav class="chrome-like-nav" aria-label="QA navigation">
+      <a href="#baseline">確認</a>
+      <a href="#reading">申請状態</a>
+      <button type="button">検索結果</button>
+      <button type="button">設定確認</button>
+    </nav>
+
+    <h2>Constrained Layout</h2>
+    <div class="compact-card">
+      固定された小さい枠の中で確認と申請が表示されます。通常のルビで行高が壊れず、必要なら tap-only 表示になること。
+    </div>
+
+    <h2>Ignored And Code Blocks</h2>
+    <pre>コード内の確認と申請は標注しない。</pre>
+    <p data-fading-furigana-ignore>明示的に無視された領域の確認と申請は標注しない。</p>
+
+    <h2>Dynamic Content</h2>
+    <div class="qa-controls">
+      <button type="button" id="add-dynamic-text">Add dynamic Japanese text</button>
+      <button type="button" id="toggle-hidden-text">Toggle hidden text</button>
+    </div>
+    <div class="mutations" id="dynamic-target">Dynamic text will appear here.</div>
+    <p id="hidden-text" hidden>非表示から表示された確認文章も、表示後に安定してから標注されます。</p>
+
+    <h2>Long Page Sample</h2>
+    <p class="sample">
+      長いページでスクロールしながら確認、申請、影響、状態、勉強、食べるなどの語が少し先読みされることを確認します。
+    </p>
+    <p style="height: 900px">
+      下までスクロールしてください。途中の余白は viewport-lazy annotation の確認用です。
+    </p>
+    <p class="sample">ページ下部でも確認と申請が自然に標注され、保存操作がすぐ反映されます。</p>
+
+    <script>
+      document.querySelector("#add-dynamic-text").addEventListener("click", () => {
+        const paragraph = document.createElement("p");
+        paragraph.className = "sample";
+        paragraph.textContent =
+          "追加された文章です。内容を確認し、状態を記録し、勉強した語を保存します。";
+        document.querySelector("#dynamic-target").appendChild(paragraph);
+      });
+
+      document.querySelector("#toggle-hidden-text").addEventListener("click", () => {
+        const hiddenText = document.querySelector("#hidden-text");
+        hiddenText.hidden = !hiddenText.hidden;
+      });
+    </script>
+  </body>
+</html>

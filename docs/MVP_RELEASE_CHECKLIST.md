@@ -12,6 +12,8 @@ This checklist defines the bar for a small external MVP beta. The current produc
 Status: not ready for public launch, ready to prepare a signed MVP beta.
 
 Latest automated audit: `docs/PRELAUNCH_AUDIT_2026-06-14.md`.
+Manual Safari QA runbook: `docs/SAFARI_MANUAL_QA.md`.
+Latest Safari QA run record: `docs/SAFARI_QA_RUN_2026-06-15.md`.
 
 The core user loop is present:
 
@@ -35,6 +37,7 @@ The core user loop is present:
 - [ ] Language smoke test: switch interface language between English and Chinese, app and popup reflect it.
 - [ ] Storage diagnostics smoke test: popup and Mac app both report native/shared storage, not fallback.
 - [ ] Real-page annotation smoke tests: Wikipedia, news article, Google results, long page, dynamic page.
+- [ ] Run `docs/SAFARI_MANUAL_QA.md` on the signed candidate and record the result.
 - [x] Privacy copy exists for local storage, page URL retention settings, and future paid sync boundary.
 - [x] Local recovery guidance exists for beta testers before reset/reinstall; do not offer portable export/import.
 
@@ -96,4 +99,4 @@ These are not all required for the first external beta, but they define the prod
 
 ## Recommended Next Task
 
-Start `T053` by producing a signed beta candidate and running the "Must Pass Before External Beta" section top to bottom.
+Start `T053` by producing a signed beta candidate, opening `packages/extension/demo/safari-qa-page.html` through localhost, and running `docs/SAFARI_MANUAL_QA.md` top to bottom.

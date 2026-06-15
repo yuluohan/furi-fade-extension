@@ -92,6 +92,18 @@ FURI_SAFARI_COMPILE_ONLY=1 npm run build:safari:mac
 
 ## Expected Manual Smoke Test
 
+For the full beta-candidate walkthrough, use:
+
+```text
+docs/SAFARI_MANUAL_QA.md
+```
+
+For the local regression fixture, serve the repo root and open:
+
+```text
+http://localhost:8765/packages/extension/demo/safari-qa-page.html
+```
+
 After converter generation:
 
 1. Open the generated Xcode project.
