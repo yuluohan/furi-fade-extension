@@ -439,6 +439,54 @@ test("persist preserves review logs and schedule written elsewhere since load", 
   assert.ok(persisted.userLexicalStates["確認:かくにん"], "tab exposure write was lost");
 });
 
+test("blocks forgetting an unsaved word after trial expiry but allows re-forgetting a saved word", async () => {
+  const initialState = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
+  initialState.entitlements.developmentOverride = "expired";
+  const storageAdapter = createMemoryStorageAdapter(initialState);
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+  await service.load();
+
+  // Forgot on a brand-new (unsaved) word builds a saved learning entry → blocked.
+  await assert.rejects(
+    () => service.markForgotten(createToken()),
+    (error) => error?.code === "basic_access_locked"
+  );
+  assert.equal(service.getUserWordState("確認:かくにん"), null);
+
+  // A word already saved before expiry can still be re-forgotten (review re-grade).
+  service.userLexicalStates.markSaved("確認:かくにん");
+  await service.markForgotten(createToken());
+  const state = service.getUserWordState("確認:かくにん");
+  assert.equal(state.userIntent.manuallyMarkedUnknown, true);
+  assert.equal(state.learning.reviewStage, "lapsed");
+});
+
+test("compactState evicts stale exposure-only words and keeps interacted or recent ones", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+  await service.load();
+
+  const now = new Date();
+  const recent = now.toISOString();
+  const old = new Date(now.getTime() - 200 * 24 * 60 * 60 * 1000).toISOString();
+
+  // Stale, exposure-only → evicted.
+  service.userLexicalStates.recordSeen("古い:ふるい", old);
+  service.state.lexicalItems["古い:ふるい"] = { id: "古い:ふるい", meanings: {} };
+  // Stale but saved → kept.
+  service.userLexicalStates.recordSeen("保存:ほぞん", old);
+  service.userLexicalStates.markSaved("保存:ほぞん", old);
+  // Recent, exposure-only → kept.
+  service.userLexicalStates.recordSeen("新規:しんき", recent);
+
+  service.compactState();
+
+  assert.equal(service.getUserWordState("古い:ふるい"), null, "stale exposure word should be evicted");
+  assert.equal(service.state.lexicalItems["古い:ふるい"], undefined);
+  assert.ok(service.getUserWordState("保存:ほぞん"), "saved word must be kept even when stale");
+  assert.ok(service.getUserWordState("新規:しんき"), "recent exposure word must be kept");
+});
+
 (async () => {
   for (const { name, fn } of tests) {
     await runTest(name, fn);

@@ -143,9 +143,20 @@
         this.onStateChange(token);
       });
       this.element.querySelector("[data-action='forgot']").addEventListener("click", () => {
-        this.repository.markForgotten(token);
-        this.hide();
-        this.onStateChange(token);
+        Promise.resolve(this.repository.markForgotten(token))
+          .then(() => {
+            this.hide();
+            this.onStateChange(token);
+          })
+          .catch((error) => {
+            const isLocked =
+              window.FadingFuriganaWordRepository.isBasicAccessLockedError?.(error) ||
+              error?.code === "basic_access_locked";
+            this.showStatus(isLocked ? t(this.repository, "saveLocked") : t(this.repository, "saveFailed"));
+            if (!isLocked) {
+              console.warn("[Fading Furigana] Forgot failed:", error?.message || error);
+            }
+          });
       });
       this.element.querySelector("[data-action='pin']").addEventListener("click", () => {
         this.repository.pinAnnotation(token);

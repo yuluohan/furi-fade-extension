@@ -41,6 +41,28 @@
     "reviewLogs"
   ];
 
+  // A word the user has acted on in any way that creates durable learning value
+  // (saved/known/ignored/forgot/pinned, opened the tooltip, or reviewed). Used to
+  // protect such words from exposure-only compaction.
+  function isInteractedState(userState) {
+    if (!userState) return false;
+    const intent = userState.userIntent || {};
+    const interaction = userState.interaction || {};
+    const learning = userState.learning || {};
+    return Boolean(
+      intent.saved ||
+        intent.ignored ||
+        intent.manuallyMarkedKnown ||
+        intent.manuallyMarkedUnknown ||
+        intent.pinnedAnnotation ||
+        (interaction.tooltipOpenCount || 0) > 0 ||
+        (interaction.savedCount || 0) > 0 ||
+        (interaction.markedKnownCount || 0) > 0 ||
+        (interaction.ignoredCount || 0) > 0 ||
+        (learning.reviewCount || 0) > 0
+    );
+  }
+
   class BasicAccessLockedError extends Error {
     constructor(message = "Basic access is required to save new words.") {
       super(message);
@@ -103,8 +125,10 @@
     }
 
     // Keeps stored state within storage quota: drops expired exposure
-    // summaries, legacy per-page titles, and meanings of words the user never
-    // interacted with (the dictionary re-supplies them at annotation time).
+    // summaries, legacy per-page titles, meanings of words the user never
+    // interacted with (the dictionary re-supplies them at annotation time), and
+    // exposure-only word records whose last sighting predates the retention
+    // window (T066 — passive reading must not grow the store unbounded).
     compactState() {
       const retentionDays = this.state.settings.exposureTracking.retentionDays || 90;
       const cutoffDate = new Date();
@@ -121,16 +145,24 @@
         }
       }
 
+      // Evict exposure-only words the user never interacted with once their last
+      // exposure predates the retention window. Interacted words (saved/known/
+      // ignored/forgot/pinned/reviewed/tooltip-opened) are always kept.
+      const exposureCutoffMs = cutoffDate.getTime();
+      for (const [id, userState] of Object.entries(this.state.userLexicalStates)) {
+        if (isInteractedState(userState)) continue;
+        if (userState.lifecycleStatus && userState.lifecycleStatus !== "new") continue;
+        const lastSeenMs = userState.exposure?.lastSeenAt
+          ? Date.parse(userState.exposure.lastSeenAt)
+          : NaN;
+        if (!Number.isFinite(lastSeenMs) || lastSeenMs >= exposureCutoffMs) continue;
+        delete this.state.userLexicalStates[id];
+        delete this.state.lexicalItems[id];
+      }
+
       for (const [id, item] of Object.entries(this.state.lexicalItems)) {
         if (!item.meanings || Object.keys(item.meanings).length === 0) continue;
-        const userState = this.state.userLexicalStates[id];
-        const interacted =
-          userState &&
-          (userState.userIntent?.saved ||
-            userState.userIntent?.ignored ||
-            userState.userIntent?.manuallyMarkedKnown ||
-            (userState.interaction?.tooltipOpenCount || 0) > 0);
-        if (!interacted) item.meanings = {};
+        if (!isInteractedState(this.state.userLexicalStates[id])) item.meanings = {};
       }
     }
 
@@ -264,6 +296,15 @@
 
     async markForgotten(token) {
       const now = new Date().toISOString();
+      // Forgot on an unsaved word calls resetLearning, which sets
+      // userIntent.saved = true — i.e. it creates a saved learning entry, the same
+      // paid asset as Save. Gate it like Save after the trial. Re-forgetting a word
+      // that is already saved (a review re-grade) stays available (T067).
+      const lexicalItemId = token.lexicalItemId || createId(token.baseForm, token.reading);
+      const alreadySaved = this.getUserWordState(lexicalItemId)?.userIntent?.saved === true;
+      if (!alreadySaved) {
+        await this.assertBasicUnlockedForSave();
+      }
       const item = this.upsertLexicalItem(token, now);
       this.userLexicalStates.resetLearning(item.id, now);
       await this.persist();
