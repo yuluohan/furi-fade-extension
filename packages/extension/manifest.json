@@ -24,6 +24,7 @@
         "src/core/appState.js",
         "src/core/annotationDecision.js",
         "src/core/pageLanguage.js",
+        "src/core/readingEvidence.js",
         "src/storage/localStorageAdapter.js",
         "src/storage/safariNativeStorageAdapter.js",
         "src/storage/chromeStorageAdapter.js",

@@ -155,6 +155,29 @@ test("keeps katakana words and skips kana-only and unknown-reading tokens", () =
   assert.equal(tokens[0].readingKana, "ニュース");
 });
 
+test("drops single-kanji fragments inside longer kanji text", () => {
+  const text = "石質隕石";
+  const tokens = mapKuromojiTokens(text, [
+    rawToken({ surface_form: "石", basic_form: "石", reading: "イシ", word_position: 1 }),
+    rawToken({ surface_form: "質", basic_form: "質", reading: "シツ", word_position: 2 }),
+    rawToken({ surface_form: "隕", basic_form: "*", reading: undefined, word_type: "UNKNOWN", word_position: 3 }),
+    rawToken({ surface_form: "石", basic_form: "石", reading: "セキ", word_position: 4 })
+  ]);
+
+  assert.deepEqual(tokens, []);
+});
+
+test("keeps single-kanji words next to particles", () => {
+  const text = "石を読む";
+  const tokens = mapKuromojiTokens(text, [
+    rawToken({ surface_form: "石", basic_form: "石", reading: "イシ", word_position: 1 }),
+    rawToken({ surface_form: "を", pos: "助詞", basic_form: "を", reading: "ヲ", word_position: 2 }),
+    rawToken({ surface_form: "読む", pos: "動詞", basic_form: "読む", reading: "ヨム", word_position: 3 })
+  ]);
+
+  assert.deepEqual(tokens.map((token) => [token.surface, token.readingKana]), [["石", "いし"], ["読む", "よむ"]]);
+});
+
 test("integration: maps real kuromoji output for problem sentences", async () => {
   let kuromoji;
   try {
@@ -187,6 +210,8 @@ test("integration: maps real kuromoji output for problem sentences", async () =>
   const verb = inflected.find((token) => token.surface === "食べ");
   assert.equal(verb.baseForm, "食べる");
   assert.equal(verb.readingKana, "たべ");
+
+  assert.deepEqual(analyze("石質隕石").map((token) => token.surface), []);
 });
 
 (async () => {

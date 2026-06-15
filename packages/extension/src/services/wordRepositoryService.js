@@ -117,10 +117,7 @@
       return this.userLexicalStates.ensure(lexicalItemId, now);
     }
 
-    async saveWord(token, sourceSentence) {
-      await this.assertBasicUnlockedForSave();
-
-      const now = new Date().toISOString();
+    applySavedWord(token, sourceSentence, now = new Date().toISOString()) {
       const item = this.upsertLexicalItem(token, now);
       const occurrenceId = createId("occurrence", item.id, sourceSentence, now);
       this.userLexicalStates.markSaved(item.id, now);
@@ -136,7 +133,73 @@
         deviceId: this.state.metadata?.deviceId || "dev_unknown"
       };
 
-      await this.persist();
+      return { item, occurrenceId };
+    }
+
+    createWordSnapshot(lexicalItemId) {
+      return {
+        lexicalItem:
+          this.state.lexicalItems[lexicalItemId] === undefined
+            ? undefined
+            : JSON.parse(JSON.stringify(this.state.lexicalItems[lexicalItemId])),
+        userState:
+          this.state.userLexicalStates[lexicalItemId] === undefined
+            ? undefined
+            : JSON.parse(JSON.stringify(this.state.userLexicalStates[lexicalItemId]))
+      };
+    }
+
+    restoreWordSnapshot(lexicalItemId, snapshot, occurrenceId) {
+      if (snapshot.lexicalItem === undefined) {
+        delete this.state.lexicalItems[lexicalItemId];
+      } else {
+        this.state.lexicalItems[lexicalItemId] = snapshot.lexicalItem;
+      }
+
+      if (snapshot.userState === undefined) {
+        delete this.state.userLexicalStates[lexicalItemId];
+      } else {
+        this.state.userLexicalStates[lexicalItemId] = snapshot.userState;
+      }
+
+      if (occurrenceId) {
+        delete this.state.sourceOccurrences[occurrenceId];
+      }
+    }
+
+    async saveWord(token, sourceSentence) {
+      await this.assertBasicUnlockedForSave();
+      const lexicalItemId = token.lexicalItemId || token.id;
+      const snapshot = this.createWordSnapshot(lexicalItemId);
+      const { item, occurrenceId } = this.applySavedWord(token, sourceSentence);
+
+      try {
+        await this.persist();
+        return item;
+      } catch (error) {
+        this.restoreWordSnapshot(item.id, snapshot, occurrenceId);
+        throw error;
+      }
+    }
+
+    saveWordOptimistically(token, sourceSentence) {
+      const lexicalItemId = token.lexicalItemId || token.id;
+      const snapshot = this.createWordSnapshot(lexicalItemId);
+      const { item, occurrenceId } = this.applySavedWord(token, sourceSentence);
+
+      return {
+        item,
+        commit: (async () => {
+          try {
+            await this.assertBasicUnlockedForSave();
+            await this.persist();
+            return item;
+          } catch (error) {
+            this.restoreWordSnapshot(item.id, snapshot, occurrenceId);
+            throw error;
+          }
+        })()
+      };
     }
 
     async assertBasicUnlockedForSave() {
@@ -220,9 +283,10 @@
   }
 
   function createBrowserPageContext() {
+    const location = window.location || {};
     return {
-      url: window.location.href,
-      domain: window.location.hostname,
+      url: location.href,
+      domain: location.hostname,
       pageTitle: document.title
     };
   }

@@ -16,6 +16,24 @@
     return window.FadingFuriganaState.createId(...parts);
   }
 
+  function isJapaneseCharacter(character) {
+    return /[\u3040-\u30ff\u3400-\u9fff]/.test(character || "");
+  }
+
+  function isLikelyParticle(character) {
+    return /[はがをにへとでのもやかねよぞ]/.test(character || "");
+  }
+
+  function isSingleKanjiInsideJapaneseText(surface, text, start) {
+    if (surface.length !== 1 || !KANJI_RE.test(surface)) return false;
+    const previous = text[start - 1];
+    const next = text[start + 1];
+    return (
+      (isJapaneseCharacter(previous) && !isLikelyParticle(previous)) ||
+      (isJapaneseCharacter(next) && !isLikelyParticle(next))
+    );
+  }
+
   function mapKuromojiTokens(text, rawTokens) {
     const tokens = [];
     for (const raw of rawTokens || []) {
@@ -41,6 +59,8 @@
       if (!counter) return null;
       return { ...counter, start, end, isKanjiWord: true, isKatakanaWord: false };
     }
+
+    if (isSingleKanjiInsideJapaneseText(surface, text, start)) return null;
 
     const baseForm = raw.basic_form && raw.basic_form !== "*" ? raw.basic_form : surface;
     const isKatakanaWord = KATAKANA_ONLY_RE.test(surface);
@@ -105,6 +125,7 @@
 
   window.FadingFuriganaKuromojiMapper = {
     katakanaToHiragana,
+    isSingleKanjiInsideJapaneseText,
     mapKuromojiToken,
     mapKuromojiTokens
   };

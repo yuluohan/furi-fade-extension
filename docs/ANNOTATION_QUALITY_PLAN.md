@@ -134,3 +134,31 @@ Deferred:
 - Google search results manual validation.
 - Per-site "expand container" mode. It should remain opt-in and site-scoped because relaxing host layout constraints can break virtualized lists, grids, and measured result cards.
 - Caching the per-element decision; current bounded ancestor inspection is cheap enough for phase A and covered by unit tests.
+
+## 8. Page-provided reading evidence (implemented phase A, 2026-06-15)
+
+Observed failure:
+
+- On pages that already provide readings, such as `石質隕石（せきしついんせき）`, the extension still used tokenizer/dictionary readings for sub-tokens. If kuromoji split the compound as `石質` + `隕石`, `石質` could be annotated with the standalone reading `いししつ`, even though the page itself already gave the correct compound reading `せきしついんせき`.
+
+Principle:
+
+- Page-provided reading evidence has higher priority than tokenizer or dictionary guesses.
+- The extension should not cover a publisher-provided reading with a lower-confidence ruby.
+
+Implemented phase A:
+
+- `src/core/readingEvidence.js` detects inline parenthetical kana readings in the same text node: `漢字（かな）` and `漢字(かな)`.
+- `kuromojiTokenMapper` no longer emits single-kanji fragments inside longer kanji text. It still allows single-kanji words next to particles, such as `石を...`.
+- `backgroundTokenizerClient` reconciles kuromoji output with local/JMdict dictionary spans. Longer known dictionary matches can overlay tokenizer fragments or gaps, while exact tokenizer spans are preserved so kuromoji's contextual readings are not overwritten.
+- Content scripts wrap the selected analyzer with an evidence-aware analyzer. That wrapper reconciles tokenizer/dictionary tokens before they reach `AnnotationEngine`.
+- Parenthetical kana is treated only as a candidate. It must also be supported by the tokenizer/dictionary token readings for the covered range. This prevents unrelated kana-only notes such as `石質隕石（これはめずらしい）` from suppressing real tokens.
+- Any token fully covered by a supported annotated surface range is suppressed in the analyzed token list. This handles whole compounds and their tokenizer-split subwords, so the fix is not word-specific.
+- Existing native `<ruby>` content was already skipped by the DOM traversal guard; this phase adds the common plain-text Wikipedia/encyclopedia pattern.
+- Unit tests cover the `石質隕石（せきしついんせき）` pattern, half-width parentheses, and non-kana parenthetical translations such as `日本（Japan）`, which must not suppress annotations.
+
+Deferred:
+
+- Use parenthetical readings to correct token readings when the page does not already visibly show the reading in the same layout context.
+- Align compound readings back to tokenizer sub-tokens (`石質隕石` + `せきしついんせき` -> `石質=せきしつ`, `隕石=いんせき`) for saved word metadata and tooltips.
+- Add a small gold-sentence regression suite for ambiguous compounds, names, ateji, counters, and pages with mixed ruby/parenthetical readings.

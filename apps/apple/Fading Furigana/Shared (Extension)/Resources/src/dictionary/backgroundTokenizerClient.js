@@ -14,7 +14,7 @@
         try {
           const response = await this.messenger({ type: "FADING_FURIGANA_TOKENIZE", texts });
           if (response?.ok && Array.isArray(response.results)) {
-            return response.results.map((tokens) => this.enrichTokens(tokens));
+            return response.results.map((tokens, index) => this.reconcileTokens(texts[index], tokens));
           }
           throw new Error(response?.error || "tokenizer unavailable");
         } catch {
@@ -33,6 +33,22 @@
         if (result) enriched.push(result);
       }
       return enriched;
+    }
+
+    reconcileTokens(text, tokens) {
+      return this.overlayDictionarySpans(text, this.enrichTokens(tokens));
+    }
+
+    overlayDictionarySpans(text, tokens) {
+      if (typeof this.fallbackAnalyzer?.analyze !== "function") return tokens;
+
+      const dictionaryTokens = this.fallbackAnalyzer
+        .analyze(text)
+        .filter((token) => shouldOverlayDictionaryToken(token, tokens));
+      if (dictionaryTokens.length === 0) return tokens;
+
+      const preserved = tokens.filter((token) => !dictionaryTokens.some((overlay) => rangesOverlap(token, overlay)));
+      return [...preserved, ...dictionaryTokens].sort((a, b) => a.start - b.start || b.end - a.end);
     }
 
     enrichToken(token) {
@@ -62,6 +78,29 @@
 
   function hasMeanings(meanings) {
     return !!meanings && Object.values(meanings).some((list) => Array.isArray(list) && list.length > 0);
+  }
+
+  function shouldOverlayDictionaryToken(dictionaryToken, tokenizerTokens) {
+    if (!dictionaryToken || dictionaryToken.surface.length < 2) return false;
+    const overlapping = (tokenizerTokens || []).filter((token) => rangesOverlap(token, dictionaryToken));
+    if (overlapping.some((token) => token.start === dictionaryToken.start && token.end === dictionaryToken.end)) {
+      return false;
+    }
+
+    const dictionaryLength = dictionaryToken.end - dictionaryToken.start;
+    return (
+      overlapping.length === 0 ||
+      overlapping.every(
+        (token) =>
+          token.start >= dictionaryToken.start &&
+          token.end <= dictionaryToken.end &&
+          token.end - token.start < dictionaryLength
+      )
+    );
+  }
+
+  function rangesOverlap(left, right) {
+    return Number.isFinite(left?.start) && Number.isFinite(left?.end) && left.start < right.end && right.start < left.end;
   }
 
   function defaultMessenger(message) {

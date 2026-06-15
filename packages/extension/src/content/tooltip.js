@@ -71,15 +71,18 @@
       this.element.querySelector(".jr-tooltip__meaning").textContent = meaningText;
       this.element.querySelector(".jr-tooltip__sentence").textContent = sourceSentence || "";
 
-      this.element.querySelector("[data-action='save']").addEventListener("click", async () => {
+      this.element.querySelector("[data-action='save']").addEventListener("click", () => {
         const saveButton = this.element.querySelector("[data-action='save']");
         saveButton.disabled = true;
-        try {
-          await this.repository.saveWord(token, sourceSentence);
-          this.hide();
-          this.onStateChange(token);
-        } catch (error) {
-          saveButton.disabled = false;
+
+        const showSaveError = (error, restoreAnnotation = false) => {
+          if (restoreAnnotation) {
+            this.onStateChange(token);
+            this.show(target, token, sourceSentence);
+          } else {
+            saveButton.disabled = false;
+          }
+
           const isLocked =
             window.FadingFuriganaWordRepository.isBasicAccessLockedError?.(error) ||
             error?.code === "basic_access_locked";
@@ -87,6 +90,25 @@
           if (!isLocked) {
             console.warn("[Fading Furigana] Save failed:", error?.message || error);
           }
+        };
+
+        try {
+          if (typeof this.repository.saveWordOptimistically === "function") {
+            const saveAttempt = this.repository.saveWordOptimistically(token, sourceSentence);
+            this.hide();
+            this.onStateChange(token);
+            Promise.resolve(saveAttempt?.commit).catch((error) => showSaveError(error, true));
+            return;
+          }
+
+          Promise.resolve(this.repository.saveWord(token, sourceSentence))
+            .then(() => {
+              this.hide();
+              this.onStateChange(token);
+            })
+            .catch((error) => showSaveError(error));
+        } catch (error) {
+          showSaveError(error);
         }
       });
       this.element.querySelector("[data-action='ignore']").addEventListener("click", () => {

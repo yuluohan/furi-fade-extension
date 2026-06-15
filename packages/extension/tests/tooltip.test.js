@@ -116,6 +116,75 @@ loadBrowserScript("src/content/tooltip.js");
 
 const { Tooltip } = window.FadingFuriganaTooltip;
 
+runTest("hides immediately and notifies the page when optimistic Save starts", async () => {
+  let resolveCommit;
+  const repository = {
+    state: {
+      settings: { display: { interfaceLanguage: "en" } },
+      userProfile: { preferredMeaningLanguages: ["en"] }
+    },
+    saveWordOptimistically() {
+      return {
+        commit: new Promise((resolve) => {
+          resolveCommit = resolve;
+        })
+      };
+    }
+  };
+  let changed = 0;
+  const tooltip = new Tooltip(repository, () => {
+    changed += 1;
+  });
+
+  tooltip.show(new FakeElement(), {
+    lexicalItemId: "確認:かくにん",
+    surface: "確認",
+    reading: "かくにん",
+    meanings: { en: ["confirmation"] }
+  });
+  tooltip.element.querySelector("[data-action='save']").click();
+
+  assert.equal(tooltip.element.hidden, true);
+  assert.equal(changed, 1);
+
+  resolveCommit();
+});
+
+runTest("restores the tooltip and notifies the page again when optimistic Save fails", async () => {
+  const error = new Error("locked");
+  error.code = "basic_access_locked";
+  const repository = {
+    state: {
+      settings: { display: { interfaceLanguage: "zhHans" } },
+      userProfile: { preferredMeaningLanguages: ["zhHans", "en"] }
+    },
+    saveWordOptimistically() {
+      return {
+        commit: Promise.reject(error)
+      };
+    }
+  };
+  let changed = 0;
+  const tooltip = new Tooltip(repository, () => {
+    changed += 1;
+  });
+
+  tooltip.show(new FakeElement(), {
+    lexicalItemId: "確認:かくにん",
+    surface: "確認",
+    reading: "かくにん",
+    meanings: { zhHans: ["确认"] }
+  });
+  tooltip.element.querySelector("[data-action='save']").click();
+  await Promise.resolve();
+
+  const status = tooltip.element.querySelector(".jr-tooltip__status");
+  assert.equal(tooltip.element.hidden, false);
+  assert.equal(status.hidden, false);
+  assert.match(status.textContent, /试用已结束/);
+  assert.equal(changed, 2);
+});
+
 runTest("shows localized Basic paywall prompt when Save is locked", async () => {
   const repository = {
     state: {
@@ -139,6 +208,8 @@ runTest("shows localized Basic paywall prompt when Save is locked", async () => 
     meanings: { zhHans: ["确认"] }
   });
   await tooltip.element.querySelector("[data-action='save']").click();
+  await Promise.resolve();
+  await Promise.resolve();
 
   const status = tooltip.element.querySelector(".jr-tooltip__status");
   assert.equal(tooltip.element.hidden, false);

@@ -14,12 +14,13 @@
     await repository.load();
     const dictionaryProvider = new window.FadingFuriganaDictionary.LocalDictionaryProvider();
     const localAnalyzer = new window.FadingFuriganaDictionary.JapaneseAnalyzer(dictionaryProvider);
-    const analyzer = window.FadingFuriganaBackgroundTokenizer
+    const baseAnalyzer = window.FadingFuriganaBackgroundTokenizer
       ? window.FadingFuriganaBackgroundTokenizer.createBestAvailableAnalyzer({
           localProvider: dictionaryProvider,
           fallbackAnalyzer: localAnalyzer
         })
       : localAnalyzer;
+    const analyzer = window.FadingFuriganaReadingEvidence?.createEvidenceAwareAnalyzer(baseAnalyzer) || baseAnalyzer;
     let engine;
     // Word-level actions only re-evaluate that word's annotations in place;
     // a full refresh() would strip and redraw the whole page.

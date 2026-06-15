@@ -127,6 +127,42 @@ test("saves word with source occurrence and learning state", async () => {
   assert.equal(storageAdapter.savedStates.length >= 1, true);
 });
 
+test("optimistic save updates in-memory word state before storage finishes", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, {
+    pageContextProvider: () => ({
+      url: "https://example.com/news",
+      domain: "example.com",
+      pageTitle: "News"
+    }),
+    persistDelayMs: 1
+  });
+  await service.load();
+
+  let resolveLoadState;
+  let shouldDelayLoad = true;
+  storageAdapter.loadState = async () => {
+    if (!shouldDelayLoad) return window.FadingFuriganaState.migrateAppState(storageAdapter.state);
+    shouldDelayLoad = false;
+    return new Promise((resolve) => {
+      resolveLoadState = () => resolve(window.FadingFuriganaState.migrateAppState(storageAdapter.state));
+    });
+  };
+
+  const saveAttempt = service.saveWordOptimistically(createToken(), "内容を確認してください。");
+
+  const userState = service.getUserWordState("確認:かくにん");
+  assert.equal(userState.lifecycleStatus, "learning");
+  assert.equal(userState.userIntent.saved, true);
+  assert.equal(Object.values(service.state.sourceOccurrences).length, 1);
+  assert.equal(storageAdapter.savedStates.length, 0);
+
+  resolveLoadState();
+  await saveAttempt.commit;
+
+  assert.equal(storageAdapter.savedStates.length >= 1, true);
+});
+
 test("blocks saving new words after trial expiry without Basic", async () => {
   const initialState = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
   initialState.entitlements.developmentOverride = "expired";
@@ -140,6 +176,23 @@ test("blocks saving new words after trial expiry without Basic", async () => {
   );
 
   assert.equal(service.getUserWordState("確認:かくにん"), null);
+  assert.equal(storageAdapter.savedStates.length, 0);
+});
+
+test("optimistic save rolls back when Basic access is locked", async () => {
+  const initialState = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
+  initialState.entitlements.developmentOverride = "expired";
+  const storageAdapter = createMemoryStorageAdapter(initialState);
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+  await service.load();
+
+  const saveAttempt = service.saveWordOptimistically(createToken(), "内容を確認してください。");
+  assert.equal(service.getUserWordState("確認:かくにん").userIntent.saved, true);
+
+  await assert.rejects(saveAttempt.commit, (error) => error?.code === "basic_access_locked");
+
+  assert.equal(service.getUserWordState("確認:かくにん"), null);
+  assert.equal(Object.values(service.state.sourceOccurrences).length, 0);
   assert.equal(storageAdapter.savedStates.length, 0);
 });
 
