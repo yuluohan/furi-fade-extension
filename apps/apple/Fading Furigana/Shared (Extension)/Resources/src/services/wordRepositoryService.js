@@ -5,6 +5,42 @@
     return window.FadingFuriganaState.createId(...parts);
   }
 
+  // Per-record last-write-wins, matching packages/core-schema/merge-rules.md:
+  // newer `updatedAt` wins; `deviceId` is the deterministic tie-breaker.
+  function pickNewerRecord(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    const ta = a.updatedAt || "";
+    const tb = b.updatedAt || "";
+    if (ta > tb) return a;
+    if (tb > ta) return b;
+    const da = a.deviceId || "";
+    const db = b.deviceId || "";
+    return db > da ? b : a;
+  }
+
+  // Union the keys of two record maps, resolving collisions by LWW. Records that
+  // exist on only one side are always kept (no domain is ever wiped wholesale).
+  function mergeRecordMaps(base, overlay) {
+    const result = { ...(base || {}) };
+    for (const [id, record] of Object.entries(overlay || {})) {
+      result[id] = pickNewerRecord(result[id], record);
+    }
+    return result;
+  }
+
+  // Record-keyed domains that any client may mutate. A content tab persisting its
+  // own changes must merge these against the freshest on-disk copy rather than
+  // overwrite them, or it would clobber data written by the Mac app (e.g. review
+  // grading writes `reviewLogs` and per-word `learning` schedule) since page load.
+  const RECORD_DOMAINS = [
+    "lexicalItems",
+    "userLexicalStates",
+    "sourceOccurrences",
+    "dailyExposureSummaries",
+    "reviewLogs"
+  ];
+
   class BasicAccessLockedError extends Error {
     constructor(message = "Basic access is required to save new words.") {
       super(message);
@@ -47,6 +83,12 @@
         settings: stored?.settings || this.state.settings,
         entitlements: stored?.entitlements || this.state.entitlements
       };
+      // Merge every record-keyed domain against the freshest on-disk copy so this
+      // tab's exposure/intent writes apply without discarding records another
+      // client changed since page load (notably Mac app review logs + schedule).
+      for (const domain of RECORD_DOMAINS) {
+        nextState[domain] = mergeRecordMaps(stored?.[domain], this.state[domain]);
+      }
 
       try {
         await this.storageAdapter.saveState(nextState);

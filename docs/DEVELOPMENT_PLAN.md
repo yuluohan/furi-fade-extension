@@ -88,6 +88,7 @@ Next recommended task: T053 — signed dev build + single-entry registration DON
 | T062 | done | Configurable smart context display | Added `annotation.useSmartContextDisplay`, enabled by default. Titles, navigation/search/result-like contexts, links, and short UI text render as tap-only hints while normal paragraph text keeps ruby. Popup and Mac Settings expose the toggle with zh/en copy, and annotation tests cover default smart behavior plus disabled fallback. | `npm run check`, `npm test`, `FURI_SAFARI_COMPILE_ONLY=1 FURI_XCODE_DERIVED_DATA=/tmp/fading-furigana-smart-context-build npm run build:safari:mac` |
 | T063 | pending | Annotation visual customization | Add configurable annotation colors with sane defaults. Start with learning-state colors (`new`, `learning`, `known`, `ignored`, `pinned`/always-show), then consider optional overlays for difficulty (`N5`-`N1`) or part of speech. Settings should expose a dedicated customization section/page with reset-to-default and accessibility-safe contrast. | Design first; then `npm run check`, `npm test`, Safari/Mac build, and real-page link/contrast smoke tests |
 | T064 | done | Settings panel information architecture redesign | Extension popup is now a current-browser control panel: current-site status, pause/enable site, quick display/level controls, compact today summary, collapsed secondary controls, immediate saves, and no Reset/Save settings flow. App settings is now grouped into Learning Experience, Appearance, Data and Privacy, Extensions, and Purchase and Sync, with Safari shared-local-data and Chrome local-only-until-Pro messaging. AppState adds `settings.siteOverrides` so site pause works across Safari/Chrome. | `npm run check`, `npm test`, `FURI_SAFARI_COMPILE_ONLY=1 FURI_XCODE_DERIVED_DATA=/tmp/fading-furigana-settings-ia-build npm run build:safari:mac`; manual Safari popup/App settings walkthrough still recommended |
+| T065 | done | Fix content-tab persist wiping Mac app review data | `WordRepositoryService.persistImmediately` overwrote shared state with the tab's stale in-memory copy, re-merging only `settings`/`entitlements`. After a Mac app review, the next Safari word action wiped `reviewLogs` and per-word `learning` schedule. Now persists merge every record-keyed domain (`lexicalItems`, `userLexicalStates`, `sourceOccurrences`, `dailyExposureSummaries`, `reviewLogs`) per-record by `updatedAt` (deviceId tie-break) per `core-schema/merge-rules.md`, so no domain is wiped wholesale. | `npm run check`, `npm test` (124 cases incl. new regression "persist preserves review logs and schedule written elsewhere since load"); `npm run build:safari:mac` + live Safari verification: Mac app review → Safari word action, reviewLogs (11) and all 7 word schedules preserved |
 
 ## Update Rules
 
@@ -99,5 +100,5 @@ Next recommended task: T053 — signed dev build + single-entry registration DON
 ## Last Updated
 
 ```text
-2026-06-13
+2026-06-15
 ```

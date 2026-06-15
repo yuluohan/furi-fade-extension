@@ -385,6 +385,60 @@ test("forgot and pin actions make hidden words visible again", async () => {
   assert.equal(userState.userIntent.pinnedAnnotation, true);
 });
 
+test("persist preserves review logs and schedule written elsewhere since load", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, {
+    pageContextProvider: () => ({
+      url: "https://example.com/news",
+      domain: "example.com",
+      pageTitle: "News"
+    }),
+    persistDelayMs: 1
+  });
+  await service.load();
+
+  // Simulate the Mac app grading a review after this tab loaded: it appends a
+  // reviewLog and writes the word's learning schedule into shared storage.
+  storageAdapter.state.reviewLogs = {
+    "review-1": {
+      id: "review-1",
+      lexicalItemId: "利用:りよう",
+      result: "good",
+      reviewedAt: "2026-06-15T10:52:01.000Z",
+      updatedAt: "2026-06-15T10:52:01.000Z"
+    }
+  };
+  storageAdapter.state.userLexicalStates["利用:りよう"] = {
+    id: "利用:りよう",
+    lexicalItemId: "利用:りよう",
+    lifecycleStatus: "learning",
+    learning: {
+      reviewCount: 1,
+      correctCount: 1,
+      correctStreak: 2,
+      reviewStage: "learning",
+      nextReviewAt: "2026-06-18T10:52:01.000Z"
+    },
+    updatedAt: "2026-06-15T10:52:01.000Z"
+  };
+
+  // This tab interacts with a different word and persists its own change.
+  await service.recordSeen(createToken());
+  await service.persist();
+
+  const persisted = storageAdapter.savedStates.at(-1);
+  // The Mac app's review log and schedule must survive the tab's persist.
+  assert.ok(persisted.reviewLogs["review-1"], "review log was wiped");
+  assert.equal(persisted.reviewLogs["review-1"].result, "good");
+  assert.equal(persisted.userLexicalStates["利用:りよう"].learning.reviewCount, 1);
+  assert.equal(
+    persisted.userLexicalStates["利用:りよう"].learning.nextReviewAt,
+    "2026-06-18T10:52:01.000Z"
+  );
+  // And the tab's own exposure write still landed.
+  assert.ok(persisted.userLexicalStates["確認:かくにん"], "tab exposure write was lost");
+});
+
 (async () => {
   for (const { name, fn } of tests) {
     await runTest(name, fn);
