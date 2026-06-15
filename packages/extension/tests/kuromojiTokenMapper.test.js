@@ -211,6 +211,11 @@ test("integration: maps real kuromoji output for problem sentences", async () =>
   assert.equal(verb.baseForm, "食べる");
   assert.equal(verb.readingKana, "たべ");
 
+  const mistaken = analyze("誤った表示が出ない。");
+  const mistakenVerb = mistaken.find((token) => token.baseForm === "誤る");
+  assert.equal(mistakenVerb.surface, "誤っ");
+  assert.equal(mistakenVerb.readingKana, "あやまっ");
+
   assert.deepEqual(analyze("石質隕石").map((token) => token.surface), []);
 });
 

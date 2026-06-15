@@ -314,6 +314,36 @@ test("updates lexical items and user state through repositories", () => {
   assert.equal(userState.userIntent.pinnedAnnotation, true);
 });
 
+test("stores inflected verbs under their dictionary form", () => {
+  const state = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
+  const lexicalItems = new window.FadingFuriganaRepositories.LexicalItemRepository(state);
+
+  const item = lexicalItems.upsertFromToken({
+    id: "誤る:あやまる",
+    lexicalItemId: "誤る:あやまる",
+    surface: "誤っ",
+    lemma: "誤る",
+    baseForm: "誤る",
+    readingKana: "あやまっ",
+    baseReadingKana: "あやまる",
+    meanings: {
+      en: ["to make a mistake"]
+    },
+    scriptProfile: {
+      hasKanji: true,
+      hasHiragana: true,
+      hasKatakana: false,
+      hasLatin: false
+    },
+    partOfSpeech: ["godan-verb"]
+  }, "2026-06-08T01:00:00.000Z");
+
+  assert.equal(item.id, "誤る:あやまる");
+  assert.equal(item.surface, "誤る");
+  assert.equal(item.lemma, "誤る");
+  assert.equal(item.readingKana, "あやまる");
+});
+
 test("records daily exposure and lists frequent items", () => {
   const state = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
   const exposures = new window.FadingFuriganaRepositories.ExposureRepository(state);

@@ -488,6 +488,7 @@
       element.dataset.baseForm = token.baseForm || token.lemma || token.surface;
       element.dataset.reading = token.readingKana || token.reading;
       element.dataset.readingKana = token.readingKana || token.reading;
+      if (token.baseReadingKana) element.dataset.baseReadingKana = token.baseReadingKana;
       element.dataset.meanings = JSON.stringify(token.meanings || {});
       element.dataset.partOfSpeech = Array.isArray(token.partOfSpeech)
         ? token.partOfSpeech.join(", ")
@@ -527,6 +528,7 @@
       baseForm: ruby.dataset.baseForm || ruby.dataset.lemma,
       reading: ruby.dataset.reading,
       readingKana: ruby.dataset.readingKana || ruby.dataset.reading,
+      baseReadingKana: ruby.dataset.baseReadingKana,
       meanings: parseJsonDataset(ruby.dataset.meanings, {}),
       partOfSpeech: ruby.dataset.partOfSpeech,
       loanword: parseJsonDataset(ruby.dataset.loanword, {}),

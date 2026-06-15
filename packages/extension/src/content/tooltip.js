@@ -9,6 +9,31 @@
     return Object.values(meanings).find((values) => values?.length)?.join("; ") || "";
   }
 
+  function cleanLexicalText(value) {
+    if (typeof value !== "string") return "";
+    const trimmed = value.trim();
+    return trimmed && trimmed !== "*" ? trimmed : "";
+  }
+
+  function getDisplaySurface(token) {
+    const surface = cleanLexicalText(token.surface);
+    const baseForm = cleanLexicalText(token.baseForm);
+    const lemma = cleanLexicalText(token.lemma);
+    const baseReading = cleanLexicalText(token.baseReadingKana);
+    if (baseReading && baseForm && baseForm !== surface) return baseForm;
+    if (baseReading && lemma && lemma !== surface) return lemma;
+    return surface || baseForm || lemma;
+  }
+
+  function getDisplayReading(token) {
+    if (token.loanword?.originalForm) return token.loanword.originalForm;
+    const surface = cleanLexicalText(token.surface);
+    const displaySurface = getDisplaySurface(token);
+    const baseReading = cleanLexicalText(token.baseReadingKana);
+    if (baseReading && displaySurface && displaySurface !== surface) return baseReading;
+    return cleanLexicalText(token.readingKana) || cleanLexicalText(token.reading) || baseReading;
+  }
+
   const COPY = {
     en: {
       saveLocked: "Trial ended. Open the Mac app to unlock Basic and continue saving words.",
@@ -49,7 +74,8 @@
     show(target, token, sourceSentence) {
       const preferredLanguages = this.repository.state.userProfile.preferredMeaningLanguages;
       const meaningText = getMeaningText(token, preferredLanguages);
-      const readingText = token.loanword?.originalForm || token.readingKana || token.reading;
+      const surfaceText = getDisplaySurface(token);
+      const readingText = getDisplayReading(token);
       this.element.hidden = false;
       this.element.innerHTML = `
         <div class="jr-tooltip__surface"></div>
@@ -66,7 +92,7 @@
         </div>
       `;
 
-      this.element.querySelector(".jr-tooltip__surface").textContent = token.surface;
+      this.element.querySelector(".jr-tooltip__surface").textContent = surfaceText;
       this.element.querySelector(".jr-tooltip__reading").textContent = readingText;
       this.element.querySelector(".jr-tooltip__meaning").textContent = meaningText;
       this.element.querySelector(".jr-tooltip__sentence").textContent = sourceSentence || "";
@@ -153,6 +179,8 @@
 
   window.FadingFuriganaTooltip = {
     Tooltip,
+    getDisplayReading,
+    getDisplaySurface,
     getMeaningText,
     getInterfaceLanguage
   };

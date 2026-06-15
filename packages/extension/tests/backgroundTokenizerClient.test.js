@@ -81,6 +81,32 @@ test("does not replace exact tokenizer spans just to change readings", async () 
   assert.equal(tokens[0].meanings.en.includes("Japan"), true);
 });
 
+test("enriches inflected verbs with their dictionary-form reading and id", async () => {
+  const analyzer = createAnalyzer([
+    [
+      createToken({
+        lexicalItemId: "誤る:あやまっ",
+        surface: "誤っ",
+        baseForm: "誤る",
+        lemma: "誤る",
+        reading: "あやまっ",
+        readingKana: "あやまっ",
+        baseReadingKana: "あやまっ",
+        start: 0,
+        end: 2
+      })
+    ]
+  ]);
+  const [tokens] = await analyzer.analyzeBatch(["誤った表示"]);
+
+  assert.equal(tokens[0].surface, "誤っ");
+  assert.equal(tokens[0].readingKana, "あやまっ");
+  assert.equal(tokens[0].baseForm, "誤る");
+  assert.equal(tokens[0].baseReadingKana, "あやまる");
+  assert.equal(tokens[0].lexicalItemId, "誤る:あやまる");
+  assert.equal(tokens[0].meanings.en.includes("to make a mistake (in)"), true);
+});
+
 runTests().catch(() => {
   process.exitCode = 1;
 });

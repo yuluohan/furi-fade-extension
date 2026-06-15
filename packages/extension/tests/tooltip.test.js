@@ -114,7 +114,48 @@ global.FadingFuriganaWordRepository = {
 
 loadBrowserScript("src/content/tooltip.js");
 
-const { Tooltip } = window.FadingFuriganaTooltip;
+const { Tooltip, getDisplayReading, getDisplaySurface } = window.FadingFuriganaTooltip;
+
+runTest("displays the dictionary form for inflected verb cards", async () => {
+  const token = {
+    lexicalItemId: "誤る:あやまる",
+    surface: "誤っ",
+    lemma: "誤る",
+    baseForm: "誤る",
+    reading: "あやまっ",
+    readingKana: "あやまっ",
+    baseReadingKana: "あやまる",
+    meanings: { en: ["to make a mistake"] }
+  };
+  const repository = {
+    state: {
+      settings: { display: { interfaceLanguage: "en" } },
+      userProfile: { preferredMeaningLanguages: ["en"] }
+    },
+    saveWord() {}
+  };
+  const tooltip = new Tooltip(repository);
+
+  tooltip.show(new FakeElement(), token, "ここでは誤った表示が出ます。");
+
+  assert.equal(getDisplaySurface(token), "誤る");
+  assert.equal(getDisplayReading(token), "あやまる");
+  assert.equal(tooltip.element.querySelector(".jr-tooltip__surface").textContent, "誤る");
+  assert.equal(tooltip.element.querySelector(".jr-tooltip__reading").textContent, "あやまる");
+});
+
+runTest("keeps contextual readings when the surface is already the headword", async () => {
+  const token = {
+    surface: "日本",
+    lemma: "日本",
+    baseForm: "日本",
+    readingKana: "にっぽん",
+    baseReadingKana: "にほん"
+  };
+
+  assert.equal(getDisplaySurface(token), "日本");
+  assert.equal(getDisplayReading(token), "にっぽん");
+});
 
 runTest("hides immediately and notifies the page when optimistic Save starts", async () => {
   let resolveCommit;

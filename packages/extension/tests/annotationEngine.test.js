@@ -607,6 +607,47 @@ test("keeps link clicks working while allowing Option-click tooltips", async () 
   assert.equal(optionClick.propagationStopped, true);
 });
 
+test("passes dictionary-form readings through ruby dataset to the tooltip", async () => {
+  const root = new FakeElement("div");
+  root.appendChild(new FakeTextNode("ここでは誤った表示が出ます。"));
+
+  let tooltipToken = null;
+  const { engine } = createEngine({
+    root,
+    tokens: [
+      createToken({
+        lexicalItemId: "誤る:あやまる",
+        surface: "誤っ",
+        lemma: "誤る",
+        baseForm: "誤る",
+        reading: "あやまっ",
+        readingKana: "あやまっ",
+        baseReadingKana: "あやまる",
+        start: 4,
+        end: 6
+      })
+    ],
+    tooltip: {
+      show(_target, token) {
+        tooltipToken = token;
+      }
+    }
+  });
+
+  await engine.annotateRoot(root);
+  engine.onClick({
+    target: collectByClass(root, "jr-ruby")[0],
+    altKey: false,
+    preventDefault() {},
+    stopPropagation() {}
+  });
+
+  assert.equal(tooltipToken.surface, "誤っ");
+  assert.equal(tooltipToken.baseForm, "誤る");
+  assert.equal(tooltipToken.readingKana, "あやまっ");
+  assert.equal(tooltipToken.baseReadingKana, "あやまる");
+});
+
 test("keeps normal paragraph ruby while smart context display is enabled", async () => {
   const root = new FakeElement("div");
   const paragraph = new FakeElement("p");

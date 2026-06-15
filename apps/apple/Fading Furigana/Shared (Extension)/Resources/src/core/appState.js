@@ -348,22 +348,43 @@
     };
   }
 
+  function cleanLexicalText(value) {
+    if (typeof value !== "string") return "";
+    const trimmed = value.trim();
+    return trimmed && trimmed !== "*" ? trimmed : "";
+  }
+
+  function getLexicalItemSurface(token) {
+    return cleanLexicalText(token.baseForm) || cleanLexicalText(token.lemma) || cleanLexicalText(token.surface);
+  }
+
+  function getLexicalItemReading(token, surface) {
+    const originalSurface = cleanLexicalText(token.surface);
+    const baseReading = cleanLexicalText(token.baseReadingKana);
+    if (baseReading && surface && surface !== originalSurface) return baseReading;
+    return cleanLexicalText(token.readingKana) || cleanLexicalText(token.reading) || baseReading;
+  }
+
   function createLexicalItemFromToken(token, existingItem = null, now = createTimestamp()) {
     const meanings = token.meanings || {};
     if (token.meaningEn && !meanings.en) meanings.en = [token.meaningEn];
+    const surface = getLexicalItemSurface(token);
+    const readingKana = getLexicalItemReading(token, surface);
+    const baseReadingKana = cleanLexicalText(token.baseReadingKana) || readingKana;
+    const lexicalItemId = token.lexicalItemId || token.id || createId(surface, readingKana);
 
     return {
-      id: token.lexicalItemId || token.id,
-      surface: token.surface,
-      lemma: token.lemma || token.baseForm || token.surface,
-      readingKana: token.readingKana || token.reading,
-      baseReadingKana: token.baseReadingKana || token.readingKana || token.reading,
+      id: lexicalItemId,
+      surface,
+      lemma: cleanLexicalText(token.lemma) || cleanLexicalText(token.baseForm) || surface,
+      readingKana,
+      baseReadingKana,
       lexicalType: token.lexicalType || (token.isKatakanaWord ? "loanword" : "word"),
       scriptProfile: normalizeScriptProfile(token.scriptProfile || {
         hasKanji: !!token.isKanjiWord,
-        hasHiragana: /[\u3040-\u309f]/.test(token.surface),
+        hasHiragana: /[\u3040-\u309f]/.test(surface),
         hasKatakana: !!token.isKatakanaWord,
-        hasLatin: /[a-z]/i.test(token.surface)
+        hasLatin: /[a-z]/i.test(surface)
       }),
       partOfSpeech: Array.isArray(token.partOfSpeech) ? token.partOfSpeech : [token.partOfSpeech || "unknown"],
       meanings,
