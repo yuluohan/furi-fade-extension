@@ -241,7 +241,13 @@ Pro should not be required for the Basic MVP launch. Build after Basic purchase 
 - [ ] Add Swift sync adapter for Apple apps.
 - [ ] Add subscription paywall.
 - [ ] Add subscription restore/status UI.
-- [ ] Add lapsed subscription behavior: local data remains usable, sync pauses.
+- [ ] Add lapsed subscription behavior: local data remains usable, sync pauses (decision below).
+
+### Tier Relationship & Lapse Decision (2026-06-15)
+
+- **Pro is an add-on purchased on top of Basic.** Owning Basic is a prerequisite for subscribing to Pro; a Pro subscriber always holds the one-time Basic entitlement.
+- **When Pro lapses, access falls back to Basic, not to trial-expired.** Because the user always owns Basic, the full local learning loop stays available after a subscription ends — including saving new words locally, status actions, review, and stats. Only cross-device sync, cloud backup/restore, and advanced intelligence pause.
+- This is consistent with "Do Not Build → do not lock or delete local data when trial/subscription expires." The difference vs. trial-expired is intentional: trial-expired users never paid, so new-word Save is gated; Pro-lapsed users paid for Basic, so local Save stays open.
 
 ## Pro Feature Boundary
 

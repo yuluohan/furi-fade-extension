@@ -14,6 +14,9 @@ Status: not ready for public launch, ready to prepare a signed MVP beta.
 Latest automated audit: `docs/PRELAUNCH_AUDIT_2026-06-14.md`.
 Manual Safari QA runbook: `docs/SAFARI_MANUAL_QA.md`.
 Latest Safari QA run record: `docs/SAFARI_QA_RUN_2026-06-15.md`.
+Release manifest (首发功能 / 已知限制 / 测试路径): `docs/RELEASE_NOTES_DRAFT.md`.
+Support page copy: `docs/SUPPORT_PAGE_DRAFT.md`.
+Screenshot plan: `docs/SCREENSHOT_PLAN.md`.
 
 The core user loop is present:
 
@@ -64,7 +67,7 @@ The core user loop is present:
 - [ ] Clear recovery UI when App Group storage is unavailable.
 - [ ] Extension permission copy reviewed.
 - [ ] At least one week of personal daily-use dogfooding without data loss.
-- [ ] Known limitations documented: tokenizer mistakes, dictionary coverage gaps, constrained-page fallback behavior.
+- [x] Known limitations documented: tokenizer mistakes, dictionary coverage gaps, constrained-page fallback behavior (`docs/RELEASE_NOTES_DRAFT.md`).
 
 ## Ergonomics Backlog
 
