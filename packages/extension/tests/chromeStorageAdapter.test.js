@@ -106,9 +106,11 @@ test("loads and saves AppState through callback chrome.storage.local", async () 
   const state = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
 
   state.lexicalItems.example = { id: "example" };
-  await adapter.saveState(state);
+  const saved = await adapter.saveState(state);
 
   assert.equal(global.chrome.storage.local.values[STORAGE_KEY].lexicalItems.example.id, "example");
+  assert.equal(saved.metadata.storageRevision, 1);
+  assert.ok(saved.metadata.writeId);
 
   const loaded = await adapter.loadState();
   assert.equal(loaded.schemaVersion, 1);
@@ -172,7 +174,9 @@ test("factory chooses Safari native storage on Safari", async () => {
           type: "FADING_FURIGANA_STORAGE_RESPONSE",
           requestId: message.requestId,
           ok: true,
-          payload: message.action === "loadState" ? { state: nativeState } : {}
+          payload: message.action === "loadState"
+            ? { state: nativeState }
+            : { state: window.FadingFuriganaState.prepareStateForSave(message.payload.state) }
         });
       }
     }
@@ -184,11 +188,12 @@ test("factory chooses Safari native storage on Safari", async () => {
   const loaded = await adapter.loadState();
   assert.equal(loaded.lexicalItems["日本:にほん"].reading, "にほん");
 
-  await adapter.saveState(loaded);
+  const saved = await adapter.saveState(loaded);
   assert.equal(messages[0].type, "FADING_FURIGANA_STORAGE");
   assert.equal(messages[0].action, "loadState");
   assert.equal(messages[1].action, "saveState");
   assert.equal(messages[1].payload.state.lexicalItems["日本:にほん"].surface, "日本");
+  assert.equal(saved.metadata.storageRevision, 1);
 });
 
 test("Safari native storage uses background relay when direct native messaging is unavailable", async () => {
@@ -234,7 +239,7 @@ test("Safari native adapter reports native transport after a successful request"
           ok: true,
           payload: message.action === "loadState"
             ? { state: window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z") }
-            : {}
+            : { state: window.FadingFuriganaState.prepareStateForSave(message.payload.state) }
         });
       }
     }

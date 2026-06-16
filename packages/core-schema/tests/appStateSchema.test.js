@@ -36,6 +36,8 @@ const migrated = window.FadingFuriganaState.migrateAppState(vector.input);
 assert.equal(schema.properties.schemaVersion.const, 1);
 assert.equal(migrated.schemaVersion, vector.expect.schemaVersion);
 assert.equal(migrated.metadata.deviceId.startsWith(vector.expect.metadataDeviceIdPrefix), true);
+assert.equal(migrated.metadata.storageRevision, 0);
+assert.equal(typeof migrated.metadata.writeId, "string");
 
 for (const dottedPath of vector.expect.preservedUnknownPaths) {
   assert.notEqual(getPath(migrated, dottedPath), undefined, dottedPath);
@@ -50,6 +52,7 @@ for (const [dottedRecordPath, expectedUpdatedAt] of Object.entries(vector.expect
 for (const domain of [
   "lexicalItems",
   "userLexicalStates",
+  "exposureIndex",
   "sourceOccurrences",
   "dailyExposureSummaries",
   "reviewLogs"

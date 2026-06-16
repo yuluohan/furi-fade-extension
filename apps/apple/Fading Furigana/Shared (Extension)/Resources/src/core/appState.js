@@ -60,6 +60,10 @@
     return `dev_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 12)}`;
   }
 
+  function createWriteId(now = createTimestamp()) {
+    return `wr_${now.replace(/[^0-9a-z]/giu, "")}_${Math.random().toString(36).slice(2, 12)}`;
+  }
+
   function createId(...parts) {
     return parts
       .join(":")
@@ -214,6 +218,7 @@
       entitlements: createDefaultEntitlements(now),
       lexicalItems: {},
       userLexicalStates: {},
+      exposureIndex: {},
       sourceOccurrences: {},
       dailyExposureSummaries: {},
       reviewLogs: {},
@@ -221,7 +226,9 @@
         deviceId: createDeviceId(),
         createdAt: now,
         updatedAt: now,
-        lastOpenedAt: now
+        lastOpenedAt: now,
+        storageRevision: 0,
+        writeId: createWriteId(now)
       }
     };
   }
@@ -453,6 +460,37 @@
     };
   }
 
+  function createExposureIndexFromToken(token, existingRecord = null, seenAt = createTimestamp(), deviceId = "dev_unknown") {
+    const surface = getLexicalItemSurface(token) || cleanLexicalText(existingRecord?.surface);
+    const readingKana =
+      cleanLexicalText(token.readingKana) ||
+      cleanLexicalText(token.reading) ||
+      cleanLexicalText(token.baseReadingKana) ||
+      cleanLexicalText(existingRecord?.readingKana) ||
+      cleanLexicalText(existingRecord?.baseReadingKana);
+    const lexicalItemId =
+      token.lexicalItemId ||
+      token.id ||
+      existingRecord?.lexicalItemId ||
+      existingRecord?.id ||
+      createId(surface, readingKana);
+    const fallbackParts = splitLexicalItemId(lexicalItemId);
+
+    return {
+      ...(existingRecord || {}),
+      id: lexicalItemId,
+      lexicalItemId,
+      surface: surface || fallbackParts.surface,
+      readingKana: readingKana || fallbackParts.readingKana,
+      baseReadingKana: cleanLexicalText(token.baseReadingKana) || cleanLexicalText(existingRecord?.baseReadingKana) || readingKana || fallbackParts.readingKana,
+      seenCount: normalizeCount(existingRecord?.seenCount) + 1,
+      firstSeenAt: existingRecord?.firstSeenAt || seenAt,
+      lastSeenAt: seenAt,
+      updatedAt: seenAt,
+      deviceId: existingRecord?.deviceId || deviceId
+    };
+  }
+
   function migrateLegacyState(parsed, now = createTimestamp()) {
     const state = createDefaultAppState(now);
     state.settings = normalizeSettings(parsed.settings);
@@ -493,6 +531,12 @@
       migrated.learning.lastReviewedAt = userState.lastReviewedAt;
       migrated.learning.nextReviewAt = userState.nextReviewAt;
       state.userLexicalStates[wordId] = migrated;
+      if (hasExposure(migrated.exposure)) {
+        state.exposureIndex[wordId] = normalizeExposureIndexRecord(wordId, {}, state.metadata, {
+          lexicalItem: state.lexicalItems[wordId],
+          userState: migrated
+        });
+      }
     }
 
     for (const [sentenceId, sentence] of Object.entries(parsed.sourceSentences || {})) {
@@ -518,12 +562,20 @@
 
   function normalizeRecordDomains(state, now = createTimestamp()) {
     const deviceId = normalizeDeviceId(state.metadata?.deviceId) || createDeviceId();
+    const storageRevision = normalizeStorageRevision(state.metadata?.storageRevision);
     const metadata = {
       ...state.metadata,
       deviceId,
       createdAt: state.metadata?.createdAt || now,
       updatedAt: state.metadata?.updatedAt || now,
-      lastOpenedAt: now
+      lastOpenedAt: now,
+      storageRevision,
+      writeId: normalizeWriteId(state.metadata?.writeId, {
+        deviceId,
+        storageRevision,
+        createdAt: state.metadata?.createdAt || now,
+        updatedAt: state.metadata?.updatedAt || now
+      })
     };
 
     const lexicalItems = {};
@@ -560,6 +612,23 @@
           metadata.updatedAt,
         deviceId: value.deviceId || deviceId
       };
+    }
+
+    let exposureIndex = {};
+    for (const [id, value] of Object.entries(state.exposureIndex || {})) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) continue;
+      exposureIndex[id] = normalizeExposureIndexRecord(id, value, metadata);
+    }
+
+    for (const [id, userState] of Object.entries(userLexicalStates)) {
+      if (!hasExposure(userState.exposure)) continue;
+      const fallback = normalizeExposureIndexRecord(id, {}, metadata, {
+        lexicalItem: lexicalItems[userState.lexicalItemId || id],
+        userState
+      });
+      exposureIndex[id] = exposureIndex[id]
+        ? mergeExposureIndexRecords(exposureIndex[id], fallback)
+        : fallback;
     }
 
     const sourceOccurrences = {};
@@ -601,14 +670,151 @@
       metadata,
       lexicalItems,
       userLexicalStates,
+      exposureIndex,
       sourceOccurrences,
       dailyExposureSummaries,
       reviewLogs
     };
   }
 
+  function normalizeExposureIndexRecord(id, value = {}, metadata, fallback = {}) {
+    const lexicalItem = fallback.lexicalItem || {};
+    const userState = fallback.userState || {};
+    const exposure = userState.exposure || {};
+    const lexicalItemId = value.lexicalItemId || lexicalItem.id || userState.lexicalItemId || id;
+    const parts = splitLexicalItemId(lexicalItemId);
+    const firstSeenAt =
+      value.firstSeenAt ||
+      exposure.firstSeenAt ||
+      value.lastSeenAt ||
+      exposure.lastSeenAt ||
+      value.updatedAt ||
+      metadata.updatedAt;
+    const lastSeenAt =
+      value.lastSeenAt ||
+      exposure.lastSeenAt ||
+      value.updatedAt ||
+      firstSeenAt;
+
+    return {
+      ...value,
+      id: value.id || id,
+      lexicalItemId,
+      surface: cleanLexicalText(value.surface) || cleanLexicalText(lexicalItem.surface) || parts.surface,
+      readingKana:
+        cleanLexicalText(value.readingKana) ||
+        cleanLexicalText(value.reading) ||
+        cleanLexicalText(value.baseReadingKana) ||
+        cleanLexicalText(lexicalItem.readingKana) ||
+        cleanLexicalText(lexicalItem.baseReadingKana) ||
+        parts.readingKana,
+      baseReadingKana:
+        cleanLexicalText(value.baseReadingKana) ||
+        cleanLexicalText(lexicalItem.baseReadingKana) ||
+        cleanLexicalText(value.readingKana) ||
+        cleanLexicalText(lexicalItem.readingKana) ||
+        parts.readingKana,
+      seenCount: normalizeCount(value.seenCount ?? exposure.seenCount),
+      firstSeenAt,
+      lastSeenAt,
+      updatedAt: value.updatedAt || lastSeenAt || metadata.updatedAt,
+      deviceId: value.deviceId || metadata.deviceId
+    };
+  }
+
+  function mergeExposureIndexRecords(primary, fallback) {
+    return {
+      ...fallback,
+      ...primary,
+      seenCount: Math.max(normalizeCount(primary.seenCount), normalizeCount(fallback.seenCount)),
+      firstSeenAt: earlierIso(primary.firstSeenAt, fallback.firstSeenAt),
+      lastSeenAt: laterIso(primary.lastSeenAt, fallback.lastSeenAt),
+      updatedAt: laterIso(primary.updatedAt, fallback.updatedAt)
+    };
+  }
+
+  function hasExposure(exposure = {}) {
+    return normalizeCount(exposure.seenCount) > 0;
+  }
+
+  function normalizeCount(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0;
+  }
+
+  function splitLexicalItemId(id) {
+    const text = String(id || "");
+    const separatorIndex = text.indexOf(":");
+    if (separatorIndex < 0) {
+      return { surface: text, readingKana: "" };
+    }
+    return {
+      surface: text.slice(0, separatorIndex) || text,
+      readingKana: text.slice(separatorIndex + 1)
+    };
+  }
+
+  function earlierIso(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    const ta = Date.parse(a);
+    const tb = Date.parse(b);
+    if (Number.isFinite(ta) && Number.isFinite(tb)) return ta <= tb ? a : b;
+    return a <= b ? a : b;
+  }
+
+  function laterIso(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    const ta = Date.parse(a);
+    const tb = Date.parse(b);
+    if (Number.isFinite(ta) && Number.isFinite(tb)) return ta >= tb ? a : b;
+    return a >= b ? a : b;
+  }
+
   function normalizeDeviceId(deviceId) {
     return typeof deviceId === "string" && deviceId.trim() ? deviceId.trim() : null;
+  }
+
+  function normalizeStorageRevision(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
+  }
+
+  function normalizeWriteId(value, metadata = {}) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+    const revision = normalizeStorageRevision(metadata.storageRevision);
+    const deviceId = metadata.deviceId || "dev_unknown";
+    const timestamp = metadata.updatedAt || metadata.createdAt || "";
+    return `legacy:${revision}:${deviceId}:${timestamp}`;
+  }
+
+  function getStorageSignature(state = {}) {
+    const metadata = state.metadata || {};
+    const storageRevision = normalizeStorageRevision(metadata.storageRevision);
+    const writeId = normalizeWriteId(metadata.writeId, {
+      ...metadata,
+      storageRevision
+    });
+    return `${storageRevision}:${writeId}:${metadata.updatedAt || ""}`;
+  }
+
+  function prepareStateForSave(state, now = createTimestamp()) {
+    const metadata = state.metadata || {};
+    const deviceId = normalizeDeviceId(metadata.deviceId) || createDeviceId();
+    const storageRevision = normalizeStorageRevision(metadata.storageRevision) + 1;
+    return {
+      ...state,
+      metadata: {
+        ...metadata,
+        deviceId,
+        createdAt: metadata.createdAt || now,
+        updatedAt: now,
+        lastOpenedAt: metadata.lastOpenedAt || now,
+        storageRevision,
+        writeId: createWriteId(now)
+      }
+    };
   }
 
   function mapLegacyStatus(status) {
@@ -669,14 +875,17 @@
     createDefaultEntitlements,
     createDefaultUserLexicalState,
     createDeviceId,
+    createExposureIndexFromToken,
     createId,
     createLexicalItemFromToken,
     createTimestamp,
+    getStorageSignature,
     getLocalDateKey,
     migrateAppState,
     normalizeEntitlements,
     normalizeHostname,
     normalizeSiteOverrides,
-    normalizeSettings
+    normalizeSettings,
+    prepareStateForSave
   };
 })();

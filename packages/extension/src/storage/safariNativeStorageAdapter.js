@@ -52,21 +52,14 @@
     }
 
     async saveState(state) {
-      const nextState = {
-        ...state,
-        metadata: {
-          ...state.metadata,
-          updatedAt: window.FadingFuriganaState.createTimestamp()
-        }
-      };
-
       try {
-        await this.send("saveState", { state: nextState });
+        const response = await this.send("saveState", { state });
+        return migrate(response?.payload?.state);
       } catch (error) {
         warnNativeFailure("saveState", error);
         this.markFallback(error);
         if (!this.fallbackAdapter) throw error;
-        await this.fallbackAdapter.saveState(nextState);
+        return this.fallbackAdapter.saveState(state);
       }
     }
 

@@ -66,6 +66,7 @@ test("creates AppState v1 defaults", () => {
   assert.equal(state.entitlements.access.basicUnlocked, true);
   assert.equal(state.entitlements.basic.status, "not_purchased");
   assert.deepEqual(Object.keys(state.lexicalItems), []);
+  assert.deepEqual(Object.keys(state.exposureIndex), []);
   assert.deepEqual(Object.keys(state.dailyExposureSummaries), []);
 });
 
@@ -263,10 +264,12 @@ test("loads, saves, and clears state through LocalStorageAdapter", async () => {
   const state = await adapter.loadState();
 
   state.lexicalItems.example = { id: "example" };
-  await adapter.saveState(state);
+  const savedState = await adapter.saveState(state);
 
   const saved = JSON.parse(storage.getItem("jrFadingFuriganaState"));
   assert.equal(saved.lexicalItems.example.id, "example");
+  assert.equal(saved.metadata.storageRevision, 1);
+  assert.equal(savedState.metadata.storageRevision, 1);
 
   await adapter.clearState();
   assert.equal(storage.getItem("jrFadingFuriganaState"), null);
@@ -312,6 +315,24 @@ test("updates lexical items and user state through repositories", () => {
   assert.equal(userState.knowledgeConfidence, 0);
   assert.equal(userState.userIntent.manuallyMarkedUnknown, true);
   assert.equal(userState.userIntent.pinnedAnnotation, true);
+});
+
+test("records exposure index with a derived lexical item id", () => {
+  const state = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
+  const exposureIndex = new window.FadingFuriganaRepositories.ExposureIndexRepository(state);
+
+  const token = {
+    surface: "食べる",
+    baseForm: "食べる",
+    readingKana: "たべる",
+    baseReadingKana: "たべる"
+  };
+  exposureIndex.recordSeen(token, "2026-06-08T01:00:00.000Z");
+  exposureIndex.recordSeen(token, "2026-06-08T02:00:00.000Z");
+
+  assert.equal(state.exposureIndex["食べる:たべる"].seenCount, 2);
+  assert.equal(state.exposureIndex["食べる:たべる"].firstSeenAt, "2026-06-08T01:00:00.000Z");
+  assert.equal(state.exposureIndex["食べる:たべる"].lastSeenAt, "2026-06-08T02:00:00.000Z");
 });
 
 test("stores inflected verbs under their dictionary form", () => {

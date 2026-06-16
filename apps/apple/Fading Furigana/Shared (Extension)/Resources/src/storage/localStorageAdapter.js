@@ -20,14 +20,9 @@
     }
 
     async saveState(state) {
-      const nextState = {
-        ...state,
-        metadata: {
-          ...state.metadata,
-          updatedAt: window.FadingFuriganaState.createTimestamp()
-        }
-      };
+      const nextState = window.FadingFuriganaState.prepareStateForSave(state);
       this.storage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+      return window.FadingFuriganaState.migrateAppState(nextState);
     }
 
     async clearState() {

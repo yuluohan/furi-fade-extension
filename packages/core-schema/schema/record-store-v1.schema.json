@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fadingfurigana.local/schema/record-store-v1.schema.json",
+  "title": "Fading Furigana Record Store Snapshot v1",
+  "type": "object",
+  "required": ["formatVersion", "storageKind", "migratedAt", "source", "records"],
+  "properties": {
+    "formatVersion": {
+      "const": 1
+    },
+    "storageKind": {
+      "const": "record-store-snapshot"
+    },
+    "migratedAt": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object",
+      "required": ["schemaVersion", "storageRevision", "writeId", "deviceId", "updatedAt"],
+      "properties": {
+        "schemaVersion": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "storageRevision": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "writeId": {
+          "type": ["string", "null"]
+        },
+        "deviceId": {
+          "type": "string",
+          "pattern": "^dev_.+"
+        },
+        "updatedAt": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": true
+    },
+    "records": {
+      "type": "object",
+      "additionalProperties": {
+        "$ref": "#/$defs/record"
+      }
+    }
+  },
+  "additionalProperties": true,
+  "$defs": {
+    "record": {
+      "type": "object",
+      "required": [
+        "formatVersion",
+        "recordId",
+        "type",
+        "domain",
+        "logicalId",
+        "syncScope",
+        "mergeStrategy",
+        "updatedAt",
+        "deviceId",
+        "value"
+      ],
+      "properties": {
+        "formatVersion": {
+          "const": 1
+        },
+        "recordId": {
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "appMetadata",
+            "userProfile",
+            "settings",
+            "entitlements",
+            "lexicalItem",
+            "userLexicalState",
+            "exposureIndex",
+            "sourceOccurrence",
+            "dailyExposureSummary",
+            "reviewLog"
+          ]
+        },
+        "domain": {
+          "type": "string"
+        },
+        "logicalId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "syncScope": {
+          "enum": [
+            "local_only",
+            "syncable",
+            "local_or_server_authoritative",
+            "per_device_delta"
+          ]
+        },
+        "mergeStrategy": {
+          "enum": [
+            "local_only",
+            "lww",
+            "server_authoritative",
+            "lww_pending_additive_exposure",
+            "append_lww_same_id",
+            "additive_delta_pending"
+          ]
+        },
+        "updatedAt": {
+          "type": "string"
+        },
+        "deviceId": {
+          "type": "string",
+          "pattern": "^dev_.+"
+        },
+        "deletedAt": {
+          "type": "string"
+        },
+        "value": {
+          "type": "object",
+          "additionalProperties": true
+        }
+      },
+      "additionalProperties": true
+    }
+  }
+}

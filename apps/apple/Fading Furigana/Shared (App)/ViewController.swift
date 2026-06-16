@@ -1988,7 +1988,10 @@ final class AppStateStore {
            let data = try? Data(contentsOf: stateFileURL),
            let raw = try? JSONSerialization.jsonObject(with: data) as? [String: Any] {
             isReadable = true
-            wordCount = (raw["lexicalItems"] as? [String: Any])?.count ?? 0
+            let lexicalItems = raw["lexicalItems"] as? [String: Any] ?? [:]
+            let userStates = raw["userLexicalStates"] as? [String: Any] ?? [:]
+            let exposureIndex = raw["exposureIndex"] as? [String: Any] ?? [:]
+            wordCount = Set(lexicalItems.keys).union(userStates.keys).union(exposureIndex.keys).count
         }
 
         return StorageHealth(
@@ -2042,7 +2045,9 @@ final class AppStateStore {
     }
 
     func restoreRawState(_ raw: [String: Any]) throws {
-        try save(raw)
+        var next = raw
+        touchMetadata(in: &next)
+        try save(next)
     }
 
     func initializeEntitlementsIfNeeded() throws {
@@ -2150,12 +2155,14 @@ final class AppStateStore {
         let deviceId = ensureDeviceId(in: &raw)
         var states = raw["userLexicalStates"] as? [String: Any] ?? [:]
         var userState = states[lexicalItemId] as? [String: Any] ?? createDefaultUserState(lexicalItemId: lexicalItemId)
+        mergeExposureIndex(into: &userState, lexicalItemId: lexicalItemId, raw: raw)
         var userIntent = userState["userIntent"] as? [String: Any] ?? [:]
         var learning = userState["learning"] as? [String: Any] ?? [:]
         var interaction = userState["interaction"] as? [String: Any] ?? [:]
         var intelligence = userState["intelligence"] as? [String: Any] ?? [:]
         var reasonCodes = intelligence["reasonCodes"] as? [String] ?? []
-        let now = ISO8601DateFormatter().string(from: Date())
+        let nowDate = Date()
+        let now = ISO8601DateFormatter().string(from: nowDate)
 
         switch action {
         case .save:
@@ -2216,10 +2223,7 @@ final class AppStateStore {
         states[lexicalItemId] = userState
         raw["userLexicalStates"] = states
 
-        var metadata = raw["metadata"] as? [String: Any] ?? [:]
-        metadata["updatedAt"] = now
-        metadata["lastOpenedAt"] = now
-        raw["metadata"] = metadata
+        touchMetadata(in: &raw, now: nowDate)
 
         try save(raw)
     }
@@ -2246,6 +2250,7 @@ final class AppStateStore {
         let deviceId = ensureDeviceId(in: &raw)
         var states = raw["userLexicalStates"] as? [String: Any] ?? [:]
         var userState = states[lexicalItemId] as? [String: Any] ?? createDefaultUserState(lexicalItemId: lexicalItemId)
+        mergeExposureIndex(into: &userState, lexicalItemId: lexicalItemId, raw: raw)
         var learning = userState["learning"] as? [String: Any] ?? [:]
         var intelligence = userState["intelligence"] as? [String: Any] ?? [:]
         var reasonCodes = intelligence["reasonCodes"] as? [String] ?? []
@@ -2305,10 +2310,7 @@ final class AppStateStore {
         ]
         raw["reviewLogs"] = reviewLogs
 
-        var metadata = raw["metadata"] as? [String: Any] ?? [:]
-        metadata["updatedAt"] = nowText
-        metadata["lastOpenedAt"] = nowText
-        raw["metadata"] = metadata
+        touchMetadata(in: &raw, now: now)
 
         try save(raw)
     }
@@ -2339,8 +2341,11 @@ final class AppStateStore {
         let nowText = ISO8601DateFormatter().string(from: now)
         var metadata = raw["metadata"] as? [String: Any] ?? [:]
         metadata["deviceId"] = metadata["deviceId"] as? String ?? Self.makeDeviceId()
+        metadata["createdAt"] = metadata["createdAt"] as? String ?? nowText
         metadata["updatedAt"] = nowText
         metadata["lastOpenedAt"] = nowText
+        metadata["storageRevision"] = Self.intValue(metadata["storageRevision"]) + 1
+        metadata["writeId"] = Self.makeWriteId()
         raw["metadata"] = metadata
     }
 
@@ -2351,6 +2356,46 @@ final class AppStateStore {
         metadata["deviceId"] = deviceId
         raw["metadata"] = metadata
         return deviceId
+    }
+
+    private func mergeExposureIndex(into userState: inout [String: Any], lexicalItemId: String, raw: [String: Any]) {
+        let exposureIndex = raw["exposureIndex"] as? [String: Any] ?? [:]
+        guard let indexed = exposureIndex[lexicalItemId] as? [String: Any] else { return }
+
+        var exposure = userState["exposure"] as? [String: Any] ?? [:]
+        exposure["seenCount"] = max(Self.intValue(exposure["seenCount"]), Self.intValue(indexed["seenCount"]))
+        if let firstSeenAt = Self.earlierTimestamp(exposure["firstSeenAt"] as? String, indexed["firstSeenAt"] as? String) {
+            exposure["firstSeenAt"] = firstSeenAt
+        }
+        if let lastSeenAt = Self.laterTimestamp(exposure["lastSeenAt"] as? String, indexed["lastSeenAt"] as? String) {
+            exposure["lastSeenAt"] = lastSeenAt
+        }
+        userState["exposure"] = exposure
+    }
+
+    private static func intValue(_ value: Any?) -> Int {
+        if let int = value as? Int { return int }
+        if let number = value as? NSNumber { return number.intValue }
+        if let text = value as? String, let int = Int(text) { return int }
+        return 0
+    }
+
+    private static func earlierTimestamp(_ lhs: String?, _ rhs: String?) -> String? {
+        guard let lhs, !lhs.isEmpty else { return rhs }
+        guard let rhs, !rhs.isEmpty else { return lhs }
+        if let lhsDate = ReviewScheduler.parseISODate(lhs), let rhsDate = ReviewScheduler.parseISODate(rhs) {
+            return lhsDate <= rhsDate ? lhs : rhs
+        }
+        return lhs <= rhs ? lhs : rhs
+    }
+
+    private static func laterTimestamp(_ lhs: String?, _ rhs: String?) -> String? {
+        guard let lhs, !lhs.isEmpty else { return rhs }
+        guard let rhs, !rhs.isEmpty else { return lhs }
+        if let lhsDate = ReviewScheduler.parseISODate(lhs), let rhsDate = ReviewScheduler.parseISODate(rhs) {
+            return lhsDate >= rhsDate ? lhs : rhs
+        }
+        return lhs >= rhs ? lhs : rhs
     }
 
     private static func stateFileURL(fileManager: FileManager = .default) -> URL {
@@ -2377,6 +2422,7 @@ final class AppStateStore {
             "entitlements": Self.defaultEntitlements(now: Date()),
             "lexicalItems": [:],
             "userLexicalStates": [:],
+            "exposureIndex": [:],
             "sourceOccurrences": [:],
             "dailyExposureSummaries": [:],
             "reviewLogs": [:],
@@ -2384,7 +2430,9 @@ final class AppStateStore {
                 "deviceId": Self.makeDeviceId(),
                 "createdAt": now,
                 "updatedAt": now,
-                "lastOpenedAt": now
+                "lastOpenedAt": now,
+                "storageRevision": 0,
+                "writeId": Self.makeWriteId()
             ]
         ]
     }
@@ -2436,6 +2484,10 @@ final class AppStateStore {
 
     private static func makeDeviceId() -> String {
         "dev_\(UUID().uuidString.lowercased())"
+    }
+
+    private static func makeWriteId() -> String {
+        "wr_\(UUID().uuidString.lowercased())"
     }
 
     private func appendUnique(_ value: String, to values: inout [String]) {
@@ -2574,6 +2626,7 @@ struct AppStateSnapshot {
 
         let lexicalItems = raw["lexicalItems"] as? [String: Any] ?? [:]
         let userStates = raw["userLexicalStates"] as? [String: Any] ?? [:]
+        let exposureIndex = raw["exposureIndex"] as? [String: Any] ?? [:]
         let summaries = raw["dailyExposureSummaries"] as? [String: Any] ?? [:]
         let reviewLogs = raw["reviewLogs"] as? [String: Any] ?? [:]
         let examples = Self.latestExamples(from: raw["sourceOccurrences"] as? [String: Any] ?? [:])
@@ -2583,13 +2636,23 @@ struct AppStateSnapshot {
         var rowsById: [String: WordRow] = [:]
         for (id, itemValue) in lexicalItems {
             let item = itemValue as? [String: Any] ?? [:]
-            let state = userStates[id] as? [String: Any] ?? [:]
+            let indexed = exposureIndex[id] as? [String: Any] ?? [:]
+            let state = Self.userStateWithIndexedExposure(userStates[id] as? [String: Any] ?? [:], indexed: indexed)
             rowsById[id] = WordRow(id: id, item: item, userState: state, summarySeenCount: 0, example: examples[id])
         }
 
         for (id, stateValue) in userStates where rowsById[id] == nil {
-            let state = stateValue as? [String: Any] ?? [:]
-            rowsById[id] = WordRow(id: id, item: [:], userState: state, summarySeenCount: 0, example: examples[id])
+            let indexed = exposureIndex[id] as? [String: Any] ?? [:]
+            let item = Self.itemFromIndexedExposure(id: id, indexed: indexed)
+            let state = Self.userStateWithIndexedExposure(stateValue as? [String: Any] ?? [:], indexed: indexed)
+            rowsById[id] = WordRow(id: id, item: item, userState: state, summarySeenCount: 0, example: examples[id])
+        }
+
+        for (id, indexedValue) in exposureIndex where rowsById[id] == nil {
+            let indexed = indexedValue as? [String: Any] ?? [:]
+            let item = Self.itemFromIndexedExposure(id: id, indexed: indexed)
+            let state = Self.userStateWithIndexedExposure(["lifecycleStatus": "new"], indexed: indexed)
+            rowsById[id] = WordRow(id: id, item: item, userState: state, summarySeenCount: 0, example: examples[id])
         }
 
         let todayCounts = Self.counts(from: summaries, startDate: todayKey, endDate: todayKey)
@@ -2602,6 +2665,68 @@ struct AppStateSnapshot {
         self.weekTopRows = Self.rows(from: weekCounts, rowsById: rowsById)
         self.suggestedRows = Self.suggestedRows(weekTopRows: weekTopRows, allWords: words)
         self.activityDays = Self.activityDays(from: summaries, reviewLogs: reviewLogs)
+    }
+
+    private static func itemFromIndexedExposure(id: String, indexed: [String: Any]) -> [String: Any] {
+        let parts = splitLexicalItemId(id)
+        return [
+            "surface": indexed["surface"] as? String ?? parts.surface,
+            "readingKana": indexed["readingKana"] as? String ?? indexed["baseReadingKana"] as? String ?? parts.readingKana,
+            "baseReadingKana": indexed["baseReadingKana"] as? String ?? indexed["readingKana"] as? String ?? parts.readingKana
+        ]
+    }
+
+    private static func userStateWithIndexedExposure(_ userState: [String: Any], indexed: [String: Any]) -> [String: Any] {
+        guard !indexed.isEmpty else { return userState }
+
+        var next = userState
+        var exposure = next["exposure"] as? [String: Any] ?? [:]
+        exposure["seenCount"] = max(intValue(exposure["seenCount"]), intValue(indexed["seenCount"]))
+        if let firstSeenAt = earlierTimestamp(exposure["firstSeenAt"] as? String, indexed["firstSeenAt"] as? String) {
+            exposure["firstSeenAt"] = firstSeenAt
+        }
+        if let lastSeenAt = laterTimestamp(exposure["lastSeenAt"] as? String, indexed["lastSeenAt"] as? String) {
+            exposure["lastSeenAt"] = lastSeenAt
+        }
+        next["exposure"] = exposure
+        if next["lifecycleStatus"] == nil {
+            next["lifecycleStatus"] = "new"
+        }
+        return next
+    }
+
+    private static func splitLexicalItemId(_ id: String) -> (surface: String, readingKana: String) {
+        guard let separator = id.firstIndex(of: ":") else {
+            return (id, "")
+        }
+        let surface = String(id[..<separator])
+        let readingStart = id.index(after: separator)
+        return (surface.isEmpty ? id : surface, String(id[readingStart...]))
+    }
+
+    private static func intValue(_ value: Any?) -> Int {
+        if let int = value as? Int { return int }
+        if let number = value as? NSNumber { return number.intValue }
+        if let text = value as? String, let int = Int(text) { return int }
+        return 0
+    }
+
+    private static func earlierTimestamp(_ lhs: String?, _ rhs: String?) -> String? {
+        guard let lhs, !lhs.isEmpty else { return rhs }
+        guard let rhs, !rhs.isEmpty else { return lhs }
+        if let lhsDate = ReviewScheduler.parseISODate(lhs), let rhsDate = ReviewScheduler.parseISODate(rhs) {
+            return lhsDate <= rhsDate ? lhs : rhs
+        }
+        return lhs <= rhs ? lhs : rhs
+    }
+
+    private static func laterTimestamp(_ lhs: String?, _ rhs: String?) -> String? {
+        guard let lhs, !lhs.isEmpty else { return rhs }
+        guard let rhs, !rhs.isEmpty else { return lhs }
+        if let lhsDate = ReviewScheduler.parseISODate(lhs), let rhsDate = ReviewScheduler.parseISODate(rhs) {
+            return lhsDate >= rhsDate ? lhs : rhs
+        }
+        return lhs >= rhs ? lhs : rhs
     }
 
     // A word the user keeps running into but has not started learning,

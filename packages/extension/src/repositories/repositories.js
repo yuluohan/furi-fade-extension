@@ -9,6 +9,42 @@
     return state.metadata?.deviceId || "dev_unknown";
   }
 
+  function mergeExposureIntoUserState(userState, exposureRecord) {
+    if (!userState || !exposureRecord) return userState;
+    const exposure = userState.exposure || {};
+    const indexedSeenCount = normalizeCount(exposureRecord.seenCount);
+    if (indexedSeenCount > normalizeCount(exposure.seenCount)) {
+      exposure.seenCount = indexedSeenCount;
+    }
+    exposure.firstSeenAt = earlierIso(exposure.firstSeenAt, exposureRecord.firstSeenAt);
+    exposure.lastSeenAt = laterIso(exposure.lastSeenAt, exposureRecord.lastSeenAt);
+    userState.exposure = exposure;
+    return userState;
+  }
+
+  function normalizeCount(value) {
+    const number = Number(value);
+    return Number.isFinite(number) && number > 0 ? Math.floor(number) : 0;
+  }
+
+  function earlierIso(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    const ta = Date.parse(a);
+    const tb = Date.parse(b);
+    if (Number.isFinite(ta) && Number.isFinite(tb)) return ta <= tb ? a : b;
+    return a <= b ? a : b;
+  }
+
+  function laterIso(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    const ta = Date.parse(a);
+    const tb = Date.parse(b);
+    if (Number.isFinite(ta) && Number.isFinite(tb)) return ta >= tb ? a : b;
+    return a >= b ? a : b;
+  }
+
   class LexicalItemRepository {
     constructor(stateOrProvider) {
       this.stateOrProvider = stateOrProvider;
@@ -53,9 +89,17 @@
 
     ensure(lexicalItemId, now = window.FadingFuriganaState.createTimestamp()) {
       if (!this.state.userLexicalStates[lexicalItemId]) {
+        const indexedExposure = this.state.exposureIndex?.[lexicalItemId];
         this.state.userLexicalStates[lexicalItemId] =
-          window.FadingFuriganaState.createDefaultUserLexicalState(lexicalItemId, now);
+          window.FadingFuriganaState.createDefaultUserLexicalState(
+            lexicalItemId,
+            indexedExposure?.firstSeenAt || now
+          );
       }
+      mergeExposureIntoUserState(
+        this.state.userLexicalStates[lexicalItemId],
+        this.state.exposureIndex?.[lexicalItemId]
+      );
       return this.state.userLexicalStates[lexicalItemId];
     }
 
@@ -151,6 +195,36 @@
   // stay small no matter how much the user reads.
   const MAX_SURFACE_FORMS_PER_SUMMARY = 5;
   const MAX_PAGES_PER_SUMMARY = 8;
+
+  class ExposureIndexRepository {
+    constructor(stateOrProvider) {
+      this.stateOrProvider = stateOrProvider;
+    }
+
+    get state() {
+      return getStateValue(this.stateOrProvider);
+    }
+
+    getByLexicalItemId(lexicalItemId) {
+      return this.state.exposureIndex?.[lexicalItemId] || null;
+    }
+
+    recordSeen(token, now = window.FadingFuriganaState.createTimestamp()) {
+      this.state.exposureIndex ||= {};
+      const candidate = window.FadingFuriganaState.createExposureIndexFromToken(
+        token,
+        null,
+        now,
+        stateDeviceId(this.state)
+      );
+      const existing = this.state.exposureIndex[candidate.lexicalItemId] || null;
+      const next = existing
+        ? window.FadingFuriganaState.createExposureIndexFromToken(token, existing, now, stateDeviceId(this.state))
+        : candidate;
+      this.state.exposureIndex[next.lexicalItemId] = next;
+      return next;
+    }
+  }
 
   class ExposureRepository {
     constructor(stateOrProvider) {
@@ -249,6 +323,7 @@
   }
 
   window.FadingFuriganaRepositories = {
+    ExposureIndexRepository,
     ExposureRepository,
     LexicalItemRepository,
     UserLexicalStateRepository

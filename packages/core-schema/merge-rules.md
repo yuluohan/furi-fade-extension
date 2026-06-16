@@ -16,6 +16,7 @@ These rules are the sync contract for future Pro sync. The current MVP remains l
 | --- | --- |
 | `lexicalItems` | Last-write-wins by `updatedAt`, with `deviceId` as deterministic tie-breaker. |
 | `userLexicalStates` | Last-write-wins by `updatedAt`, with `deviceId` as deterministic tie-breaker. |
+| `exposureIndex` | Last-write-wins by `updatedAt`, with `deviceId` as deterministic tie-breaker. Future sync should prefer additive exposure deltas. |
 | `sourceOccurrences` | Append by client-generated `id`; identical IDs use last-write-wins. |
 | `dailyExposureSummaries` | Future sync should send additive deltas. Local v1 summaries remain per-device records keyed by date and lexical item. |
 | `reviewLogs` | Append-only by client-generated `id`; identical IDs use last-write-wins. |

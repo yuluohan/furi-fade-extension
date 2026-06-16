@@ -51,8 +51,8 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                 guard let state = payload["state"] as? [String: Any] else {
                     return failure(requestId: requestId, error: "Missing state payload.")
                 }
-                try store.saveState(state)
-                return success(requestId: requestId, payload: ["state": state])
+                let savedState = try store.saveState(state)
+                return success(requestId: requestId, payload: ["state": savedState])
             case "clearState":
                 try store.clearState()
                 return success(requestId: requestId, payload: ["state": NativeAppStateStore.defaultState()])
@@ -101,12 +101,9 @@ private final class NativeAppStateStore {
         return raw as? [String: Any] ?? Self.defaultState()
     }
 
-    func saveState(_ state: [String: Any]) throws {
+    func saveState(_ state: [String: Any]) throws -> [String: Any] {
         var nextState = state
-        var metadata = nextState["metadata"] as? [String: Any] ?? [:]
-        metadata["updatedAt"] = Self.timestamp()
-        metadata["deviceId"] = metadata["deviceId"] as? String ?? Self.makeDeviceId()
-        nextState["metadata"] = metadata
+        Self.touchMetadata(in: &nextState)
 
         let url = stateFileURL
         try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -117,6 +114,7 @@ private final class NativeAppStateStore {
         }
         let data = try JSONSerialization.data(withJSONObject: nextState, options: [.prettyPrinted, .sortedKeys])
         try data.write(to: url, options: .atomic)
+        return nextState
     }
 
     func clearState() throws {
@@ -160,6 +158,7 @@ private final class NativeAppStateStore {
             ],
             "lexicalItems": [:],
             "userLexicalStates": [:],
+            "exposureIndex": [:],
             "sourceOccurrences": [:],
             "dailyExposureSummaries": [:],
             "reviewLogs": [:],
@@ -167,9 +166,29 @@ private final class NativeAppStateStore {
                 "deviceId": makeDeviceId(),
                 "createdAt": now,
                 "updatedAt": now,
-                "lastOpenedAt": now
+                "lastOpenedAt": now,
+                "storageRevision": 0,
+                "writeId": makeWriteId()
             ]
         ]
+    }
+
+    private static func touchMetadata(in state: inout [String: Any]) {
+        let now = timestamp()
+        var metadata = state["metadata"] as? [String: Any] ?? [:]
+        metadata["deviceId"] = metadata["deviceId"] as? String ?? makeDeviceId()
+        metadata["createdAt"] = metadata["createdAt"] as? String ?? now
+        metadata["updatedAt"] = now
+        metadata["storageRevision"] = intValue(metadata["storageRevision"]) + 1
+        metadata["writeId"] = makeWriteId()
+        state["metadata"] = metadata
+    }
+
+    private static func intValue(_ value: Any?) -> Int {
+        if let int = value as? Int { return int }
+        if let number = value as? NSNumber { return number.intValue }
+        if let text = value as? String, let int = Int(text) { return int }
+        return 0
     }
 
     static func stateFileURL(fileManager: FileManager = .default) -> URL {
@@ -194,5 +213,9 @@ private final class NativeAppStateStore {
 
     static func makeDeviceId() -> String {
         "dev_\(UUID().uuidString.lowercased())"
+    }
+
+    static func makeWriteId() -> String {
+        "wr_\(UUID().uuidString.lowercased())"
     }
 }

@@ -29,6 +29,28 @@
     return result;
   }
 
+  function laterTimestamp(a, b) {
+    if (!a) return b;
+    if (!b) return a;
+    const ta = Date.parse(a);
+    const tb = Date.parse(b);
+    if (Number.isFinite(ta) && Number.isFinite(tb)) return ta >= tb ? a : b;
+    return a >= b ? a : b;
+  }
+
+  function storageRevision(metadata = {}) {
+    const number = Number(metadata.storageRevision);
+    return Number.isFinite(number) && number >= 0 ? Math.floor(number) : 0;
+  }
+
+  function mergePersistMetadata(storedMetadata = {}, localMetadata = {}) {
+    return {
+      ...localMetadata,
+      ...storedMetadata,
+      storageRevision: Math.max(storageRevision(storedMetadata), storageRevision(localMetadata))
+    };
+  }
+
   // Record-keyed domains that any client may mutate. A content tab persisting its
   // own changes must merge these against the freshest on-disk copy rather than
   // overwrite them, or it would clobber data written by the Mac app (e.g. review
@@ -36,6 +58,7 @@
   const RECORD_DOMAINS = [
     "lexicalItems",
     "userLexicalStates",
+    "exposureIndex",
     "sourceOccurrences",
     "dailyExposureSummaries",
     "reviewLogs"
@@ -78,17 +101,22 @@
       this.state = window.FadingFuriganaState.createDefaultAppState();
       this.lexicalItems = new window.FadingFuriganaRepositories.LexicalItemRepository(() => this.state);
       this.userLexicalStates = new window.FadingFuriganaRepositories.UserLexicalStateRepository(() => this.state);
+      this.exposureIndex = new window.FadingFuriganaRepositories.ExposureIndexRepository(() => this.state);
       this.exposures = new window.FadingFuriganaRepositories.ExposureRepository(() => this.state);
       this.persistScheduler = new window.FadingFuriganaPersistScheduler.PersistScheduler(
         () => this.persistImmediately(),
         { delayMs: persistDelayMs }
       );
+      this.lastMutationAt = "";
+      this.loadedStorageSignature = window.FadingFuriganaState.getStorageSignature(this.state);
     }
 
     async load() {
       // Read-only: persisting here would make every storage.onChanged-driven
       // reload write storage again and feed an endless change/reload loop.
       this.state = await this.storageAdapter.loadState();
+      this.lastMutationAt = this.state.metadata?.updatedAt || "";
+      this.loadedStorageSignature = window.FadingFuriganaState.getStorageSignature(this.state);
     }
 
     async persist() {
@@ -96,24 +124,17 @@
     }
 
     async persistImmediately() {
-      this.compactState();
-      // The popup/settings app owns settings and entitlement changes; a
-      // content tab persisting exposure data must not write stale copies back.
       const stored = await this.storageAdapter.loadState();
-      const nextState = {
-        ...this.state,
-        settings: stored?.settings || this.state.settings,
-        entitlements: stored?.entitlements || this.state.entitlements
-      };
-      // Merge every record-keyed domain against the freshest on-disk copy so this
-      // tab's exposure/intent writes apply without discarding records another
-      // client changed since page load (notably Mac app review logs + schedule).
-      for (const domain of RECORD_DOMAINS) {
-        nextState[domain] = mergeRecordMaps(stored?.[domain], this.state[domain]);
-      }
+      const storedSignature = window.FadingFuriganaState.getStorageSignature(stored);
+      const hasConcurrentWrite = storedSignature !== this.loadedStorageSignature;
+      const nextState = hasConcurrentWrite ? this.createMergedPersistState(stored) : this.state;
+      this.compactState(nextState);
 
       try {
-        await this.storageAdapter.saveState(nextState);
+        const savedState = await this.storageAdapter.saveState(nextState);
+        this.state = savedState || nextState;
+        this.loadedStorageSignature = window.FadingFuriganaState.getStorageSignature(this.state);
+        this.lastMutationAt = laterTimestamp(this.lastMutationAt, this.state.metadata?.updatedAt) || this.lastMutationAt;
         this.persistFailureLogged = false;
       } catch (error) {
         if (!this.persistFailureLogged) {
@@ -124,20 +145,38 @@
       }
     }
 
+    createMergedPersistState(stored) {
+      // The popup/settings app owns settings and entitlement changes; a
+      // content tab persisting exposure data must not write stale copies back.
+      const nextState = {
+        ...this.state,
+        metadata: mergePersistMetadata(stored?.metadata, this.state.metadata),
+        settings: stored?.settings || this.state.settings,
+        entitlements: stored?.entitlements || this.state.entitlements
+      };
+      // Merge every record-keyed domain against the freshest on-disk copy so this
+      // tab's exposure/intent writes apply without discarding records another
+      // client changed since page load (notably Mac app review logs + schedule).
+      for (const domain of RECORD_DOMAINS) {
+        nextState[domain] = mergeRecordMaps(stored?.[domain], this.state[domain]);
+      }
+      return nextState;
+    }
+
     // Keeps stored state within storage quota: drops expired exposure
     // summaries, legacy per-page titles, meanings of words the user never
     // interacted with (the dictionary re-supplies them at annotation time), and
     // exposure-only word records whose last sighting predates the retention
     // window (T066 — passive reading must not grow the store unbounded).
-    compactState() {
-      const retentionDays = this.state.settings.exposureTracking.retentionDays || 90;
+    compactState(state = this.state) {
+      const retentionDays = state.settings.exposureTracking.retentionDays || 90;
       const cutoffDate = new Date();
       cutoffDate.setDate(cutoffDate.getDate() - retentionDays);
       const cutoff = window.FadingFuriganaState.getLocalDateKey(cutoffDate);
 
-      for (const [id, summary] of Object.entries(this.state.dailyExposureSummaries)) {
+      for (const [id, summary] of Object.entries(state.dailyExposureSummaries)) {
         if (summary.date < cutoff) {
-          delete this.state.dailyExposureSummaries[id];
+          delete state.dailyExposureSummaries[id];
           continue;
         }
         for (const page of Object.values(summary.pages || {})) {
@@ -149,20 +188,20 @@
       // exposure predates the retention window. Interacted words (saved/known/
       // ignored/forgot/pinned/reviewed/tooltip-opened) are always kept.
       const exposureCutoffMs = cutoffDate.getTime();
-      for (const [id, userState] of Object.entries(this.state.userLexicalStates)) {
+      for (const [id, userState] of Object.entries(state.userLexicalStates)) {
         if (isInteractedState(userState)) continue;
         if (userState.lifecycleStatus && userState.lifecycleStatus !== "new") continue;
         const lastSeenMs = userState.exposure?.lastSeenAt
           ? Date.parse(userState.exposure.lastSeenAt)
           : NaN;
         if (!Number.isFinite(lastSeenMs) || lastSeenMs >= exposureCutoffMs) continue;
-        delete this.state.userLexicalStates[id];
-        delete this.state.lexicalItems[id];
+        delete state.userLexicalStates[id];
+        delete state.lexicalItems[id];
       }
 
-      for (const [id, item] of Object.entries(this.state.lexicalItems)) {
+      for (const [id, item] of Object.entries(state.lexicalItems)) {
         if (!item.meanings || Object.keys(item.meanings).length === 0) continue;
-        if (!isInteractedState(this.state.userLexicalStates[id])) item.meanings = {};
+        if (!isInteractedState(state.userLexicalStates[id])) item.meanings = {};
       }
     }
 
@@ -245,7 +284,7 @@
       await this.assertBasicUnlockedForSave();
       const lexicalItemId = token.lexicalItemId || token.id;
       const snapshot = this.createWordSnapshot(lexicalItemId);
-      const { item, occurrenceId } = this.applySavedWord(token, sourceSentence);
+      const { item, occurrenceId } = this.applySavedWord(token, sourceSentence, this.createMutationTimestamp());
 
       try {
         await this.persist();
@@ -259,7 +298,7 @@
     saveWordOptimistically(token, sourceSentence) {
       const lexicalItemId = token.lexicalItemId || token.id;
       const snapshot = this.createWordSnapshot(lexicalItemId);
-      const { item, occurrenceId } = this.applySavedWord(token, sourceSentence);
+      const { item, occurrenceId } = this.applySavedWord(token, sourceSentence, this.createMutationTimestamp());
 
       return {
         item,
@@ -295,7 +334,7 @@
     }
 
     async markForgotten(token) {
-      const now = new Date().toISOString();
+      const now = this.createMutationTimestamp();
       // Forgot on an unsaved word calls resetLearning, which sets
       // userIntent.saved = true — i.e. it creates a saved learning entry, the same
       // paid asset as Save. Gate it like Save after the trial. Re-forgetting a word
@@ -311,23 +350,31 @@
     }
 
     async pinAnnotation(token) {
-      const now = new Date().toISOString();
+      const now = this.createMutationTimestamp();
       const item = this.upsertLexicalItem(token, now);
       this.userLexicalStates.setPinnedAnnotation(item.id, true, now);
       await this.persist();
     }
 
     async recordSeen(token) {
-      const now = new Date().toISOString();
-      // Exposure-only words store no meanings (the dictionary provides them
-      // at annotation time); full entries are written when the user saves or
-      // marks a word. Existing items are left untouched to avoid churn.
+      const now = this.createMutationTimestamp();
+      // Exposure-only words stay in the compact index + daily summaries. Full
+      // user/lexical records are kept hot only after the user has acted on the
+      // word; first interaction promotes the indexed exposure into a full state.
       const lexicalItemId = token.lexicalItemId || token.id;
-      const item =
-        this.lexicalItems.getById(lexicalItemId) || this.upsertLexicalItem({ ...token, meanings: {} }, now);
-      this.userLexicalStates.recordSeen(item.id, now);
-      this.recordDailyExposure(item.id, token.surface, now);
+      if (this.shouldKeepFullStateForSeen(lexicalItemId)) {
+        this.userLexicalStates.recordSeen(lexicalItemId, now);
+      }
+      const indexed = this.exposureIndex.recordSeen(token, now);
+      this.recordDailyExposure(indexed.lexicalItemId, token.surface, now);
       this.persistScheduler.schedule();
+    }
+
+    shouldKeepFullStateForSeen(lexicalItemId) {
+      const userState = this.getUserWordState(lexicalItemId);
+      if (!userState) return false;
+      if (isInteractedState(userState)) return true;
+      return Boolean(userState.lifecycleStatus && userState.lifecycleStatus !== "new");
     }
 
     recordDailyExposure(lexicalItemId, surface, seenAt) {
@@ -358,10 +405,19 @@
     }
 
     async setStatus(token, status, annotationLevel) {
-      const now = new Date().toISOString();
+      const now = this.createMutationTimestamp();
       const item = this.upsertLexicalItem(token, now);
       this.userLexicalStates.setStatus(item.id, status, annotationLevel, now);
       await this.persist();
+    }
+
+    createMutationTimestamp() {
+      const nowMs = Date.now();
+      const lastMs = Date.parse(this.lastMutationAt);
+      const nextMs = Number.isFinite(lastMs) && nowMs <= lastMs ? lastMs + 1 : nowMs;
+      const timestamp = new Date(nextMs).toISOString();
+      this.lastMutationAt = timestamp;
+      return timestamp;
     }
   }
 

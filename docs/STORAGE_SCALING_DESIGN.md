@@ -1,6 +1,6 @@
 # 本地存储扩展性设计 / Storage Scaling Design
 
-最后更新：2026-06-15
+最后更新：2026-06-16
 
 本文记录本地存储随词汇量增长的隐患与分期方案。讨论于 2026-06-15 QA 中触发：
 真实页面浏览后约 2492 词、`app-state-v1.json` 达 6.94 MB（约 2922 B/词）。
@@ -29,9 +29,10 @@
 | 阶段 | 内容 | 状态 | 驱动 |
 | --- | --- | --- | --- |
 | Phase 0 | 按年龄淘汰曝光词（>retentionDays 未交互即清） | **已做（T066）** | 止血 |
-| Phase 1 | 曝光轻量层 + 交互提升；可无大迁移 | pending（T069） | 单设备 MVP 的性价比之选 |
-| Phase 2 | 单写者快路径，省掉常见情况的 O(n) 合并 | pending（T070） | 词库变大前 |
-| Phase 3 | 按记录存储（浏览器多 key / macOS SQLite） | pending（T071） | 随同步落地 |
+| Phase 1 | 曝光轻量层 + 交互提升；可无大迁移 | **已做（T069）** | 单设备 MVP 的性价比之选 |
+| Phase 2 | 单写者快路径，省掉常见情况的 O(n) 合并 | **已做（T070）** | 词库变大前 |
+| Phase 3 prep | record model + AppState → records 迁移验证；不切 runtime | **已做（T071a）** | 同步前置验证 |
+| Phase 3 runtime | 按记录存储（浏览器多 key / macOS SQLite） | pending（T071） | 随同步落地 |
 
 ## 4. Phase 1：曝光轻量层 + 交互提升（推荐先做）
 
@@ -87,6 +88,9 @@
 继续**能读**老的完整曝光记录；只是**不再写**新的完整曝光记录 + 由 compaction 逐步
 把老的瘦掉。老数据自然向新形态收敛，没有"更新瞬间转换整库"的风险窗口。
 
+实现补充（2026-06-16）：compaction 必须在 T065 的 record-domain merge **之后**作用于
+待写出的下一份状态；否则刚删除的旧曝光记录会被 freshly loaded stored copy 合回来。
+
 ## 5. 稳态余量估算
 
 数据库稳态 = 最近 retentionDays 滚动窗口内的曝光词 + 用户主动学的词（永久但量小）。
@@ -106,6 +110,11 @@
 O(n) 逐记录合并，直接写；不一致才合并。砍掉常见单写场景的合并整趟。配合已有的
 `persistScheduler` 防抖合并写，降频率。
 
+实现补充（2026-06-16）：使用 `metadata.storageRevision` + `metadata.writeId` 作为主
+revision，并把 `updatedAt` 放进 signature，兼容 Safari 已打开标签页里仍运行的旧 content
+script（旧脚本只会改 `updatedAt`）。无并发写时直接 compact+save；有并发写时保留 T065
+的 record-domain merge。
+
 ## 7. Phase 3：按记录存储（终局，随同步落地）
 
 不再单体 blob：
@@ -115,6 +124,28 @@ O(n) 逐记录合并，直接写；不一致才合并。砍掉常见单写场景
 
 每次保存成本变 O(改动量)，并成为 Pro 同步 per-record op-log 的地基
 （见 `docs/MONETIZATION_TODO.md` Pro Subscription Todo、`merge-rules.md`）。
+
+### 已先行落地的迁移/模型验证（T071a）
+
+2026-06-16 已加入 `packages/core-schema/src/recordStore.js`，作为 Phase 3 的
+sync-shaped 本地迁移契约，但**未**接入当前 runtime 保存路径：
+
+- 定义 record-store snapshot v1：singleton records（metadata/profile/settings/
+  entitlements）+ per-domain records（lexical/user/exposure/source/daily/review）。
+- record id 确定性生成：`type:encodeURIComponent(logicalId)`，为后续 SQLite primary key、
+  browser per-key storage 和 sync op-log 共用。
+- AppState v1 → record-store snapshot 单向迁移；record-store snapshot → AppState 反向还原，
+  用于验证迁移无主动数据丢失。
+- 校验器检查 record id、type/domain/syncScope/mergeStrategy、timestamp/deviceId、
+  tombstone、必要 singleton、词汇引用关系。
+- per-record merge 原型只用于 fixture：不同 append-only id 共存；相同 id 按
+  `updatedAt`/`deletedAt` + `deviceId` 决胜。曝光 additive delta 仍标为 pending，
+  等同步协议最终确定后再收口。
+- 覆盖测试：固定输入幂等、tombstone 保留与反向还原删除、大 exposure-heavy fixture、
+  append-only/冲突合并、坏 deterministic id 和 dangling reference 校验。
+
+这一步的边界是**迁移和模型验证**，不是 SQLite/runtime 切换。真正 T071 仍应等同步
+architecture 开始时，基于这个契约继续做物理存储后端和正式迁移流程。
 
 ### 为什么不现在做
 

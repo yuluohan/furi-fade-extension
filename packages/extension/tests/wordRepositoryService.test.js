@@ -28,11 +28,19 @@ function createMemoryStorageAdapter(initialState = null) {
       return window.FadingFuriganaState.migrateAppState(this.state);
     },
     async saveState(state) {
-      this.state = JSON.parse(JSON.stringify(state));
+      this.state = window.FadingFuriganaState.prepareStateForSave(state);
       this.savedStates.push(this.state);
+      return window.FadingFuriganaState.migrateAppState(this.state);
     }
   };
   return adapter;
+}
+
+function simulateExternalSave(storageAdapter, mutate) {
+  const nextState = JSON.parse(JSON.stringify(storageAdapter.state));
+  mutate(nextState);
+  storageAdapter.state = window.FadingFuriganaState.prepareStateForSave(nextState);
+  return storageAdapter.state;
 }
 
 function createToken(overrides = {}) {
@@ -222,7 +230,7 @@ test("allows saving during trial and after Basic unlock", async () => {
   assert.equal(basicService.getUserWordState("勉強:べんきょう").lifecycleStatus, "learning");
 });
 
-test("recordSeen stores no meanings and keeps saved-word meanings intact", async () => {
+test("recordSeen stores exposure-only words in the light index and keeps saved-word meanings intact", async () => {
   const storageAdapter = createMemoryStorageAdapter();
   const service = new WordRepositoryService(storageAdapter, {
     pageContextProvider: () => ({
@@ -234,16 +242,45 @@ test("recordSeen stores no meanings and keeps saved-word meanings intact", async
   });
   await service.load();
 
-  await service.recordSeen(createToken({ lexicalItemId: "経済:けいざい", surface: "経済" }));
-  assert.deepEqual(service.state.lexicalItems["経済:けいざい"].meanings, {});
+  await service.recordSeen(createToken({
+    lexicalItemId: "経済:けいざい",
+    surface: "経済",
+    lemma: "経済",
+    baseForm: "経済",
+    reading: "けいざい",
+    readingKana: "けいざい"
+  }));
+  assert.equal(service.state.lexicalItems["経済:けいざい"], undefined);
+  assert.equal(service.getUserWordState("経済:けいざい"), null);
+  assert.equal(service.state.exposureIndex["経済:けいざい"].seenCount, 1);
+  assert.equal(service.state.exposureIndex["経済:けいざい"].surface, "経済");
 
   await service.saveWord(createToken(), "内容を確認してください。");
   await service.recordSeen(createToken());
   await service.persist();
 
   assert.deepEqual(service.state.lexicalItems["確認:かくにん"].meanings.zhHans, ["确认"]);
-  const summary = Object.values(service.state.dailyExposureSummaries)[0];
+  assert.equal(service.state.exposureIndex["確認:かくにん"].seenCount, 1);
+  const summary = Object.values(service.state.dailyExposureSummaries)
+    .find((entry) => entry.lexicalItemId === "確認:かくにん");
   assert.equal(Object.values(summary.pages)[0].pageTitle, undefined);
+});
+
+test("first interaction promotes exposure index into a full user state", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+  await service.load();
+
+  service.exposureIndex.recordSeen(createToken(), "2026-06-08T01:00:00.000Z");
+  service.exposureIndex.recordSeen(createToken(), "2026-06-09T01:00:00.000Z");
+
+  await service.saveWord(createToken(), "内容を確認してください。");
+
+  const userState = service.getUserWordState("確認:かくにん");
+  assert.equal(userState.userIntent.saved, true);
+  assert.equal(userState.exposure.seenCount, 2);
+  assert.equal(userState.exposure.firstSeenAt, "2026-06-08T01:00:00.000Z");
+  assert.equal(userState.exposure.lastSeenAt, "2026-06-09T01:00:00.000Z");
 });
 
 test("persist preserves newer entitlement state from storage", async () => {
@@ -266,7 +303,7 @@ test("persist preserves newer entitlement state from storage", async () => {
     purchasedState.entitlements,
     "2026-06-08T01:00:00.000Z"
   );
-  storageAdapter.state = purchasedState;
+  storageAdapter.state = window.FadingFuriganaState.prepareStateForSave(purchasedState);
 
   await service.recordSeen(createToken());
   await service.persist();
@@ -303,6 +340,58 @@ test("load does not write storage back", async () => {
   await service.load();
 
   assert.equal(storageAdapter.savedStates.length, 0);
+});
+
+test("persist skips record-domain merge when storage signature is unchanged", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+  await service.load();
+
+  let mergeCount = 0;
+  const originalMerge = service.createMergedPersistState.bind(service);
+  service.createMergedPersistState = (stored) => {
+    mergeCount += 1;
+    return originalMerge(stored);
+  };
+
+  await service.recordSeen(createToken());
+  await service.persist();
+
+  assert.equal(mergeCount, 0);
+  assert.equal(storageAdapter.savedStates.at(-1).metadata.storageRevision, 1);
+  assert.ok(storageAdapter.savedStates.at(-1).metadata.writeId);
+});
+
+test("persist falls back to record-domain merge when storage signature changed", async () => {
+  const storageAdapter = createMemoryStorageAdapter();
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+  await service.load();
+
+  simulateExternalSave(storageAdapter, (state) => {
+    state.reviewLogs["review-1"] = {
+      id: "review-1",
+      lexicalItemId: "利用:りよう",
+      result: "good",
+      reviewedAt: "2026-06-15T10:52:01.000Z",
+      updatedAt: "2026-06-15T10:52:01.000Z"
+    };
+  });
+
+  let mergeCount = 0;
+  const originalMerge = service.createMergedPersistState.bind(service);
+  service.createMergedPersistState = (stored) => {
+    mergeCount += 1;
+    return originalMerge(stored);
+  };
+
+  await service.recordSeen(createToken());
+  await service.persist();
+
+  const persisted = storageAdapter.savedStates.at(-1);
+  assert.equal(mergeCount, 1);
+  assert.ok(persisted.reviewLogs["review-1"]);
+  assert.ok(persisted.exposureIndex["確認:かくにん"]);
+  assert.equal(persisted.metadata.storageRevision, 2);
 });
 
 test("records seen exposure without storing full URL when privacy is none", async () => {
@@ -342,7 +431,9 @@ test("persisting exposure data does not overwrite settings saved elsewhere", asy
 
   // The popup turns annotation off in storage while this tab still holds the
   // old settings in memory.
-  storageAdapter.state.settings.annotation.enabled = false;
+  simulateExternalSave(storageAdapter, (state) => {
+    state.settings.annotation.enabled = false;
+  });
 
   await service.recordSeen(createToken());
   await service.persist();
@@ -399,28 +490,30 @@ test("persist preserves review logs and schedule written elsewhere since load", 
 
   // Simulate the Mac app grading a review after this tab loaded: it appends a
   // reviewLog and writes the word's learning schedule into shared storage.
-  storageAdapter.state.reviewLogs = {
-    "review-1": {
-      id: "review-1",
+  simulateExternalSave(storageAdapter, (state) => {
+    state.reviewLogs = {
+      "review-1": {
+        id: "review-1",
+        lexicalItemId: "利用:りよう",
+        result: "good",
+        reviewedAt: "2026-06-15T10:52:01.000Z",
+        updatedAt: "2026-06-15T10:52:01.000Z"
+      }
+    };
+    state.userLexicalStates["利用:りよう"] = {
+      id: "利用:りよう",
       lexicalItemId: "利用:りよう",
-      result: "good",
-      reviewedAt: "2026-06-15T10:52:01.000Z",
+      lifecycleStatus: "learning",
+      learning: {
+        reviewCount: 1,
+        correctCount: 1,
+        correctStreak: 2,
+        reviewStage: "learning",
+        nextReviewAt: "2026-06-18T10:52:01.000Z"
+      },
       updatedAt: "2026-06-15T10:52:01.000Z"
-    }
-  };
-  storageAdapter.state.userLexicalStates["利用:りよう"] = {
-    id: "利用:りよう",
-    lexicalItemId: "利用:りよう",
-    lifecycleStatus: "learning",
-    learning: {
-      reviewCount: 1,
-      correctCount: 1,
-      correctStreak: 2,
-      reviewStage: "learning",
-      nextReviewAt: "2026-06-18T10:52:01.000Z"
-    },
-    updatedAt: "2026-06-15T10:52:01.000Z"
-  };
+    };
+  });
 
   // This tab interacts with a different word and persists its own change.
   await service.recordSeen(createToken());
@@ -436,7 +529,11 @@ test("persist preserves review logs and schedule written elsewhere since load", 
     "2026-06-18T10:52:01.000Z"
   );
   // And the tab's own exposure write still landed.
-  assert.ok(persisted.userLexicalStates["確認:かくにん"], "tab exposure write was lost");
+  assert.ok(persisted.exposureIndex["確認:かくにん"], "tab exposure index write was lost");
+  assert.ok(
+    Object.values(persisted.dailyExposureSummaries).some((entry) => entry.lexicalItemId === "確認:かくにん"),
+    "tab daily exposure write was lost"
+  );
 });
 
 test("blocks forgetting an unsaved word after trial expiry but allows re-forgetting a saved word", async () => {
@@ -485,6 +582,32 @@ test("compactState evicts stale exposure-only words and keeps interacted or rece
   assert.equal(service.state.lexicalItems["古い:ふるい"], undefined);
   assert.ok(service.getUserWordState("保存:ほぞん"), "saved word must be kept even when stale");
   assert.ok(service.getUserWordState("新規:しんき"), "recent exposure word must be kept");
+});
+
+test("persist compaction removes stale exposure records after merging stored state", async () => {
+  const initialState = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
+  const old = "2020-01-01T00:00:00.000Z";
+  initialState.userLexicalStates["古い:ふるい"] =
+    window.FadingFuriganaState.createDefaultUserLexicalState("古い:ふるい", old);
+  initialState.userLexicalStates["古い:ふるい"].exposure.seenCount = 1;
+  initialState.userLexicalStates["古い:ふるい"].exposure.lastSeenAt = old;
+  initialState.userLexicalStates["古い:ふるい"].updatedAt = old;
+  initialState.lexicalItems["古い:ふるい"] = {
+    id: "古い:ふるい",
+    meanings: {},
+    updatedAt: old,
+    deviceId: initialState.metadata.deviceId
+  };
+
+  const storageAdapter = createMemoryStorageAdapter(initialState);
+  const service = new WordRepositoryService(storageAdapter, { persistDelayMs: 1 });
+  await service.load();
+
+  await service.persistImmediately();
+
+  const persisted = storageAdapter.savedStates.at(-1);
+  assert.equal(persisted.userLexicalStates["古い:ふるい"], undefined);
+  assert.equal(persisted.lexicalItems["古い:ふるい"], undefined);
 });
 
 (async () => {
