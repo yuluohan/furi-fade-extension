@@ -117,9 +117,20 @@ test("normalizes entitlement access states", () => {
     "2026-06-13T00:00:00.000Z"
   );
   const recovered = window.FadingFuriganaState.normalizeEntitlements(null, "2026-06-13T00:00:00.000Z");
+  // A stale productId (e.g. a browser default written into an Apple-platform
+  // store) must be corrected to follow the platform, without dropping basic.status.
+  const staleProduct = window.FadingFuriganaState.normalizeEntitlements(
+    {
+      platform: "apple-macos",
+      basic: { status: "purchased", productId: "com.japanstudylab.fadingfurigana.basic.browser" }
+    },
+    "2026-06-13T00:00:00.000Z"
+  );
 
   assert.equal(trial.platform, "apple-macos");
   assert.equal(trial.basic.productId, "com.japanstudylab.fadingfurigana.basic.macos");
+  assert.equal(staleProduct.basic.productId, "com.japanstudylab.fadingfurigana.basic.macos");
+  assert.equal(staleProduct.basic.status, "purchased");
   assert.equal(trial.access.tier, "trial");
   assert.equal(expired.access.tier, "expired");
   assert.equal(expired.access.basicUnlocked, false);

@@ -104,6 +104,7 @@ private final class NativeAppStateStore {
     func saveState(_ state: [String: Any]) throws -> [String: Any] {
         var nextState = state
         Self.touchMetadata(in: &nextState)
+        Self.enforceEntitlementPlatform(in: &nextState)
 
         let url = stateFileURL
         try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
@@ -182,6 +183,28 @@ private final class NativeAppStateStore {
         metadata["storageRevision"] = intValue(metadata["storageRevision"]) + 1
         metadata["writeId"] = makeWriteId()
         state["metadata"] = metadata
+    }
+
+    // The native store lives in the platform's App Group, so it is authoritative
+    // for the entitlement platform. Force it on every write so a JS client that
+    // defaults to "browser-extension" cannot stamp the wrong platform / product id
+    // onto an Apple-platform store. Only corrects an existing entitlements block;
+    // creation/trial-start stays owned by the container app.
+    private static func enforceEntitlementPlatform(in state: inout [String: Any]) {
+        guard var entitlements = state["entitlements"] as? [String: Any] else { return }
+        #if os(iOS)
+        let platform = "apple-ios"
+        let productId = "com.japanstudylab.fadingfurigana.basic.ios"
+        #else
+        let platform = "apple-macos"
+        let productId = "com.japanstudylab.fadingfurigana.basic.macos"
+        #endif
+        entitlements["platform"] = platform
+        if var basic = entitlements["basic"] as? [String: Any] {
+            basic["productId"] = productId
+            entitlements["basic"] = basic
+        }
+        state["entitlements"] = entitlements
     }
 
     private static func intValue(_ value: Any?) -> Int {

@@ -2524,7 +2524,11 @@ final class AppStateStore {
         let defaults = defaultEntitlements(now: now)
         var entitlements = defaults.merging(raw ?? [:]) { _, new in new }
         entitlements["schemaVersion"] = 1
-        entitlements["platform"] = entitlements["platform"] as? String ?? "apple-macos"
+        // This app only runs on macOS, so it is authoritative for the platform of
+        // the shared entitlement. Force it (do not merely default) so a value
+        // written by another client (e.g. the Safari extension defaulting to
+        // "browser-extension") cannot stick.
+        entitlements["platform"] = "apple-macos"
 
         let defaultTrial = defaults["trial"] as? [String: Any] ?? [:]
         let defaultBasic = defaults["basic"] as? [String: Any] ?? [:]
@@ -2537,6 +2541,8 @@ final class AppStateStore {
         trial["expiresAt"] = trial["expiresAt"] as? String ?? defaultTrial["expiresAt"]
         basic["status"] = normalize(basic["status"] as? String, allowed: ["not_purchased", "purchased", "refunded", "unknown"], fallback: "not_purchased")
         basic["verificationStatus"] = normalize(basic["verificationStatus"] as? String, allowed: ["not_checked", "verified", "failed_offline", "failed_invalid", "pending_restore"], fallback: "not_checked")
+        // productId follows the (now forced) macOS platform; never keep a stale id.
+        basic["productId"] = "com.japanstudylab.fadingfurigana.basic.macos"
         pro["status"] = normalize(pro["status"] as? String, allowed: ["not_subscribed", "active", "grace_period", "expired", "unknown"], fallback: "not_subscribed")
 
         entitlements["trial"] = trial

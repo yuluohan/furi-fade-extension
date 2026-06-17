@@ -140,6 +140,10 @@
       basic: {
         ...defaults.basic,
         ...(source.basic || {}),
+        // productId is a function of platform, never independently preserved — a
+        // stale id (e.g. a browser default written into the macOS store) must not
+        // survive once the platform is known.
+        productId: defaults.basic.productId,
         status: normalizeBasicStatus(source.basic?.status),
         verificationStatus: normalizeVerificationStatus(source.basic?.verificationStatus)
       },
