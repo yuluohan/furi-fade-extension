@@ -33,7 +33,7 @@ Generate or rebuild the Xcode project with:
 xcrun safari-web-extension-packager \
   --project-location apps/apple \
   --app-name "Fading Furigana" \
-  --bundle-identifier "com.banyuguru.fading-furigana" \
+  --bundle-identifier "com.japanstudylab.fadingfurigana" \
   --swift \
   --copy-resources \
   --no-open \

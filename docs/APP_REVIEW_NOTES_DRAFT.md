@@ -13,7 +13,7 @@ The extension runs on webpages so it can detect Japanese text and annotate words
 The extension does not create a user account for Basic. For the MVP, learning data is stored locally on the user's Mac and shared only between the Safari extension and the container app through:
 
 ```text
-group.com.banyuguru.fading-furigana
+group.com.japanstudylab.fadingfurigana
 ```
 
 ## Data Stored Locally
@@ -34,7 +34,7 @@ The app includes settings for page URL retention and local storage diagnostics/r
 The macOS Basic product id is:
 
 ```text
-com.banyuguru.fadingfurigana.basic.macos
+com.japanstudylab.fadingfurigana.basic.macos
 ```
 
 Basic unlocks the local single-platform Safari extension + Mac app learning loop after the trial. Existing local learning data remains present if the trial expires or purchase verification is temporarily unavailable.

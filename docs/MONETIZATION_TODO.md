@@ -105,7 +105,7 @@ Recommended shape:
     },
     "basic": {
       "status": "not_purchased",
-      "productId": "com.banyuguru.fadingfurigana.basic.macos",
+      "productId": "com.japanstudylab.fadingfurigana.basic.macos",
       "purchasedAt": null,
       "lastVerifiedAt": null,
       "verificationStatus": "not_checked"
@@ -135,7 +135,7 @@ Status values:
 
 Product IDs should be platform-specific at first:
 
-- Apple macOS Basic: `com.banyuguru.fadingfurigana.basic.macos`
+- Apple macOS Basic: `com.japanstudylab.fadingfurigana.basic.macos`
 - Apple iOS Basic: decide later whether it is separate or a universal Apple unlock.
 - Chrome Basic: decide after Chrome Web Store monetization route is chosen.
 

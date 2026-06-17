@@ -58,7 +58,7 @@ Demo account:
 Not required for Basic MVP.
 
 Purchases:
-Use StoreKit sandbox to test the one-month trial, Basic unlock, and restore purchase flow for `com.banyuguru.fadingfurigana.basic.macos`.
+Use StoreKit sandbox to test the one-month trial, Basic unlock, and restore purchase flow for `com.japanstudylab.fadingfurigana.basic.macos`.
 
 Test steps:
 

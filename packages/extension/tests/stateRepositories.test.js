@@ -119,7 +119,7 @@ test("normalizes entitlement access states", () => {
   const recovered = window.FadingFuriganaState.normalizeEntitlements(null, "2026-06-13T00:00:00.000Z");
 
   assert.equal(trial.platform, "apple-macos");
-  assert.equal(trial.basic.productId, "com.banyuguru.fadingfurigana.basic.macos");
+  assert.equal(trial.basic.productId, "com.japanstudylab.fadingfurigana.basic.macos");
   assert.equal(trial.access.tier, "trial");
   assert.equal(expired.access.tier, "expired");
   assert.equal(expired.access.basicUnlocked, false);

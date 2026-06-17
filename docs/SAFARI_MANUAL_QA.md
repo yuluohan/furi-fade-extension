@@ -11,7 +11,7 @@ This runbook complements `docs/MVP_RELEASE_CHECKLIST.md`. Use it for every signe
 Must cover:
 
 - macOS app bundled with the Safari Web Extension.
-- Same-device App Group storage through `group.com.banyuguru.fading-furigana`.
+- Same-device App Group storage through `group.com.japanstudylab.fadingfurigana`.
 - Trial and Basic local purchase behavior.
 - No account system and no cross-device sync.
 

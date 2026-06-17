@@ -663,7 +663,7 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana.Extension";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.japanstudylab.fadingfurigana.Extension";
 				PRODUCT_NAME = "Fading Furigana Extension";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -696,7 +696,7 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana.Extension";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.japanstudylab.fadingfurigana.Extension";
 				PRODUCT_NAME = "Fading Furigana Extension";
 				SDKROOT = iphoneos;
 				SKIP_INSTALL = YES;
@@ -737,7 +737,7 @@
 					"-framework",
 					WebKit,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.japanstudylab.fadingfurigana";
 				PRODUCT_NAME = "Fading Furigana";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -777,7 +777,7 @@
 					"-framework",
 					WebKit,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.japanstudylab.fadingfurigana";
 				PRODUCT_NAME = "Fading Furigana";
 				SDKROOT = iphoneos;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
@@ -816,7 +816,7 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana.Extension";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.japanstudylab.fadingfurigana.Extension";
 				PRODUCT_NAME = "Fading Furigana Extension";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -853,7 +853,7 @@
 					"-framework",
 					SafariServices,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana.Extension";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.japanstudylab.fadingfurigana.Extension";
 				PRODUCT_NAME = "Fading Furigana Extension";
 				SDKROOT = macosx;
 				SKIP_INSTALL = YES;
@@ -895,7 +895,7 @@
 					"-framework",
 					WebKit,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.japanstudylab.fadingfurigana";
 				PRODUCT_NAME = "Fading Furigana";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;
@@ -938,7 +938,7 @@
 					"-framework",
 					WebKit,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.banyuguru.fading-furigana";
+				PRODUCT_BUNDLE_IDENTIFIER = "com.japanstudylab.fadingfurigana";
 				PRODUCT_NAME = "Fading Furigana";
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = macosx;

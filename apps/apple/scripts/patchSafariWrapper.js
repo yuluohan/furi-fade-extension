@@ -27,7 +27,7 @@ function patchViewController() {
 import UIKit
 import WebKit
 
-let extensionBundleIdentifier = "com.banyuguru.fading-furigana.Extension"
+let extensionBundleIdentifier = "com.japanstudylab.fadingfurigana.Extension"
 
 class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler {
 
@@ -53,7 +53,7 @@ class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHan
 import Cocoa
 import SafariServices
 
-let extensionBundleIdentifier = "com.banyuguru.fading-furigana.Extension"
+let extensionBundleIdentifier = "com.japanstudylab.fadingfurigana.Extension"
 
 class ViewController: NSViewController {
 

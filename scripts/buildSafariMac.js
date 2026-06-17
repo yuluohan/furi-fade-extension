@@ -23,7 +23,7 @@ const installedExtensionPath = path.join(
   "PlugIns",
   "Fading Furigana Extension.appex"
 );
-const safariExtensionBundleIdentifier = "com.banyuguru.fading-furigana.Extension";
+const safariExtensionBundleIdentifier = "com.japanstudylab.fadingfurigana.Extension";
 const lsregister =
   "/System/Library/Frameworks/CoreServices.framework/Versions/A/Frameworks/LaunchServices.framework/Versions/A/Support/lsregister";
 const developmentTeam = process.env.FURI_DEVELOPMENT_TEAM || readProjectDevelopmentTeam();
@@ -42,7 +42,7 @@ if (!fs.existsSync(xcodeProject) || process.env.FURI_REGENERATE_SAFARI_PROJECT =
     "--app-name",
     "Fading Furigana",
     "--bundle-identifier",
-    "com.banyuguru.fading-furigana",
+    "com.japanstudylab.fadingfurigana",
     "--swift",
     "--copy-resources",
     "--no-open",
@@ -319,7 +319,7 @@ function findLaunchServicesAppPaths() {
 
 function addLaunchServicesPathFromRecord(recordLines, paths) {
   const record = recordLines.join("\n");
-  if (!record.includes("identifier:                 com.banyuguru.fading-furigana")) return;
+  if (!record.includes("identifier:                 com.japanstudylab.fadingfurigana")) return;
   if (!record.includes("bundle id:                  Fading Furigana")) return;
 
   const appPath = record.match(/\npath:\s+(.+?\.app)(?:\s+\(0x[0-9a-f]+\))?$/m)?.[1]?.trim();

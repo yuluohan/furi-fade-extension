@@ -45,9 +45,9 @@
 
   const DEFAULT_ENTITLEMENT_PLATFORM = "browser-extension";
   const BASIC_PRODUCT_IDS = {
-    "apple-macos": "com.banyuguru.fadingfurigana.basic.macos",
-    "apple-ios": "com.banyuguru.fadingfurigana.basic.ios",
-    "browser-extension": "com.banyuguru.fadingfurigana.basic.browser"
+    "apple-macos": "com.japanstudylab.fadingfurigana.basic.macos",
+    "apple-ios": "com.japanstudylab.fadingfurigana.basic.ios",
+    "browser-extension": "com.japanstudylab.fadingfurigana.basic.browser"
   };
 
   function createTimestamp() {

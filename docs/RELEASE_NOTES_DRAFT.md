@@ -15,10 +15,10 @@
 | --- | --- |
 | 首发版本 | `0.1.0` |
 | Build number | 从 `1` 起递增 |
-| macOS App bundle id | `com.banyuguru.fading-furigana` |
-| Safari 扩展 bundle id | `com.banyuguru.fading-furigana.Extension` |
-| App Group | `group.com.banyuguru.fading-furigana` |
-| Basic IAP（非消耗型） | `com.banyuguru.fadingfurigana.basic.macos` |
+| macOS App bundle id | `com.japanstudylab.fadingfurigana` |
+| Safari 扩展 bundle id | `com.japanstudylab.fadingfurigana.Extension` |
+| App Group | `group.com.japanstudylab.fadingfurigana` |
+| Basic IAP（非消耗型） | `com.japanstudylab.fadingfurigana.basic.macos` |
 | 扩展权限 | `storage`, `unlimitedStorage`, `activeTab`, `nativeMessaging` |
 | 主机权限 | `<all_urls>` |
 

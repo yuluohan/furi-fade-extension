@@ -915,7 +915,7 @@ enum BasicPurchaseError: LocalizedError {
 }
 
 final class BasicPurchaseService {
-    static let productId = "com.banyuguru.fadingfurigana.basic.macos"
+    static let productId = "com.japanstudylab.fadingfurigana.basic.macos"
 
     enum LoadState {
         case loading

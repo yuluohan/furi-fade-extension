@@ -1,7 +1,7 @@
 # Mac App Store Submission Runbook
 
 Target: ship the macOS app + bundled Safari Web Extension to the **Mac App Store**
-under Apple Developer team `W3JAJZ2RRU` (ZHUOQUN XU) (`com.banyuguru.fading-furigana`).
+under Apple Developer team `W3JAJZ2RRU` (ZHUOQUN XU) (`com.japanstudylab.fadingfurigana`).
 
 This is a higher bar than the external beta in `MVP_RELEASE_CHECKLIST.md`.
 Order matters: account/agreements → signing → build/upload → listing → review.
@@ -13,7 +13,7 @@ and are being retired in favor of the enrolled paid account `W3JAJZ2RRU`).
 ## Already satisfied (verified)
 
 - [x] App Sandbox enabled on **both** targets (`com.apple.security.app-sandbox`) — mandatory for MAS.
-- [x] App Group entitlement on both targets (`group.com.banyuguru.fading-furigana`).
+- [x] App Group entitlement on both targets (`group.com.japanstudylab.fadingfurigana`).
 - [x] Privacy manifests (`PrivacyInfo.xcprivacy`) on app + extension.
 - [x] Complete app icon set incl. 1024×1024 marketing icon.
 - [x] In-app purchase code (StoreKit 2) + trial/Basic entitlement model implemented.
@@ -26,12 +26,12 @@ and are being retired in favor of the enrolled paid account `W3JAJZ2RRU`).
 
 - [x] Team `W3JAJZ2RRU` (ZHUOQUN XU) has an active **paid Apple Developer Program** membership (approved 2026-06-16).
 - [ ] Accept the **Paid Apps Agreement**; complete **Tax & Banking** (required to sell the Basic IAP).
-- [ ] Create the app record in App Store Connect for bundle id `com.banyuguru.fading-furigana`.
+- [ ] Create the app record in App Store Connect for bundle id `com.japanstudylab.fadingfurigana`.
 - [ ] Set primary language, category, and content rights.
 
 ## B. In-app purchase setup (App Store Connect)
 
-- [ ] Create the **non-consumable** IAP product `com.banyuguru.fadingfurigana.basic.macos`
+- [ ] Create the **non-consumable** IAP product `com.japanstudylab.fadingfurigana.basic.macos`
       (the local `.storekit` file does NOT create a real product).
 - [ ] Set price tier, localized name/description, and the IAP review screenshot.
 - [ ] Plan to submit this IAP **together with the first app version** (first-time IAP must

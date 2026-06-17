@@ -9,7 +9,7 @@ This guide is for beta testers and support. It intentionally does not define a p
 The Basic MVP stores learning data on the same Mac in the app group container:
 
 ```text
-group.com.banyuguru.fading-furigana
+group.com.japanstudylab.fadingfurigana
 ```
 
 The main state file is:

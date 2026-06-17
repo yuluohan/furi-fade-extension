@@ -85,7 +85,7 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
 }
 
 private final class NativeAppStateStore {
-    private static let appGroupIdentifier = "group.com.banyuguru.fading-furigana"
+    private static let appGroupIdentifier = "group.com.japanstudylab.fadingfurigana"
     private let fileManager = FileManager.default
 
     private var stateFileURL: URL {

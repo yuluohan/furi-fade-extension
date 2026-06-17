@@ -7,7 +7,7 @@
 import UIKit
 import WebKit
 
-let extensionBundleIdentifier = "com.banyuguru.fading-furigana.Extension"
+let extensionBundleIdentifier = "com.japanstudylab.fadingfurigana.Extension"
 
 class ViewController: UIViewController, WKNavigationDelegate, WKScriptMessageHandler {
 
@@ -34,7 +34,7 @@ import Cocoa
 import SafariServices
 import StoreKit
 
-let extensionBundleIdentifier = "com.banyuguru.fading-furigana.Extension"
+let extensionBundleIdentifier = "com.japanstudylab.fadingfurigana.Extension"
 
 enum WordAction: String {
     case save
@@ -247,7 +247,7 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
 
     // MARK: - StoreKit entitlement sync
 
-    private static let basicProductId = "com.banyuguru.fadingfurigana.basic.macos"
+    private static let basicProductId = "com.japanstudylab.fadingfurigana.basic.macos"
 
     /// Records StoreKit purchases into the local entitlement store and keeps listening for
     /// transactions that complete outside a direct `purchase()` call — an interrupted purchase
@@ -1948,7 +1948,7 @@ private enum VersionInfo {
 }
 
 final class AppStateStore {
-    private static let appGroupIdentifier = "group.com.banyuguru.fading-furigana"
+    private static let appGroupIdentifier = "group.com.japanstudylab.fadingfurigana"
     private let fileManager = FileManager.default
 
     // True when the shared App Group container is reachable; false means the
@@ -2105,7 +2105,7 @@ final class AppStateStore {
         var basic = entitlements["basic"] as? [String: Any] ?? [:]
 
         basic["status"] = "purchased"
-        basic["productId"] = "com.banyuguru.fadingfurigana.basic.macos"
+        basic["productId"] = "com.japanstudylab.fadingfurigana.basic.macos"
         if basic["purchasedAt"] == nil || basic["purchasedAt"] is NSNull {
             basic["purchasedAt"] = nowText
         }
@@ -2510,7 +2510,7 @@ final class AppStateStore {
             ],
             "basic": [
                 "status": "not_purchased",
-                "productId": "com.banyuguru.fadingfurigana.basic.macos",
+                "productId": "com.japanstudylab.fadingfurigana.basic.macos",
                 "verificationStatus": "not_checked"
             ],
             "pro": [

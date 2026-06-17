@@ -38,7 +38,7 @@ URL retention options:
 On macOS, the Safari extension and Mac app share local learning data through Apple's App Group storage for:
 
 ```text
-group.com.banyuguru.fading-furigana
+group.com.japanstudylab.fadingfurigana
 ```
 
 This same-device sharing lets words saved in Safari appear in the Mac app without creating an account.
