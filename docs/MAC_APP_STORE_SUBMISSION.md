@@ -1,12 +1,14 @@
 # Mac App Store Submission Runbook
 
 Target: ship the macOS app + bundled Safari Web Extension to the **Mac App Store**
-under Apple Developer team `Y3DTR7LH9K` (`com.banyuguru.fading-furigana`).
+under Apple Developer team `W3JAJZ2RRU` (ZHUOQUN XU) (`com.banyuguru.fading-furigana`).
 
 This is a higher bar than the external beta in `MVP_RELEASE_CHECKLIST.md`.
 Order matters: account/agreements → signing → build/upload → listing → review.
 
-Last updated: 2026-06-14
+Last updated: 2026-06-16 (distribution team set to `W3JAJZ2RRU`; the earlier local
+dev/QA teams `Y3DTR7LH9K` (project) / `H4589RR2Z3` (local cert) were development-only
+and are being retired in favor of the enrolled paid account `W3JAJZ2RRU`).
 
 ## Already satisfied (verified)
 
@@ -15,12 +17,14 @@ Last updated: 2026-06-14
 - [x] Privacy manifests (`PrivacyInfo.xcprivacy`) on app + extension.
 - [x] Complete app icon set incl. 1024×1024 marketing icon.
 - [x] In-app purchase code (StoreKit 2) + trial/Basic entitlement model implemented.
-- [x] Signed build pipeline works locally (`npm run build:safari:mac`, team `Y3DTR7LH9K`).
+- [~] Signed build pipeline verified locally under the previous dev team; project
+      `DEVELOPMENT_TEAM` is now `W3JAJZ2RRU` — re-verify `npm run build:safari:mac` after
+      adding the `W3JAJZ2RRU` Apple ID + development signing in Xcode (see section C).
 - [x] Draft store copy: description, keywords, privacy policy, terms, privacy answers, review notes.
 
 ## A. Apple account & agreements (App Store Connect — you, browser)
 
-- [ ] Confirm team `Y3DTR7LH9K` has an active **paid Apple Developer Program** membership.
+- [x] Team `W3JAJZ2RRU` (ZHUOQUN XU) has an active **paid Apple Developer Program** membership (approved 2026-06-16).
 - [ ] Accept the **Paid Apps Agreement**; complete **Tax & Banking** (required to sell the Basic IAP).
 - [ ] Create the app record in App Store Connect for bundle id `com.banyuguru.fading-furigana`.
 - [ ] Set primary language, category, and content rights.
@@ -35,7 +39,9 @@ Last updated: 2026-06-14
 
 ## C. Distribution signing (machine gap — you/Xcode)
 
-- [ ] Create an **Apple Distribution** certificate for `Y3DTR7LH9K`
+- [ ] Add the `W3JAJZ2RRU` Apple ID in Xcode → Settings → Accounts so Xcode can
+      manage signing for it (the machine's only cert today is `H4589RR2Z3` dev).
+- [ ] Create an **Apple Distribution** certificate for `W3JAJZ2RRU`
       (machine currently has only **Apple Development**).
 - [ ] Create a **Mac Installer Distribution** certificate (signs the uploaded `.pkg`).
 - [ ] Generate **Mac App Store** provisioning profiles for the app + extension
@@ -43,11 +49,10 @@ Last updated: 2026-06-14
 
 ## D. Build & upload
 
-- [x] Release archive compiles cleanly (probed 2026-06-14: `ARCHIVE SUCCEEDED`,
-      signed `TeamIdentifier=Y3DTR7LH9K`, sandbox + app-group entitlements present in
-      the archived app, extension appex bundled). No Release-config/entitlement issues.
-      The archive is signed with the **Development** cert — App Store export still needs
-      the distribution certs in section C.
+- [~] Release archive compiled cleanly under the previous dev team (probed 2026-06-14:
+      `ARCHIVE SUCCEEDED`, sandbox + app-group entitlements present, extension appex
+      bundled). Must re-archive under `W3JAJZ2RRU` once its signing is set up; App Store
+      export still needs the distribution certs in section C.
 - [ ] Ensure the archive uses the full packaging pipeline so the extension Resources
       mirror is current (never a bare Xcode build that ships stale extension JS).
 - [ ] Xcode Organizer → **Distribute App → App Store Connect → Upload**.

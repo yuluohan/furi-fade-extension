@@ -41,7 +41,7 @@ FURI_SAFARI_COMPILE_ONLY=1 FURI_XCODE_DERIVED_DATA=/tmp/fading-furigana-safari-q
 3. For real Safari/App Group testing, install a signed development build:
 
 ```sh
-FURI_DEVELOPMENT_TEAM=Y3DTR7LH9K FURI_XCODE_DERIVED_DATA=/tmp/fading-furigana-signed-qa npm run build:safari:mac
+FURI_DEVELOPMENT_TEAM=W3JAJZ2RRU FURI_XCODE_DERIVED_DATA=/tmp/fading-furigana-signed-qa npm run build:safari:mac
 ```
 
 If signing fails, stop. Compile-only builds do not prove the native App Group bridge works.
