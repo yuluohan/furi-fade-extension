@@ -165,6 +165,9 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
     private var isPresentingBasicPaywall = false
     private var didConfigureWindow = false
     private var settingsWindowController: AppSettingsWindowController?
+    #if os(macOS)
+    private var loopbackIngestServer: LoopbackIngestServer?
+    #endif
     private weak var splitView: NSSplitView?
     private weak var sidebarView: NSView?
 
@@ -208,11 +211,17 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         loadDashboard()
         startAppStateAutoRefresh()
         startEntitlementSync()
+        #if os(macOS)
+        startLoopbackIngestServer()
+        #endif
     }
 
     deinit {
         appStateAutoRefreshTimer?.invalidate()
         transactionListener?.cancel()
+        #if os(macOS)
+        loopbackIngestServer?.stop()
+        #endif
     }
 
     override func viewDidAppear() {
@@ -221,6 +230,14 @@ class ViewController: NSViewController, NSTableViewDataSource, NSTableViewDelega
         configureWindowIfNeeded(window)
         maybePresentExpiredTrialPaywall()
     }
+
+    #if os(macOS)
+    private func startLoopbackIngestServer() {
+        let server = LoopbackIngestServer(store: store)
+        server.start()
+        loopbackIngestServer = server
+    }
+    #endif
 
     private func configureWindowIfNeeded(_ window: NSWindow) {
         guard !didConfigureWindow else { return }
@@ -2135,6 +2152,32 @@ final class AppStateStore {
         try save(raw)
     }
 
+    @discardableResult
+    func ingestRecordBatch(_ batch: [String: Any], appliedAt: Date = Date()) throws -> IngestAck {
+        let result = IngestProtocol.apply(batch: batch, to: loadRawState())
+        if !result.ack.ok {
+            return result.ack
+        }
+
+        var raw = result.raw
+        touchMetadata(in: &raw, now: appliedAt, writeId: "ingest:\(result.ack.batchId ?? "unknown")")
+        try save(raw)
+        return result.ack.withRevision(
+            storageRevision: Self.intValue((raw["metadata"] as? [String: Any])?["storageRevision"]),
+            updatedAt: (raw["metadata"] as? [String: Any])?["updatedAt"] as? String
+        )
+    }
+
+    func pullRecordBatch(targetKind: String, cursor: String?) -> [String: Any] {
+        IngestProtocol.createRecordBatch(
+            from: loadRawState(),
+            sourceKind: "mac-app",
+            targetKind: targetKind,
+            direction: "pull_response",
+            baseCursor: cursor
+        )
+    }
+
     private var stateFileURL: URL {
         Self.stateFileURL(fileManager: fileManager)
     }
@@ -2337,7 +2380,7 @@ final class AppStateStore {
         try data.write(to: url, options: .atomic)
     }
 
-    private func touchMetadata(in raw: inout [String: Any], now: Date = Date()) {
+    private func touchMetadata(in raw: inout [String: Any], now: Date = Date(), writeId: String? = nil) {
         let nowText = ISO8601DateFormatter().string(from: now)
         var metadata = raw["metadata"] as? [String: Any] ?? [:]
         metadata["deviceId"] = metadata["deviceId"] as? String ?? Self.makeDeviceId()
@@ -2345,7 +2388,7 @@ final class AppStateStore {
         metadata["updatedAt"] = nowText
         metadata["lastOpenedAt"] = nowText
         metadata["storageRevision"] = Self.intValue(metadata["storageRevision"]) + 1
-        metadata["writeId"] = Self.makeWriteId()
+        metadata["writeId"] = writeId ?? Self.makeWriteId()
         raw["metadata"] = metadata
     }
 

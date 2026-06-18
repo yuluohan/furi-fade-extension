@@ -87,7 +87,7 @@
   }
 
   class BasicAccessLockedError extends Error {
-    constructor(message = "Basic access is required to save new words.") {
+    constructor(message = "Learning App Basic is required to create saved learning assets.") {
       super(message);
       this.name = "BasicAccessLockedError";
       this.code = "basic_access_locked";
@@ -337,8 +337,8 @@
       const now = this.createMutationTimestamp();
       // Forgot on an unsaved word calls resetLearning, which sets
       // userIntent.saved = true — i.e. it creates a saved learning entry, the same
-      // paid asset as Save. Gate it like Save after the trial. Re-forgetting a word
-      // that is already saved (a review re-grade) stays available (T067).
+      // Learning App asset as Save. Gate it like Save. Re-forgetting a word that
+      // is already saved (a review re-grade) stays available (T067).
       const lexicalItemId = token.lexicalItemId || createId(token.baseForm, token.reading);
       const alreadySaved = this.getUserWordState(lexicalItemId)?.userIntent?.saved === true;
       if (!alreadySaved) {

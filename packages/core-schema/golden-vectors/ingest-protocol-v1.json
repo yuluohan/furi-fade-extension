@@ -1,0 +1,295 @@
+{
+  "formatVersion": 1,
+  "description": "Shared ingest protocol vectors for JS record-store ingest and Swift AppState ingest.",
+  "cases": [
+    {
+      "name": "ingests lexical and user state records with the same logicalId",
+      "initialState": {
+        "schemaVersion": 1,
+        "metadata": {
+          "deviceId": "dev_receiver",
+          "updatedAt": "2026-06-18T09:59:00.000Z",
+          "storageRevision": 0
+        },
+        "lexicalItems": {},
+        "userLexicalStates": {},
+        "exposureIndex": {},
+        "sourceOccurrences": {},
+        "dailyExposureSummaries": {},
+        "reviewLogs": {}
+      },
+      "batch": {
+        "protocolVersion": 1,
+        "batchId": "bat_vector_001",
+        "sourceClientId": "dev_ingest_a",
+        "sourceKind": "chrome-extension",
+        "targetKind": "mac-app",
+        "direction": "push",
+        "createdAt": "2026-06-18T10:00:00.000Z",
+        "baseCursor": null,
+        "records": [
+          {
+            "formatVersion": 1,
+            "recordId": "lexicalItem:%E7%A2%BA%E8%AA%8D%3A%E3%81%8B%E3%81%8F%E3%81%AB%E3%82%93",
+            "type": "lexicalItem",
+            "domain": "lexicalItems",
+            "logicalId": "確認:かくにん",
+            "syncScope": "syncable",
+            "mergeStrategy": "lww",
+            "updatedAt": "2026-06-18T10:00:00.000Z",
+            "deviceId": "dev_ingest_a",
+            "value": {
+              "id": "確認:かくにん",
+              "surface": "確認",
+              "readingKana": "かくにん",
+              "meanings": {
+                "en": ["confirmation"]
+              },
+              "updatedAt": "2026-06-18T10:00:00.000Z",
+              "deviceId": "dev_ingest_a"
+            }
+          },
+          {
+            "formatVersion": 1,
+            "recordId": "userLexicalState:%E7%A2%BA%E8%AA%8D%3A%E3%81%8B%E3%81%8F%E3%81%AB%E3%82%93",
+            "type": "userLexicalState",
+            "domain": "userLexicalStates",
+            "logicalId": "確認:かくにん",
+            "syncScope": "syncable",
+            "mergeStrategy": "lww",
+            "updatedAt": "2026-06-18T10:00:00.000Z",
+            "deviceId": "dev_ingest_a",
+            "value": {
+              "id": "確認:かくにん",
+              "lexicalItemId": "確認:かくにん",
+              "lifecycleStatus": "learning",
+              "annotationLevel": "full_ruby",
+              "updatedAt": "2026-06-18T10:00:00.000Z",
+              "deviceId": "dev_ingest_a"
+            }
+          }
+        ]
+      },
+      "expectedAck": {
+        "ok": true,
+        "appliedRecordIds": [
+          "lexicalItem:%E7%A2%BA%E8%AA%8D%3A%E3%81%8B%E3%81%8F%E3%81%AB%E3%82%93",
+          "userLexicalState:%E7%A2%BA%E8%AA%8D%3A%E3%81%8B%E3%81%8F%E3%81%AB%E3%82%93"
+        ],
+        "rejectedRecords": []
+      },
+      "expectedState": {
+        "lexicalItems": {
+          "確認:かくにん": {
+            "surface": "確認",
+            "readingKana": "かくにん",
+            "meanings": {
+              "en": ["confirmation"]
+            },
+            "deviceId": "dev_ingest_a"
+          }
+        },
+        "userLexicalStates": {
+          "確認:かくにん": {
+            "lexicalItemId": "確認:かくにん",
+            "lifecycleStatus": "learning",
+            "annotationLevel": "full_ruby",
+            "deviceId": "dev_ingest_a"
+          }
+        }
+      }
+    },
+    {
+      "name": "append records coexist and same recordId uses LWW device tie-break",
+      "initialState": {
+        "schemaVersion": 1,
+        "metadata": {
+          "deviceId": "dev_receiver",
+          "updatedAt": "2026-06-18T09:59:00.000Z",
+          "storageRevision": 0
+        },
+        "reviewLogs": {
+          "rl_001": {
+            "id": "rl_001",
+            "lexicalItemId": "確認:かくにん",
+            "reviewedAt": "2026-06-18T10:00:00.000Z",
+            "result": "good",
+            "updatedAt": "2026-06-18T10:00:00.000Z",
+            "deviceId": "dev_ingest_a"
+          }
+        }
+      },
+      "batch": {
+        "protocolVersion": 1,
+        "batchId": "bat_vector_002",
+        "sourceClientId": "dev_ingest_b",
+        "sourceKind": "chrome-extension",
+        "targetKind": "mac-app",
+        "direction": "push",
+        "createdAt": "2026-06-18T10:00:01.000Z",
+        "baseCursor": null,
+        "records": [
+          {
+            "formatVersion": 1,
+            "recordId": "reviewLog:rl_001",
+            "type": "reviewLog",
+            "domain": "reviewLogs",
+            "logicalId": "rl_001",
+            "syncScope": "syncable",
+            "mergeStrategy": "append_lww_same_id",
+            "updatedAt": "2026-06-18T10:00:00.000Z",
+            "deviceId": "dev_ingest_b",
+            "value": {
+              "id": "rl_001",
+              "lexicalItemId": "確認:かくにん",
+              "reviewedAt": "2026-06-18T10:00:00.000Z",
+              "result": "easy",
+              "updatedAt": "2026-06-18T10:00:00.000Z",
+              "deviceId": "dev_ingest_b"
+            }
+          },
+          {
+            "formatVersion": 1,
+            "recordId": "reviewLog:rl_002",
+            "type": "reviewLog",
+            "domain": "reviewLogs",
+            "logicalId": "rl_002",
+            "syncScope": "syncable",
+            "mergeStrategy": "append_lww_same_id",
+            "updatedAt": "2026-06-18T10:01:00.000Z",
+            "deviceId": "dev_ingest_b",
+            "value": {
+              "id": "rl_002",
+              "lexicalItemId": "確認:かくにん",
+              "reviewedAt": "2026-06-18T10:01:00.000Z",
+              "result": "good",
+              "updatedAt": "2026-06-18T10:01:00.000Z",
+              "deviceId": "dev_ingest_b"
+            }
+          }
+        ]
+      },
+      "expectedAck": {
+        "ok": true,
+        "appliedRecordIds": ["reviewLog:rl_001", "reviewLog:rl_002"],
+        "rejectedRecords": []
+      },
+      "expectedState": {
+        "reviewLogs": {
+          "rl_001": {
+            "result": "easy",
+            "deviceId": "dev_ingest_b"
+          },
+          "rl_002": {
+            "result": "good",
+            "deviceId": "dev_ingest_b"
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid deterministic record id rejects the batch without mutation",
+      "initialState": {
+        "schemaVersion": 1,
+        "metadata": {
+          "deviceId": "dev_receiver",
+          "updatedAt": "2026-06-18T09:59:00.000Z",
+          "storageRevision": 0
+        },
+        "lexicalItems": {}
+      },
+      "batch": {
+        "protocolVersion": 1,
+        "batchId": "bat_vector_003",
+        "sourceClientId": "dev_ingest_a",
+        "sourceKind": "chrome-extension",
+        "targetKind": "mac-app",
+        "direction": "push",
+        "createdAt": "2026-06-18T10:00:00.000Z",
+        "baseCursor": null,
+        "records": [
+          {
+            "formatVersion": 1,
+            "recordId": "lexicalItem:not-canonical",
+            "type": "lexicalItem",
+            "domain": "lexicalItems",
+            "logicalId": "確認:かくにん",
+            "syncScope": "syncable",
+            "mergeStrategy": "lww",
+            "updatedAt": "2026-06-18T10:00:00.000Z",
+            "deviceId": "dev_ingest_a",
+            "value": {
+              "id": "確認:かくにん",
+              "surface": "確認",
+              "updatedAt": "2026-06-18T10:00:00.000Z",
+              "deviceId": "dev_ingest_a"
+            }
+          }
+        ]
+      },
+      "expectedAck": {
+        "ok": false,
+        "error": {
+          "code": "invalid_batch"
+        },
+        "appliedRecordIds": []
+      },
+      "expectedState": {
+        "lexicalItems": {}
+      }
+    },
+    {
+      "name": "local-only app metadata keeps the receiver value",
+      "initialState": {
+        "schemaVersion": 1,
+        "metadata": {
+          "deviceId": "dev_receiver",
+          "updatedAt": "2026-06-18T09:59:00.000Z",
+          "storageRevision": 7,
+          "writeId": "wr_local"
+        }
+      },
+      "batch": {
+        "protocolVersion": 1,
+        "batchId": "bat_vector_004",
+        "sourceClientId": "dev_ingest_b",
+        "sourceKind": "chrome-extension",
+        "targetKind": "mac-app",
+        "direction": "push",
+        "createdAt": "2026-06-18T11:00:00.000Z",
+        "baseCursor": null,
+        "records": [
+          {
+            "formatVersion": 1,
+            "recordId": "appMetadata:local",
+            "type": "appMetadata",
+            "domain": "metadata",
+            "logicalId": "local",
+            "syncScope": "local_only",
+            "mergeStrategy": "local_only",
+            "updatedAt": "2026-06-18T11:00:00.000Z",
+            "deviceId": "dev_ingest_b",
+            "value": {
+              "deviceId": "dev_ingest_b",
+              "updatedAt": "2026-06-18T11:00:00.000Z",
+              "storageRevision": 99,
+              "writeId": "wr_incoming"
+            }
+          }
+        ]
+      },
+      "expectedAck": {
+        "ok": true,
+        "appliedRecordIds": ["appMetadata:local"],
+        "rejectedRecords": []
+      },
+      "expectedState": {
+        "metadata": {
+          "deviceId": "dev_receiver",
+          "storageRevision": 7,
+          "writeId": "wr_local"
+        }
+      }
+    }
+  ]
+}

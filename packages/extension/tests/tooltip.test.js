@@ -222,7 +222,7 @@ runTest("restores the tooltip and notifies the page again when optimistic Save f
   const status = tooltip.element.querySelector(".jr-tooltip__status");
   assert.equal(tooltip.element.hidden, false);
   assert.equal(status.hidden, false);
-  assert.match(status.textContent, /试用已结束/);
+  assert.match(status.textContent, /保存是 Learning App 功能/);
   assert.equal(changed, 2);
 });
 
@@ -255,6 +255,6 @@ runTest("shows localized Basic paywall prompt when Save is locked", async () => 
   const status = tooltip.element.querySelector(".jr-tooltip__status");
   assert.equal(tooltip.element.hidden, false);
   assert.equal(status.hidden, false);
-  assert.match(status.textContent, /试用已结束/);
+  assert.match(status.textContent, /保存是 Learning App 功能/);
   assert.equal(changed, false);
 });

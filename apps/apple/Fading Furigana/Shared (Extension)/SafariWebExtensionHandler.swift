@@ -53,6 +53,19 @@ class SafariWebExtensionHandler: NSObject, NSExtensionRequestHandling {
                 }
                 let savedState = try store.saveState(state)
                 return success(requestId: requestId, payload: ["state": savedState])
+            case "ingestRecordBatch":
+                let payload = message["payload"] as? [String: Any] ?? [:]
+                guard let batch = payload["batch"] as? [String: Any] else {
+                    return failure(requestId: requestId, error: "Missing record batch payload.")
+                }
+                let ack = try store.ingestRecordBatch(batch)
+                return success(requestId: requestId, payload: ["ack": ack.dictionary])
+            case "pullRecordBatch":
+                let payload = message["payload"] as? [String: Any] ?? [:]
+                let targetKind = payload["targetKind"] as? String ?? "safari-extension"
+                let cursor = payload["cursor"] as? String
+                let batch = try store.pullRecordBatch(targetKind: targetKind, cursor: cursor)
+                return success(requestId: requestId, payload: ["batch": batch])
             case "clearState":
                 try store.clearState()
                 return success(requestId: requestId, payload: ["state": NativeAppStateStore.defaultState()])
@@ -105,7 +118,42 @@ private final class NativeAppStateStore {
         var nextState = state
         Self.touchMetadata(in: &nextState)
         Self.enforceEntitlementPlatform(in: &nextState)
+        return try writeState(nextState)
+    }
 
+    func ingestRecordBatch(_ batch: [String: Any]) throws -> IngestAck {
+        let result = IngestProtocol.apply(batch: batch, to: try loadState())
+        guard result.ack.ok else {
+            return result.ack
+        }
+
+        var nextState = result.raw
+        Self.touchMetadata(in: &nextState, writeId: "ingest:\(result.ack.batchId ?? "unknown")")
+        Self.enforceEntitlementPlatform(in: &nextState)
+        let savedState = try writeState(nextState)
+        return result.ack.withRevision(
+            storageRevision: Self.intValue((savedState["metadata"] as? [String: Any])?["storageRevision"]),
+            updatedAt: (savedState["metadata"] as? [String: Any])?["updatedAt"] as? String
+        )
+    }
+
+    func pullRecordBatch(targetKind: String, cursor: String?) throws -> [String: Any] {
+        let state = try loadState()
+        #if os(iOS)
+        let sourceKind = "ios-app"
+        #else
+        let sourceKind = "mac-app"
+        #endif
+        return IngestProtocol.createRecordBatch(
+            from: state,
+            sourceKind: sourceKind,
+            targetKind: targetKind,
+            direction: "pull_response",
+            baseCursor: cursor
+        )
+    }
+
+    private func writeState(_ nextState: [String: Any]) throws -> [String: Any] {
         let url = stateFileURL
         try fileManager.createDirectory(at: url.deletingLastPathComponent(), withIntermediateDirectories: true)
         let backupURL = url.appendingPathExtension("bak")
@@ -174,14 +222,14 @@ private final class NativeAppStateStore {
         ]
     }
 
-    private static func touchMetadata(in state: inout [String: Any]) {
+    private static func touchMetadata(in state: inout [String: Any], writeId: String? = nil) {
         let now = timestamp()
         var metadata = state["metadata"] as? [String: Any] ?? [:]
         metadata["deviceId"] = metadata["deviceId"] as? String ?? makeDeviceId()
         metadata["createdAt"] = metadata["createdAt"] as? String ?? now
         metadata["updatedAt"] = now
         metadata["storageRevision"] = intValue(metadata["storageRevision"]) + 1
-        metadata["writeId"] = makeWriteId()
+        metadata["writeId"] = writeId ?? makeWriteId()
         state["metadata"] = metadata
     }
 

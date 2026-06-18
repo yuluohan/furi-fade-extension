@@ -140,6 +140,19 @@
         </div>
       </section>
 
+      <section class="panel panel--compact loopback" id="loopback-panel" hidden aria-label="Mac app connection" data-i18n-aria="macAppConnection">
+        <div class="diagnostics__row">
+          <span data-i18n="macAppConnection">Mac app</span>
+          <strong id="loopback-status" class="diagnostics__value">—</strong>
+        </div>
+        <div class="loopback__pair">
+          <input id="loopback-code" type="text" maxlength="16" autocomplete="off" autocapitalize="characters" spellcheck="false" />
+          <button id="loopback-connect" type="button" data-i18n="connect">Connect</button>
+          <button id="loopback-disconnect" type="button" hidden data-i18n="disconnect">Disconnect</button>
+        </div>
+        <p id="loopback-hint" class="status-panel__text status-panel__text--muted" data-i18n="macAppHint">Enter the pairing code from the Mac app's Settings › Extensions.</p>
+      </section>
+
       <footer class="popup__footer">
         <span id="footer-version">v0.1.0</span>
         <div class="popup__actions">
@@ -151,7 +164,9 @@
 
     <script src="../core/appState.js"></script>
     <script src="../storage/localStorageAdapter.js"></script>
+    <script src="../storage/recordBatchCodec.js"></script>
     <script src="../storage/safariNativeStorageAdapter.js"></script>
+    <script src="../storage/chromeLoopbackClient.js"></script>
     <script src="../storage/chromeStorageAdapter.js"></script>
     <script src="popup.js"></script>
   </body>

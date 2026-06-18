@@ -23,7 +23,13 @@
     buildVersion: document.querySelector("#build-version"),
     footerVersion: document.querySelector("#footer-version"),
     storageMode: document.querySelector("#storage-mode"),
-    lastUpdated: document.querySelector("#last-updated")
+    lastUpdated: document.querySelector("#last-updated"),
+    loopbackPanel: document.querySelector("#loopback-panel"),
+    loopbackStatus: document.querySelector("#loopback-status"),
+    loopbackCode: document.querySelector("#loopback-code"),
+    loopbackConnect: document.querySelector("#loopback-connect"),
+    loopbackDisconnect: document.querySelector("#loopback-disconnect"),
+    loopbackHint: document.querySelector("#loopback-hint")
   };
 
   const MESSAGES = {
@@ -69,7 +75,7 @@
       saved: "Saved",
       sitePaused: "Site paused",
       siteEnabled: "Site enabled",
-      openAppHint: "Open the app for full settings",
+      openAppHint: "Open the learning app for full settings",
       loadFailed: "Load failed",
       saveFailed: "Save failed",
       refreshFailed: "Refresh failed",
@@ -88,11 +94,23 @@
       statusPausedSite: "Paused on this site. Existing annotations clear after the page refreshes.",
       statusOff: "Annotations are off.",
       statusUnsupported: "This browser page cannot be controlled here.",
-      accessTrial: "Trial active",
-      accessBasic: "Basic unlocked",
-      accessPro: "Pro active",
-      accessExpired: "Trial expired: saving new words needs Basic",
-      accessUnknown: "Local access"
+      accessTrial: "Learning app trial active",
+      accessBasic: "Learning app Basic unlocked",
+      accessPro: "Pro sync active",
+      accessExpired: "Annotation is free; saving needs Learning App Basic",
+      accessUnknown: "Annotation and exposure are local",
+      macAppConnection: "Mac app",
+      macAppHint: "Enter the pairing code from the Mac app's Settings › Extensions.",
+      connect: "Connect",
+      disconnect: "Disconnect",
+      loopbackCodePlaceholder: "Pairing code",
+      loopbackNotConnected: "Not connected",
+      loopbackChecking: "Checking…",
+      loopbackConnecting: "Connecting…",
+      loopbackConnected: "Connected",
+      loopbackNoServer: "Mac app not found",
+      loopbackRejected: "Code rejected",
+      loopbackError: "Connection failed"
     },
     zhHans: {
       currentPage: "当前页面",
@@ -136,7 +154,7 @@
       saved: "已保存",
       sitePaused: "已暂停本站",
       siteEnabled: "已启用本站",
-      openAppHint: "请打开 App 查看完整设置",
+      openAppHint: "请打开学习 App 查看完整设置",
       loadFailed: "加载失败",
       saveFailed: "保存失败",
       refreshFailed: "刷新失败",
@@ -155,18 +173,32 @@
       statusPausedSite: "本站已暂停。刷新页面后已有标注会清除。",
       statusOff: "标注已关闭。",
       statusUnsupported: "这个浏览器页面不能在这里控制。",
-      accessTrial: "试用中",
-      accessBasic: "Basic 已解锁",
-      accessPro: "Pro 已启用",
-      accessExpired: "试用已结束：保存新词需要 Basic",
-      accessUnknown: "本地权限"
+      accessTrial: "学习 App 试用中",
+      accessBasic: "学习 App Basic 已解锁",
+      accessPro: "Pro 同步已启用",
+      accessExpired: "注音永久免费；保存新词需要 Learning App Basic",
+      accessUnknown: "注音与曝光记录保存在本地",
+      macAppConnection: "Mac app",
+      macAppHint: "输入 Mac app 设置 › 扩展 中显示的配对码。",
+      connect: "连接",
+      disconnect: "断开",
+      loopbackCodePlaceholder: "配对码",
+      loopbackNotConnected: "未连接",
+      loopbackChecking: "检查中…",
+      loopbackConnecting: "连接中…",
+      loopbackConnected: "已连接",
+      loopbackNoServer: "未找到 Mac app",
+      loopbackRejected: "配对码不正确",
+      loopbackError: "连接失败"
     }
   };
 
   let state;
   let activeTab = null;
   let activeHost = "";
+  let lastLoopbackKind = "idle";
   const storageAdapter = window.FadingFuriganaStorage.createBestAvailableStorageAdapter();
+  const loopbackClient = storageAdapter.getLoopbackClient?.() || null;
   renderBuildVersion();
 
   async function load() {
@@ -174,6 +206,7 @@
     activeHost = getHostname(activeTab?.url);
     state.settings = window.FadingFuriganaState.normalizeSettings(state.settings);
     render();
+    setupLoopback();
   }
 
   function render() {
@@ -193,6 +226,85 @@
     renderSummary();
     renderDiagnostics();
     setStatus("ready");
+  }
+
+  // The pairing panel only applies to the Chrome loopback transport; Safari/local builds have
+  // no loopback client, so the section stays hidden.
+  function setupLoopback() {
+    if (!loopbackClient) {
+      controls.loopbackPanel.hidden = true;
+      return;
+    }
+    controls.loopbackPanel.hidden = false;
+    controls.loopbackCode.placeholder = t("loopbackCodePlaceholder");
+
+    loopbackClient.getToken().then((token) => {
+      if (token && document.activeElement !== controls.loopbackCode) {
+        controls.loopbackCode.value = token;
+      }
+      if (token) {
+        setLoopbackStatus("checking");
+        verifyLoopback({ sync: false });
+      } else {
+        setLoopbackStatus("idle");
+      }
+    });
+  }
+
+  function setLoopbackStatus(kind) {
+    lastLoopbackKind = kind;
+    const ok = kind === "connected";
+    const warn = kind === "no_server" || kind === "unauthorized" || kind === "error";
+    const labels = {
+      idle: "loopbackNotConnected",
+      checking: "loopbackChecking",
+      connecting: "loopbackConnecting",
+      connected: "loopbackConnected",
+      no_server: "loopbackNoServer",
+      unauthorized: "loopbackRejected",
+      error: "loopbackError",
+      unavailable: "loopbackError"
+    };
+    controls.loopbackStatus.textContent = t(labels[kind] || "loopbackNotConnected");
+    controls.loopbackStatus.classList.toggle("diagnostics__value--ok", ok);
+    controls.loopbackStatus.classList.toggle("diagnostics__value--warn", warn);
+    controls.loopbackDisconnect.hidden = !ok;
+  }
+
+  async function verifyLoopback({ sync }) {
+    if (!loopbackClient) return { ok: false, reason: "unavailable" };
+    const result = await loopbackClient.verifyPairing();
+    setLoopbackStatus(result.ok ? "connected" : (result.reason || "error"));
+    if (result.ok && sync) {
+      await storageAdapter.flushToMacApp(state).catch(() => {});
+    }
+    return result;
+  }
+
+  async function connectLoopback() {
+    if (!loopbackClient) return;
+    const code = window.FadingFuriganaLoopback.normalizeToken(controls.loopbackCode.value);
+    if (!code) {
+      setLoopbackStatus("idle");
+      return;
+    }
+    controls.loopbackConnect.disabled = true;
+    setLoopbackStatus("connecting");
+    try {
+      await loopbackClient.setToken(code);
+      await verifyLoopback({ sync: true });
+    } catch {
+      setLoopbackStatus("error");
+    } finally {
+      controls.loopbackConnect.disabled = false;
+    }
+  }
+
+  async function disconnectLoopback() {
+    if (!loopbackClient) return;
+    await loopbackClient.clearToken();
+    controls.loopbackCode.value = "";
+    setLoopbackStatus("idle");
   }
 
   function renderCurrentPage() {
@@ -358,6 +470,11 @@
     for (const element of document.querySelectorAll("[data-i18n-aria]")) {
       element.setAttribute("aria-label", t(element.dataset.i18nAria));
     }
+
+    if (loopbackClient) {
+      controls.loopbackCode.placeholder = t("loopbackCodePlaceholder");
+      setLoopbackStatus(lastLoopbackKind);
+    }
   }
 
   function setStatus(key) {
@@ -431,6 +548,20 @@
 
   controls.refreshStats.addEventListener("click", () => {
     load().catch(() => setStatus("refreshFailed"));
+  });
+
+  controls.loopbackConnect.addEventListener("click", () => {
+    connectLoopback().catch(() => setLoopbackStatus("error"));
+  });
+
+  controls.loopbackDisconnect.addEventListener("click", () => {
+    disconnectLoopback().catch(() => setLoopbackStatus("error"));
+  });
+
+  controls.loopbackCode.addEventListener("keydown", (event) => {
+    if (event.key === "Enter") {
+      connectLoopback().catch(() => setLoopbackStatus("error"));
+    }
   });
 
   load().catch(() => setStatus("loadFailed"));

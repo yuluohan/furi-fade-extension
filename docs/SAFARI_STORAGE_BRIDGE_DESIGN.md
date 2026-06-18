@@ -2,6 +2,10 @@
 
 Date: 2026-06-08
 
+Status update (2026-06-18): this document describes the **legacy whole-state AppState bridge** used by the current bundled Safari extension + app MVP. The Extension/App decoupling route keeps this readable during migration, but the target bridge is op-based `recordBatch` ingest as defined in `EXTENSION_APP_DECOUPLING_DESIGN.md` and `INGEST_PROTOCOL.md`. Do not extend `loadState/saveState` as the long-term multi-source contract.
+
+T076 compatibility status (2026-06-18): the Safari native handler now accepts `ingestRecordBatch` and `pullRecordBatch` beside legacy `loadState` / `saveState` / `clearState`. The JS `SafariNativeStorageAdapter` now prefers recordBatch pull on load and recordBatch ingest+pull on save, while falling back to legacy whole-state actions for older native handlers or cached extension scripts. Signed local install has passed; a real Safari page round trip is still pending after Safari reloads the latest extension scripts.
+
 ## Goal
 
 Prepare the extension for Safari and iOS Safari packaging without changing the existing AppState schema.
@@ -42,9 +46,12 @@ Safari native bridge messages should be small and AppState-shaped:
 ```json
 {
   "type": "FADING_FURIGANA_STORAGE",
-  "action": "loadState" | "saveState" | "clearState",
+  "action": "loadState" | "saveState" | "clearState" | "ingestRecordBatch" | "pullRecordBatch",
   "payload": {
-    "state": {}
+    "state": {},
+    "batch": {},
+    "cursor": null,
+    "targetKind": "safari-extension"
   },
   "requestId": "uuid-or-timestamp"
 }

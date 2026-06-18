@@ -31,6 +31,11 @@
 		FAD000062FDA81C0001FDFFF /* AppSettings.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD000042FDA81C0001FDFFF /* AppSettings.swift */; };
 		FAD000082FDA81C0001FDFFF /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD000072FDA81C0001FDFFF /* Localization.swift */; };
 		FAD000092FDA81C0001FDFFF /* Localization.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD000072FDA81C0001FDFFF /* Localization.swift */; };
+		FAD000102FDA81C0001FDFFF /* IngestProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD0000F2FDA81C0001FDFFF /* IngestProtocol.swift */; };
+		FAD000112FDA81C0001FDFFF /* IngestProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD0000F2FDA81C0001FDFFF /* IngestProtocol.swift */; };
+		FAD000122FDA81C0001FDFFF /* IngestProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD0000F2FDA81C0001FDFFF /* IngestProtocol.swift */; };
+		FAD000132FDA81C0001FDFFF /* IngestProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD0000F2FDA81C0001FDFFF /* IngestProtocol.swift */; };
+		FAD000152FDA81C0001FDFFF /* LoopbackIngestServer.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD000142FDA81C0001FDFFF /* LoopbackIngestServer.swift */; };
 		1DE7868D2FDA81C0001FDFFF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DE7864E2FDA81C0001FDFFF /* Assets.xcassets */; };
 		1DE7868E2FDA81C0001FDFFF /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1DE7864E2FDA81C0001FDFFF /* Assets.xcassets */; };
 		1DE7868F2FDA81C0001FDFFF /* SafariWebExtensionHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1DE786502FDA81C0001FDFFF /* SafariWebExtensionHandler.swift */; };
@@ -94,6 +99,8 @@
 		FAD000012FDA81C0001FDFFF /* ReviewSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewSession.swift; sourceTree = "<group>"; };
 		FAD000042FDA81C0001FDFFF /* AppSettings.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSettings.swift; sourceTree = "<group>"; };
 		FAD000072FDA81C0001FDFFF /* Localization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Localization.swift; sourceTree = "<group>"; };
+		FAD0000F2FDA81C0001FDFFF /* IngestProtocol.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = IngestProtocol.swift; sourceTree = "<group>"; };
+		FAD000142FDA81C0001FDFFF /* LoopbackIngestServer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoopbackIngestServer.swift; sourceTree = "<group>"; };
 		1DE7864E2FDA81C0001FDFFF /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		1DE786502FDA81C0001FDFFF /* SafariWebExtensionHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafariWebExtensionHandler.swift; sourceTree = "<group>"; };
 		1DE786552FDA81C0001FDFFF /* Fading Furigana.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Fading Furigana.app"; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -167,6 +174,8 @@
 			isa = PBXGroup;
 			children = (
 				1DE7864D2FDA81BF001FDFFF /* ViewController.swift */,
+				FAD0000F2FDA81C0001FDFFF /* IngestProtocol.swift */,
+				FAD000142FDA81C0001FDFFF /* LoopbackIngestServer.swift */,
 				FAD000012FDA81C0001FDFFF /* ReviewSession.swift */,
 				FAD000042FDA81C0001FDFFF /* AppSettings.swift */,
 				FAD000072FDA81C0001FDFFF /* Localization.swift */,
@@ -445,6 +454,7 @@
 				FAD000022FDA81C0001FDFFF /* ReviewSession.swift in Sources */,
 				FAD000052FDA81C0001FDFFF /* AppSettings.swift in Sources */,
 				FAD000082FDA81C0001FDFFF /* Localization.swift in Sources */,
+				FAD000102FDA81C0001FDFFF /* IngestProtocol.swift in Sources */,
 				1DE786592FDA81C0001FDFFF /* AppDelegate.swift in Sources */,
 				1DE7865B2FDA81C0001FDFFF /* SceneDelegate.swift in Sources */,
 			);
@@ -458,6 +468,8 @@
 				FAD000032FDA81C0001FDFFF /* ReviewSession.swift in Sources */,
 				FAD000062FDA81C0001FDFFF /* AppSettings.swift in Sources */,
 				FAD000092FDA81C0001FDFFF /* Localization.swift in Sources */,
+				FAD000112FDA81C0001FDFFF /* IngestProtocol.swift in Sources */,
+				FAD000152FDA81C0001FDFFF /* LoopbackIngestServer.swift in Sources */,
 				1DE7866A2FDA81C0001FDFFF /* AppDelegate.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -467,6 +479,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1DE7868F2FDA81C0001FDFFF /* SafariWebExtensionHandler.swift in Sources */,
+				FAD000122FDA81C0001FDFFF /* IngestProtocol.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -475,6 +488,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				1DE786902FDA81C0001FDFFF /* SafariWebExtensionHandler.swift in Sources */,
+				FAD000132FDA81C0001FDFFF /* IngestProtocol.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

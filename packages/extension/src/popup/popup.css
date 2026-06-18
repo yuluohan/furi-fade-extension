@@ -280,3 +280,53 @@ button {
   color: #98a2b3;
   cursor: default;
 }
+
+.diagnostics__value--ok {
+  color: #067647;
+}
+
+.loopback {
+  gap: 8px;
+}
+
+.loopback__pair {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+}
+
+#loopback-code {
+  height: 30px;
+  padding: 0 8px;
+  border: 1px solid #c7ced8;
+  border-radius: 6px;
+  background: #fff;
+  color: #202124;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+}
+
+#loopback-connect {
+  width: 84px;
+  border-color: #246bfe;
+  background: #246bfe;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+#loopback-connect:disabled {
+  border-color: #d0d5dd;
+  background: #f2f4f7;
+  color: #98a2b3;
+  cursor: default;
+}
+
+#loopback-disconnect {
+  width: 84px;
+  font-size: 12px;
+}

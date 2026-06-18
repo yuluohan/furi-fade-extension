@@ -4,8 +4,13 @@
   const { LocalStorageAdapter, STORAGE_KEY } = window.FadingFuriganaStorage;
 
   class ChromeStorageAdapter {
-    constructor(storageArea = window.chrome?.storage?.local) {
+    constructor(storageArea = window.chrome?.storage?.local, { loopbackClient = null, enableLoopback = true } = {}) {
       this.storageArea = storageArea;
+      this.loopbackClient = loopbackClient || (
+        enableLoopback && window.FadingFuriganaLoopback?.MacLoopbackClient
+          ? new window.FadingFuriganaLoopback.MacLoopbackClient({ storageArea })
+          : null
+      );
     }
 
     async loadState() {
@@ -28,6 +33,7 @@
 
       const nextState = window.FadingFuriganaState.prepareStateForSave(state);
       await callStorage(this.storageArea, "set", { [STORAGE_KEY]: nextState });
+      this.queueLoopbackFlush(nextState);
       return window.FadingFuriganaState.migrateAppState(nextState);
     }
 
@@ -37,14 +43,44 @@
     }
 
     getStorageStatus() {
-      return { transport: "local", lastSuccessAt: null, lastError: null };
+      return {
+        transport: "local",
+        lastSuccessAt: null,
+        lastError: null,
+        loopback: this.loopbackClient?.getStatus?.() || null
+      };
+    }
+
+    // Exposed so the popup can drive pairing (set code, verify, sync now) without reaching into
+    // internals. Null when this build has no loopback transport (e.g. the Safari fallback path).
+    getLoopbackClient() {
+      return this.loopbackClient;
+    }
+
+    async flushToMacApp(state) {
+      if (!this.loopbackClient) return { ok: false, applied: 0 };
+      return this.loopbackClient.flushState(state);
+    }
+
+    queueLoopbackFlush(state) {
+      if (!this.loopbackClient) return;
+      Promise.resolve()
+        .then(() => this.loopbackClient.flushState(state))
+        .catch(() => {
+          // Chrome remains fully local-first; loopback failures are visible via
+          // getStorageStatus() but never block annotation or local persistence.
+        });
     }
   }
 
   function createBestAvailableStorageAdapter() {
     if (window.FadingFuriganaStorage.isSafariNativeStorageAvailable?.()) {
       return new window.FadingFuriganaStorage.SafariNativeStorageAdapter({
-        fallbackAdapter: window.chrome?.storage?.local ? new ChromeStorageAdapter(window.chrome.storage.local) : null
+        // Safari reaches the Mac app over the App Group, not loopback, so the fallback adapter
+        // must not also probe 127.0.0.1.
+        fallbackAdapter: window.chrome?.storage?.local
+          ? new ChromeStorageAdapter(window.chrome.storage.local, { enableLoopback: false })
+          : null
       });
     }
     if (window.chrome?.storage?.local) {

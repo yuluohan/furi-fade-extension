@@ -36,11 +36,11 @@
 
   const COPY = {
     en: {
-      saveLocked: "Trial ended. Open the Mac app to unlock Basic and continue saving words.",
+      saveLocked: "Saving is a Learning App feature. Open the app to unlock Basic and keep learning.",
       saveFailed: "Save failed. Please try again."
     },
     zhHans: {
-      saveLocked: "试用已结束。打开 Mac app 解锁 Basic 后可继续保存新词。",
+      saveLocked: "保存是 Learning App 功能。打开 App 解锁 Basic 后可继续学习。",
       saveFailed: "保存失败，请再试一次。"
     }
   };

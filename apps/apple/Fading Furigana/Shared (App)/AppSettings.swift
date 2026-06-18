@@ -185,6 +185,11 @@ final class AppSettingsViewController: NSViewController {
     private let safariExtensionStatusLabel = NSTextField(labelWithString: "")
     private let sharedSafariDataLabel = NSTextField(labelWithString: "")
     private let chromeExtensionStatusLabel = NSTextField(labelWithString: "")
+    private let loopbackStatusLabel = NSTextField(labelWithString: "")
+    private let loopbackCodeLabel = NSTextField(labelWithString: "")
+    private let copyPairingCodeButton = NSButton(title: "", target: nil, action: nil)
+    private let regeneratePairingCodeButton = NSButton(title: "", target: nil, action: nil)
+    private let loopbackHintLabel = NSTextField(wrappingLabelWithString: "")
     private let iosSafariStatusLabel = NSTextField(labelWithString: "")
     private let storageHealthLabel = NSTextField(labelWithString: "")
     private let storageDetailLabel = NSTextField(labelWithString: "")
@@ -334,6 +339,7 @@ final class AppSettingsViewController: NSViewController {
         configurePopup(entitlementOverridePopup, options: entitlementOverrideOptions, selected: entitlementSummary.developmentOverride)
         configurePurchaseControls()
         configureExtensionStatusLabels()
+        configureLoopbackPairing()
         configureStorageHealth()
 
         let root = NSStackView()
@@ -387,6 +393,9 @@ final class AppSettingsViewController: NSViewController {
                 (L.t("Safari:"), safariExtensionStatusLabel),
                 (L.t("Data:"), sharedSafariDataLabel),
                 (L.t("Chrome:"), chromeExtensionStatusLabel),
+                (L.t("Mac app loopback:"), loopbackStatusLabel),
+                (L.t("Pairing code:"), makePairingCodeRow()),
+                ("", loopbackHintLabel),
                 (L.t("iOS Safari:"), iosSafariStatusLabel),
                 ("", makeLinkButton(L.t("Open Safari Extension Settings…"), action: #selector(openSafariPreferences)))
             ])
@@ -565,7 +574,7 @@ final class AppSettingsViewController: NSViewController {
         sharedSafariDataLabel.maximumNumberOfLines = 2
         sharedSafariDataLabel.preferredMaxLayoutWidth = 330
 
-        chromeExtensionStatusLabel.stringValue = L.t("Chrome keeps separate local data until Pro sync is enabled.")
+        chromeExtensionStatusLabel.stringValue = L.t("Chrome syncs exposure to this Mac over a free local loopback bridge — no Pro needed.")
         chromeExtensionStatusLabel.font = NSFont.systemFont(ofSize: 12)
         chromeExtensionStatusLabel.textColor = .secondaryLabelColor
         chromeExtensionStatusLabel.maximumNumberOfLines = 2
@@ -574,6 +583,37 @@ final class AppSettingsViewController: NSViewController {
         iosSafariStatusLabel.stringValue = L.t("Planned for the iOS app.")
         iosSafariStatusLabel.font = NSFont.systemFont(ofSize: 12)
         iosSafariStatusLabel.textColor = .secondaryLabelColor
+    }
+
+    private func configureLoopbackPairing() {
+        let status = LoopbackPairing.status()
+
+        if status.isListening, let port = status.port {
+            loopbackStatusLabel.stringValue = L.f("Listening on 127.0.0.1:%d", Int(port))
+            loopbackStatusLabel.textColor = .systemGreen
+        } else {
+            loopbackStatusLabel.stringValue = L.t("Server not running")
+            loopbackStatusLabel.textColor = .systemOrange
+        }
+        loopbackStatusLabel.font = NSFont.systemFont(ofSize: 13, weight: .medium)
+
+        loopbackCodeLabel.stringValue = status.code
+        loopbackCodeLabel.font = NSFont.monospacedSystemFont(ofSize: 15, weight: .semibold)
+        loopbackCodeLabel.textColor = .labelColor
+        loopbackCodeLabel.isSelectable = true
+
+        configureSmallButton(copyPairingCodeButton, title: L.t("Copy"), action: #selector(copyPairingCodeClicked))
+        configureSmallButton(regeneratePairingCodeButton, title: L.t("New Code"), action: #selector(regeneratePairingCodeClicked))
+
+        var hint = L.t("Enter this code in the Chrome extension popup to connect it to this Mac.")
+        if let lastConnected = status.lastConnectedAt {
+            hint += " " + L.f("Last connected %@.", Self.storageDateFormatter.string(from: lastConnected))
+        }
+        loopbackHintLabel.stringValue = hint
+        loopbackHintLabel.font = NSFont.systemFont(ofSize: 11)
+        loopbackHintLabel.textColor = .secondaryLabelColor
+        loopbackHintLabel.maximumNumberOfLines = 3
+        loopbackHintLabel.preferredMaxLayoutWidth = 330
     }
 
     private func configureStorageHealth() {
@@ -624,6 +664,14 @@ final class AppSettingsViewController: NSViewController {
 
     private func makeButtonRow(_ buttons: [NSButton]) -> NSView {
         let row = NSStackView(views: buttons)
+        row.orientation = .horizontal
+        row.alignment = .centerY
+        row.spacing = 8
+        return row
+    }
+
+    private func makePairingCodeRow() -> NSView {
+        let row = NSStackView(views: [loopbackCodeLabel, copyPairingCodeButton, regeneratePairingCodeButton])
         row.orientation = .horizontal
         row.alignment = .centerY
         row.spacing = 8
@@ -724,6 +772,26 @@ final class AppSettingsViewController: NSViewController {
                 }
             }
         }
+    }
+
+    @objc private func copyPairingCodeClicked() {
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(LoopbackPairing.currentCode(), forType: .string)
+        showStatus(L.t("Pairing code copied"))
+    }
+
+    @objc private func regeneratePairingCodeClicked() {
+        let alert = NSAlert()
+        alert.alertStyle = .warning
+        alert.messageText = L.t("Generate a new pairing code?")
+        alert.informativeText = L.t("The Chrome extension will stop syncing until you enter the new code in its popup.")
+        alert.addButton(withTitle: L.t("New Code"))
+        alert.addButton(withTitle: L.t("Cancel"))
+        guard alert.runModal() == .alertFirstButtonReturn else { return }
+        LoopbackPairing.regenerateCode()
+        buildUI()
+        showStatus(L.t("New pairing code generated"))
     }
 
     @objc private func revealStorageClicked() {

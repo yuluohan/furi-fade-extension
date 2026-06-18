@@ -4,6 +4,10 @@
   const MESSAGE_TYPE = "FADING_FURIGANA_STORAGE";
   const RESPONSE_TYPE = "FADING_FURIGANA_STORAGE_RESPONSE";
   const RELAY_MESSAGE_TYPE = "FADING_FURIGANA_NATIVE_STORAGE_RELAY";
+  const {
+    appStateFromRecordBatch,
+    createRecordBatchFromAppState
+  } = window.FadingFuriganaRecordBatch;
 
   class SafariNativeStorageAdapter {
     constructor({ runtime = getRuntime(), fallbackAdapter = null } = {}) {
@@ -32,6 +36,14 @@
 
     async loadState() {
       try {
+        const batch = await this.pullRecordBatch({ targetKind: "safari-extension", suppressWarning: true });
+        return migrate(appStateFromRecordBatch(batch));
+      } catch (error) {
+        // Cached/older native handlers may not know recordBatch yet. Fall back
+        // to the legacy whole-state action before surfacing an error.
+      }
+
+      try {
         const response = await this.send("loadState");
         const state = migrate(response?.payload?.state);
         if (isMeaningfulState(state) || !this.fallbackAdapter) return state;
@@ -53,6 +65,24 @@
 
     async saveState(state) {
       try {
+        const preparedState = window.FadingFuriganaState.prepareStateForSave(state);
+        const batch = createRecordBatchFromAppState(preparedState, {
+          sourceKind: "safari-extension",
+          targetKind: "mac-app",
+          direction: "push"
+        });
+        const ack = await this.ingestRecordBatch(batch, { suppressWarning: true });
+        if (!ack?.ok) {
+          throw new Error(ack?.error?.message || "Safari native record batch ingest failed.");
+        }
+        const pulled = await this.pullRecordBatch({ targetKind: "safari-extension", suppressWarning: true });
+        return migrate(appStateFromRecordBatch(pulled));
+      } catch (error) {
+        // Keep legacy whole-state save as a migration guard for cached Safari
+        // content scripts and older native handlers.
+      }
+
+      try {
         const response = await this.send("saveState", { state });
         return migrate(response?.payload?.state);
       } catch (error) {
@@ -60,6 +90,34 @@
         this.markFallback(error);
         if (!this.fallbackAdapter) throw error;
         return this.fallbackAdapter.saveState(state);
+      }
+    }
+
+    async ingestRecordBatch(batch, { suppressWarning = false } = {}) {
+      try {
+        const response = await this.send("ingestRecordBatch", { batch });
+        return response?.payload?.ack;
+      } catch (error) {
+        if (!suppressWarning) warnNativeFailure("ingestRecordBatch", error);
+        this.markFallback(error);
+        if (typeof this.fallbackAdapter?.ingestRecordBatch === "function") {
+          return this.fallbackAdapter.ingestRecordBatch(batch);
+        }
+        throw error;
+      }
+    }
+
+    async pullRecordBatch({ cursor = null, targetKind = "safari-extension", suppressWarning = false } = {}) {
+      try {
+        const response = await this.send("pullRecordBatch", { cursor, targetKind });
+        return response?.payload?.batch;
+      } catch (error) {
+        if (!suppressWarning) warnNativeFailure("pullRecordBatch", error);
+        this.markFallback(error);
+        if (typeof this.fallbackAdapter?.pullRecordBatch === "function") {
+          return this.fallbackAdapter.pullRecordBatch({ cursor, targetKind });
+        }
+        throw error;
       }
     }
 

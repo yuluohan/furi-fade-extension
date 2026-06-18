@@ -187,6 +187,28 @@ test("blocks saving new words after trial expiry without Basic", async () => {
   assert.equal(storageAdapter.savedStates.length, 0);
 });
 
+test("records passive exposure after trial expiry because annotation remains free", async () => {
+  const initialState = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
+  initialState.entitlements.developmentOverride = "expired";
+  const storageAdapter = createMemoryStorageAdapter(initialState);
+  const service = new WordRepositoryService(storageAdapter, {
+    pageContextProvider: () => ({
+      url: "https://example.com/news",
+      domain: "example.com",
+      pageTitle: "News"
+    }),
+    persistDelayMs: 1
+  });
+  await service.load();
+
+  await service.recordSeen(createToken());
+  await service.persist();
+
+  assert.equal(service.state.exposureIndex["確認:かくにん"].seenCount, 1);
+  assert.equal(service.getUserWordState("確認:かくにん"), null);
+  assert.equal(storageAdapter.savedStates.length >= 1, true);
+});
+
 test("optimistic save rolls back when Basic access is locked", async () => {
   const initialState = window.FadingFuriganaState.createDefaultAppState("2026-06-08T00:00:00.000Z");
   initialState.entitlements.developmentOverride = "expired";
