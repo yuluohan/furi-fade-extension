@@ -6,11 +6,7 @@
   class ChromeStorageAdapter {
     constructor(storageArea = window.chrome?.storage?.local, { loopbackClient = null, enableLoopback = true } = {}) {
       this.storageArea = storageArea;
-      this.loopbackClient = loopbackClient || (
-        enableLoopback && window.FadingFuriganaLoopback?.MacLoopbackClient
-          ? new window.FadingFuriganaLoopback.MacLoopbackClient({ storageArea })
-          : null
-      );
+      this.loopbackClient = loopbackClient || (enableLoopback ? createLoopbackClient(storageArea) : null);
     }
 
     async loadState() {
@@ -71,6 +67,19 @@
           // getStorageStatus() but never block annotation or local persistence.
         });
     }
+  }
+
+  // Prefer the background service worker (so loopback fetches are first-party extension
+  // requests); fall back to a direct in-context client when there is no worker to message
+  // (e.g. tests, or a context without runtime.sendMessage).
+  function createLoopbackClient(storageArea) {
+    const loopback = window.FadingFuriganaLoopback;
+    if (!loopback) return null;
+    const runtime = window.chrome?.runtime || window.browser?.runtime;
+    if (typeof runtime?.sendMessage === "function" && loopback.BackgroundLoopbackClient) {
+      return new loopback.BackgroundLoopbackClient({ runtime });
+    }
+    return loopback.MacLoopbackClient ? new loopback.MacLoopbackClient({ storageArea }) : null;
   }
 
   function createBestAvailableStorageAdapter() {

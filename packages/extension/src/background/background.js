@@ -30,6 +30,8 @@ if (typeof self.XMLHttpRequest === "undefined") {
 
 importScripts(
   "/src/core/appState.js",
+  "/src/storage/recordBatchCodec.js",
+  "/src/storage/chromeLoopbackClient.js",
   "/src/dictionary/localDictionaryProvider.js",
   "/src/tokenizer/kuromoji.js",
   "/src/tokenizer/kuromojiTokenMapper.js"
@@ -37,9 +39,22 @@ importScripts(
 
 const DICTIONARY_PATH = "/src/tokenizer/dict";
 const NATIVE_STORAGE_RELAY_MESSAGE_TYPE = "FADING_FURIGANA_NATIVE_STORAGE_RELAY";
+const LOOPBACK_MESSAGE_TYPE = self.FadingFuriganaLoopback?.LOOPBACK_MESSAGE_TYPE || "FADING_FURIGANA_LOOPBACK";
 const extensionRuntime = globalThis.chrome?.runtime || globalThis.browser?.runtime;
 
 let tokenizerPromise = null;
+
+// The worker owns the one real loopback client, so its fetches to 127.0.0.1 are first-party
+// extension requests (content-script fetches would carry the page Origin and fail CORS reads).
+let loopbackClient = null;
+function getLoopbackClient() {
+  if (loopbackClient) return loopbackClient;
+  const loopback = self.FadingFuriganaLoopback;
+  const storageArea = globalThis.chrome?.storage?.local || globalThis.browser?.storage?.local;
+  if (!loopback?.MacLoopbackClient || !storageArea) return null;
+  loopbackClient = new loopback.MacLoopbackClient({ storageArea });
+  return loopbackClient;
+}
 
 function getTokenizer() {
   if (!tokenizerPromise) {
@@ -63,6 +78,19 @@ extensionRuntime.onMessage.addListener((message, _sender, sendResponse) => {
       .catch((error) => {
         sendResponse({ ok: false, error: String(error?.message || error) });
       });
+    return true;
+  }
+
+  if (message?.type === LOOPBACK_MESSAGE_TYPE) {
+    const client = getLoopbackClient();
+    if (!client) {
+      sendResponse({ ok: false, error: "Loopback client is unavailable in the background worker." });
+      return true;
+    }
+    self.FadingFuriganaLoopback
+      .handleLoopbackAction(client, message.action, message.payload)
+      .then((result) => sendResponse({ ok: true, result, status: client.getStatus() }))
+      .catch((error) => sendResponse({ ok: false, error: String(error?.message || error), status: client.getStatus() }));
     return true;
   }
 

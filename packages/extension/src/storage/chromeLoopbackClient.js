@@ -2,6 +2,7 @@
   "use strict";
 
   const LOOPBACK_STATE_KEY = "jrFadingFuriganaLoopback";
+  const LOOPBACK_MESSAGE_TYPE = "FADING_FURIGANA_LOOPBACK";
   const DEFAULT_PORTS = Array.from({ length: 21 }, (_, index) => 57310 + index);
   const DEFAULT_TIMEOUT_MS = 400;
   const MAX_PENDING_BATCHES = 8;
@@ -256,6 +257,111 @@
     return String(input || "").toUpperCase().replace(/[^A-Z0-9]/g, "");
   }
 
+  // Same surface as MacLoopbackClient, but every call is a runtime message to the background
+  // service worker, which owns the one real client. This keeps loopback fetches in the
+  // extension's own context: a content-script fetch carries the page Origin (no chrome-extension
+  // ACAO echo, so it can't read the response and the batch never clears), whereas the worker's
+  // fetch is a first-party extension request.
+  class BackgroundLoopbackClient {
+    constructor({ runtime = window.chrome?.runtime || window.browser?.runtime } = {}) {
+      this.runtime = runtime;
+      // Cached so getStorageStatus() stays synchronous; refreshed from every worker response.
+      this.status = { connected: false, lastSuccessAt: null, lastError: null, port: null };
+    }
+
+    getStatus() {
+      return { ...this.status };
+    }
+
+    enqueueState(state) {
+      return this.send("enqueueState", { state });
+    }
+
+    flushState(state) {
+      return this.send("flushState", { state });
+    }
+
+    flushPending() {
+      return this.send("flushPending", {});
+    }
+
+    pullState(options = {}) {
+      return this.send("pullState", { options });
+    }
+
+    verifyPairing() {
+      return this.send("verifyPairing", {});
+    }
+
+    getToken() {
+      return this.send("getToken", {});
+    }
+
+    setToken(token) {
+      return this.send("setToken", { token });
+    }
+
+    clearToken() {
+      return this.send("clearToken", {});
+    }
+
+    async send(action, payload) {
+      const response = await sendRuntimeMessage(this.runtime, { type: LOOPBACK_MESSAGE_TYPE, action, payload });
+      if (response?.status) this.status = response.status;
+      if (!response?.ok) {
+        throw new Error(response?.error || "Loopback background request failed.");
+      }
+      return response.result;
+    }
+  }
+
+  function sendRuntimeMessage(runtime, message) {
+    return new Promise((resolve, reject) => {
+      if (typeof runtime?.sendMessage !== "function") {
+        reject(new Error("Background messaging is unavailable."));
+        return;
+      }
+      let settled = false;
+      const settle = (handler, value) => {
+        if (settled) return;
+        settled = true;
+        handler(value);
+      };
+      const callback = (response) => {
+        const lastError = window.chrome?.runtime?.lastError || window.browser?.runtime?.lastError;
+        if (lastError) {
+          settle(reject, new Error(lastError.message));
+          return;
+        }
+        settle(resolve, response);
+      };
+      try {
+        const maybePromise = runtime.sendMessage(message, callback);
+        if (maybePromise?.then) {
+          maybePromise.then((response) => settle(resolve, response), (error) => settle(reject, error));
+        }
+      } catch (error) {
+        settle(reject, error);
+      }
+    });
+  }
+
+  // Dispatches one loopback action against the given real client. Shared by the background
+  // service worker so the wire protocol lives next to the proxy that speaks it.
+  function handleLoopbackAction(client, action, payload = {}) {
+    switch (action) {
+      case "enqueueState": return client.enqueueState(payload.state);
+      case "flushState": return client.flushState(payload.state);
+      case "flushPending": return client.flushPending();
+      case "pullState": return client.pullState(payload.options || {});
+      case "verifyPairing": return client.verifyPairing();
+      case "getToken": return client.getToken();
+      case "setToken": return client.setToken(payload.token);
+      case "clearToken": return client.clearToken();
+      default: return Promise.reject(new Error(`Unknown loopback action: ${action}`));
+    }
+  }
+
   function callStorage(storageArea, methodName, payload) {
     return new Promise((resolve, reject) => {
       let settled = false;
@@ -287,7 +393,10 @@
 
   window.FadingFuriganaLoopback = {
     MacLoopbackClient,
+    BackgroundLoopbackClient,
+    handleLoopbackAction,
     LOOPBACK_STATE_KEY,
+    LOOPBACK_MESSAGE_TYPE,
     DEFAULT_PORTS,
     normalizeToken
   };

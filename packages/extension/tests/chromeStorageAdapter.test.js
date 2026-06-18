@@ -87,7 +87,28 @@ const {
   STORAGE_KEY,
   createBestAvailableStorageAdapter
 } = window.FadingFuriganaStorage;
-const { MacLoopbackClient, LOOPBACK_STATE_KEY } = window.FadingFuriganaLoopback;
+const {
+  MacLoopbackClient,
+  BackgroundLoopbackClient,
+  handleLoopbackAction,
+  LOOPBACK_STATE_KEY,
+  LOOPBACK_MESSAGE_TYPE
+} = window.FadingFuriganaLoopback;
+
+// Stands in for the background service worker: dispatches loopback messages to a worker-owned
+// MacLoopbackClient, exactly as background.js does.
+function createWorkerRuntime(workerClient) {
+  const sent = [];
+  const runtime = {
+    sendMessage(message, callback) {
+      sent.push(message);
+      handleLoopbackAction(workerClient, message.action, message.payload)
+        .then((result) => callback({ ok: true, result, status: workerClient.getStatus() }))
+        .catch((error) => callback({ ok: false, error: error.message, status: workerClient.getStatus() }));
+    }
+  };
+  return { runtime, sent };
+}
 const tests = [];
 
 function test(name, fn) {
@@ -681,6 +702,66 @@ test("ChromeStorageAdapter exposes its loopback client; Safari fallback disables
   const safariAdapter = createBestAvailableStorageAdapter();
   assert.equal(safariAdapter instanceof SafariNativeStorageAdapter, true);
   assert.equal(safariAdapter.fallbackAdapter.getLoopbackClient(), null);
+});
+
+test("background loopback proxy routes a flush to the worker-owned client", async () => {
+  const workerStorage = createPromiseChromeStorage();
+  const { fetchImpl, calls } = createServerFetch({ token: "GOODCODE", port: 57312 });
+  const workerClient = new MacLoopbackClient({ storageArea: workerStorage, fetchImpl, ports: [57312], timeoutMs: 5 });
+  await workerClient.setToken("GOODCODE");
+
+  const { runtime } = createWorkerRuntime(workerClient);
+  const proxy = new BackgroundLoopbackClient({ runtime });
+  const state = window.FadingFuriganaState.createDefaultAppState("2026-06-18T00:00:00.000Z");
+  state.lexicalItems["駅:えき"] = { id: "駅:えき", surface: "駅", reading: "えき" };
+
+  const result = await proxy.flushState(state);
+
+  assert.equal(result.ok, true);
+  assert.equal(result.applied, 1);
+  assert.ok(calls.find((call) => call.url.endsWith("/ingest-record-batch")));
+  assert.equal(proxy.getStatus().connected, true); // cached from the worker's response
+});
+
+test("background loopback proxy surfaces verifyPairing results from the worker", async () => {
+  const workerStorage = createPromiseChromeStorage();
+  const { fetchImpl } = createServerFetch({ token: "GOODCODE", port: 57312 });
+  const workerClient = new MacLoopbackClient({ storageArea: workerStorage, fetchImpl, ports: [57312], timeoutMs: 5 });
+  await workerClient.setToken("WRONGCODE");
+
+  const { runtime } = createWorkerRuntime(workerClient);
+  const proxy = new BackgroundLoopbackClient({ runtime });
+
+  const result = await proxy.verifyPairing();
+  assert.equal(result.ok, false);
+  assert.equal(result.reason, "unauthorized");
+});
+
+test("ChromeStorageAdapter routes loopback through the background worker when messaging exists", async () => {
+  setNavigatorVendor("Google Inc.");
+  delete global.browser;
+  const sent = [];
+  global.chrome = {
+    runtime: {
+      sendMessage(message, callback) {
+        sent.push(message);
+        callback({ ok: true, result: { ok: true, applied: 1 }, status: { connected: true, port: 57312 } });
+      }
+    },
+    storage: { local: createPromiseChromeStorage() }
+  };
+  const adapter = new ChromeStorageAdapter(global.chrome.storage.local);
+  assert.equal(adapter.getLoopbackClient() instanceof BackgroundLoopbackClient, true);
+
+  const state = window.FadingFuriganaState.createDefaultAppState("2026-06-18T00:00:00.000Z");
+  state.lexicalItems.routed = { id: "routed" };
+  await adapter.saveState(state);
+  await new Promise((resolve) => setTimeout(resolve, 0));
+
+  const flush = sent.find((message) => message.type === LOOPBACK_MESSAGE_TYPE && message.action === "flushState");
+  assert.ok(flush, "expected a flushState message to the worker");
+  assert.ok(flush.payload.state.lexicalItems.routed);
+  assert.equal(adapter.getStorageStatus().loopback.connected, true);
 });
 
 test("factory falls back to LocalStorageAdapter outside extension context", () => {

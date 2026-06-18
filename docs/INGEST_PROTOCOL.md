@@ -229,6 +229,12 @@ Minimum app -> extension records:
 - Every request validates token, method, path, protocol version, byte size, and record count.
 - The Mac app must add `com.apple.security.network.server`.
 - The extension must keep a durable local queue so app downtime never loses records.
+- All loopback fetches run in the **background service worker** (which owns the one
+  `MacLoopbackClient`); content scripts and the popup proxy to it via `BackgroundLoopbackClient`.
+  A content-script fetch would carry the page Origin — the server applies it (token-gated) but
+  echoes no `Access-Control-Allow-Origin`, so the page can't read the response and the batch
+  never clears. The worker's fetch is a first-party extension request, so it reads the ack and
+  drains the queue.
 
 ### 7.3 Cloud
 
