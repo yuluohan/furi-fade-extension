@@ -28,9 +28,10 @@ jobs:
       - name: Deploy
         uses: cloudflare/wrangler-action@v3
         with:
-          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          apiToken: ${{ secrets.CLOUDFLARE_PAGES_API_TOKEN || secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           wranglerVersion: latest
           workingDirectory: site
+          preCommands: wrangler pages project create "$PAGES_PROJECT_NAME" --production-branch="$GITHUB_REF_NAME" || true
           command: pages deploy . --project-name=${{ env.PAGES_PROJECT_NAME }} --branch=${{ github.ref_name }}
           gitHubToken: ${{ secrets.GITHUB_TOKEN }}
