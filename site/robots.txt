@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://fading-furigana.pages.dev/sitemap.xml
+Sitemap: https://fading-furigana.japanstudylab.com/sitemap.xml

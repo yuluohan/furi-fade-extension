@@ -32,13 +32,13 @@ kuromoji morphological analyzer (Apache-2.0), and IPADIC (NAIST). See
 and/or on the website before public distribution.
 
 Support URL:
-https://fading-furigana.pages.dev/support/
+https://fading-furigana.japanstudylab.com/support/
 
 Marketing URL:
-https://fading-furigana.pages.dev/
+https://fading-furigana.japanstudylab.com/
 
 Privacy Policy URL:
-https://fading-furigana.pages.dev/privacy/
+https://fading-furigana.japanstudylab.com/privacy/
 
 ## App Review Notes
 

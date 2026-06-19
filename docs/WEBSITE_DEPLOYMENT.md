@@ -10,7 +10,16 @@ Default Cloudflare Pages project name:
 fading-furigana
 ```
 
-Expected Pages URLs after deployment:
+Canonical production URLs:
+
+```text
+Marketing URL: https://fading-furigana.japanstudylab.com/
+Privacy Policy URL: https://fading-furigana.japanstudylab.com/privacy/
+Support URL: https://fading-furigana.japanstudylab.com/support/
+Acknowledgements URL: https://fading-furigana.japanstudylab.com/acknowledgements/
+```
+
+Default Cloudflare Pages preview URLs:
 
 ```text
 Marketing URL: https://fading-furigana.pages.dev/
@@ -19,16 +28,7 @@ Support URL: https://fading-furigana.pages.dev/support/
 Acknowledgements URL: https://fading-furigana.pages.dev/acknowledgements/
 ```
 
-If you attach the planned custom domain, the equivalent URLs should be:
-
-```text
-Marketing URL: https://fadingfurigana.japanstudylab.com/
-Privacy Policy URL: https://fadingfurigana.japanstudylab.com/privacy/
-Support URL: https://fadingfurigana.japanstudylab.com/support/
-Acknowledgements URL: https://fadingfurigana.japanstudylab.com/acknowledgements/
-```
-
-Update `site/robots.txt` and `site/sitemap.xml` if the custom domain becomes the canonical production domain.
+`site/robots.txt` and `site/sitemap.xml` use the custom domain as the canonical production domain.
 
 ## One-Time Cloudflare Setup
 
