@@ -1,0 +1,50 @@
+# Website Deployment
+
+The public Fading Furigana website lives in `site/` and is designed for Cloudflare Pages Direct Upload from GitHub Actions.
+
+## Public URLs
+
+Default Cloudflare Pages project name:
+
+```text
+fading-furigana
+```
+
+Expected Pages URLs after deployment:
+
+```text
+Marketing URL: https://fading-furigana.pages.dev/
+Privacy Policy URL: https://fading-furigana.pages.dev/privacy/
+Support URL: https://fading-furigana.pages.dev/support/
+Acknowledgements URL: https://fading-furigana.pages.dev/acknowledgements/
+```
+
+If you attach the planned custom domain, the equivalent URLs should be:
+
+```text
+Marketing URL: https://fadingfurigana.japanstudylab.com/
+Privacy Policy URL: https://fadingfurigana.japanstudylab.com/privacy/
+Support URL: https://fadingfurigana.japanstudylab.com/support/
+Acknowledgements URL: https://fadingfurigana.japanstudylab.com/acknowledgements/
+```
+
+Update `site/robots.txt` and `site/sitemap.xml` if the custom domain becomes the canonical production domain.
+
+## One-Time Cloudflare Setup
+
+Create a Cloudflare Pages project named `fading-furigana`, or set the GitHub repository variable `CLOUDFLARE_PAGES_PROJECT_NAME` to a different project name.
+
+Add these GitHub Actions repository secrets:
+
+```text
+CLOUDFLARE_ACCOUNT_ID
+CLOUDFLARE_API_TOKEN
+```
+
+The API token needs Cloudflare Pages edit permission for the account.
+
+## GitHub Actions
+
+`.github/workflows/deploy-site-cloudflare-pages.yml` deploys `site/` on pushes to `dev` that touch the website files, and can also be run manually with `workflow_dispatch`.
+
+The existing `.github/workflows/deploy-cloudflare.yml` Worker demo deployment is left unchanged.

@@ -1,0 +1,133 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Fading Furigana</title>
+    <meta name="description" content="Fading Furigana adds furigana to Japanese words on web pages and helps you save and review vocabulary locally.">
+    <link rel="icon" href="/assets/fading-furigana.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <header class="site-header">
+      <nav class="nav" aria-label="Main navigation">
+        <a class="brand" href="/" aria-current="page">
+          <img src="/assets/fading-furigana.svg" alt="">
+          <span>Fading Furigana</span>
+        </a>
+        <div class="nav-links">
+          <a href="#how-it-works">How It Works</a>
+          <a href="#privacy-first">Privacy</a>
+          <a href="/support/">Support</a>
+          <a href="/privacy/">Policy</a>
+        </div>
+      </nav>
+    </header>
+
+    <main>
+      <section class="container hero" aria-labelledby="hero-title">
+        <div>
+          <p class="eyebrow">Japanese reading practice, in the page</p>
+          <h1 id="hero-title">Fading Furigana</h1>
+          <p class="lead">Read real Japanese pages with lightweight furigana, save useful words, and review them locally as the hints fade with your progress.</p>
+          <div class="hero-actions">
+            <a class="button primary" href="/support/">Get Support</a>
+            <a class="button" href="/privacy/">Read Privacy Policy</a>
+          </div>
+        </div>
+
+        <div class="reader" aria-label="Fading Furigana annotation preview">
+          <div class="reader-bar" aria-hidden="true">
+            <span class="dot"></span>
+            <span class="dot"></span>
+            <span class="dot"></span>
+          </div>
+          <div class="reader-body">
+            <p class="article-label">Article preview</p>
+            <p class="jp-sample">
+              毎日の<ruby>読書<rt>どくしょ</rt></ruby>で、<ruby>確認<rt>かくにん</rt></ruby>した単語を<ruby>保存<rt>ほぞん</rt></ruby>します。
+            </p>
+            <div class="word-popover">
+              <header>
+                <strong>確認</strong>
+                <span class="status">Saved</span>
+              </header>
+              <p>かくにん · confirmation, checking. Mark it Known, Forgot, Ignore, or Pin from the learning app.</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="how-it-works">
+        <div class="container">
+          <div class="section-intro">
+            <h2>Learn From The Pages You Already Read</h2>
+            <p>Fading Furigana is a browser extension plus learning app system for Japanese learners who want vocabulary practice to stay close to real reading.</p>
+          </div>
+          <div class="grid">
+            <article class="card">
+              <span class="number">1</span>
+              <h3>Annotate Japanese Text</h3>
+              <p>The extension scans webpage text locally and adds furigana to words it recognizes, while skipping forms, code blocks, and editable areas.</p>
+            </article>
+            <article class="card">
+              <span class="number">2</span>
+              <h3>Save Useful Words</h3>
+              <p>Click an annotated word to check its reading and meaning, then save it for review or mark it as known, forgotten, ignored, or pinned.</p>
+            </article>
+            <article class="card">
+              <span class="number">3</span>
+              <h3>Review Locally</h3>
+              <p>The Mac learning app keeps your library, daily review, activity, privacy choices, and storage health on the same device.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="privacy-first">
+        <div class="container split">
+          <div class="section-intro">
+            <h2>Local-First By Default</h2>
+            <p>Annotation and Basic local learning do not require an account. Cross-device sync and cloud backup are not part of the Basic MVP.</p>
+          </div>
+          <ul class="feature-list">
+            <li><span class="check">✓</span><span>Webpage text is processed locally so the extension can add furigana.</span></li>
+            <li><span class="check">✓</span><span>Saved vocabulary, review history, settings, and entitlement state are stored on your device.</span></li>
+            <li><span class="check">✓</span><span>Page URL retention can be set to off, domain only, or full URL.</span></li>
+            <li><span class="check">✓</span><span>Learning data is not sold and is not used for advertising.</span></li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container split">
+          <div class="section-intro">
+            <h2>App Store Links</h2>
+            <p>Use these public pages for App Store Connect metadata while the product website is hosted on Cloudflare Pages.</p>
+          </div>
+          <div class="support-grid">
+            <article class="card">
+              <h3>Privacy Policy URL</h3>
+              <p><a href="/privacy/">/privacy/</a></p>
+            </article>
+            <article class="card">
+              <h3>Support URL</h3>
+              <p><a href="/support/">/support/</a></p>
+            </article>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-inner">
+        <span>© 2026 Japan Study Lab. Fading Furigana.</span>
+        <div class="footer-links">
+          <a href="/privacy/">Privacy</a>
+          <a href="/support/">Support</a>
+          <a href="/acknowledgements/">Acknowledgements</a>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

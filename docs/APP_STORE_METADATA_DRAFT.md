@@ -32,13 +32,13 @@ kuromoji morphological analyzer (Apache-2.0), and IPADIC (NAIST). See
 and/or on the website before public distribution.
 
 Support URL:
-TODO: public support URL.
+https://fading-furigana.pages.dev/support/
 
 Marketing URL:
-TODO: public product URL.
+https://fading-furigana.pages.dev/
 
 Privacy Policy URL:
-TODO: public privacy policy URL.
+https://fading-furigana.pages.dev/privacy/
 
 ## App Review Notes
 
