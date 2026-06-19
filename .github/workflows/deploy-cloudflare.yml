@@ -4,6 +4,10 @@ on:
   push:
     branches:
       - dev
+    paths:
+      - "server/**"
+      - "packages/extension/**"
+      - ".github/workflows/deploy-cloudflare.yml"
   workflow_dispatch:
 
 jobs:

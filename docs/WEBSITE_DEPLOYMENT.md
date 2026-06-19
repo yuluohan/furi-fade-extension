@@ -41,7 +41,7 @@ CLOUDFLARE_ACCOUNT_ID
 CLOUDFLARE_API_TOKEN
 ```
 
-The API token needs Cloudflare Pages edit permission for the account.
+The API token needs `Account > Cloudflare Pages > Edit` permission for the account. A token that only deploys Workers will fail the website workflow with `Authentication error [code: 10000]`.
 
 ## GitHub Actions
 
